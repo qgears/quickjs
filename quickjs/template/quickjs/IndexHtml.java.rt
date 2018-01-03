@@ -34,7 +34,6 @@
 <script type="text/javascript">
 inputhandler=function(event)
 {
-	console.info("target: "+event.target.id+" "+event.target.value);
 	var xhr = new XMLHttpRequest();
 	xhr.responseType = "text";
 	xhr.onreadystatechange = function() {
