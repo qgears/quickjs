@@ -13,7 +13,7 @@ http://rizsi.com/quickjs/quickjs.jar
 
 Usage: java -jar quickjs.jar
 
-The program opens the 127.0.0.1:8888. Launch browser: http://127.0.0.1:888/
+The program opens the 127.0.0.1:8888. Launch browser: http://127.0.0.1:8888/
 
 ## Details
 
