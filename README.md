@@ -22,4 +22,4 @@ The program opens the 127.0.0.1:8888. Launch browser: http://127.0.0.1:8888/
 
 * Folder can be imported as an Eclipse project
 * Runs embedded Jetty server
-* Uses rtemplate for efficient and programmer friendly HTML and JS generation
+* Uses rtemplate for efficient and programmer friendly HTML and JS generation. https://github.com/qgears/rtemplate
