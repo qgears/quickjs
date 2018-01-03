@@ -25,11 +25,11 @@
 ////
 ////	private void generateResponse() throws IOException {
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
 
-<title>Example minimal we server</title>
+<title>Example minimal web server</title>
 
 <script type="text/javascript">
 inputhandler=function(event)
