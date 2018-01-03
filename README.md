@@ -7,7 +7,7 @@ This is not a real program just a technology demo to demonstrate a minimal laten
 
 Input fields are not validated and escaped.
 
-## Executable download
+## Executable download and launch
 
 http://rizsi.com/quickjs/quickjs.jar
 
