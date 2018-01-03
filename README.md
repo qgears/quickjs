@@ -1,5 +1,8 @@
 # quickjs
-Example minimal embedded Jetty+JS client
+
+Example minimal embedded Jetty+JS client.
+
+The values of the input fields are sent to the server on each change. The bottom part is refreshed through the server.
 
 ## Disclaimer
 
