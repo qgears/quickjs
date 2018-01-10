@@ -66,6 +66,7 @@
 <button id="dispose">Dispose page</button>
 <br/>
 <div id="mylabel">static content</div>
+The time is updated using server push:
 <div id="counter">static content</div>
 ////	}
 ////}

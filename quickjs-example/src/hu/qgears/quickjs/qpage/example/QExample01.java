@@ -55,6 +55,6 @@ public class QExample01 extends AbstractQPage
 	 */
 	@Override
 	protected void writeBody() {
-		write("<h1>QPage example page</h1>\n<a href=\"/\">Back to index</a><br/>\n\n<h2>Text editor with feedback</h2>\n\n<textarea id=\"texted\" rows=\"5\" cols=\"150\"></textarea>\n<br/>\n<button id=\"submit\">Clear textbox</button>\n<button id=\"dispose\">Dispose page</button>\n<br/>\n<div id=\"mylabel\">static content</div>\n<div id=\"counter\">static content</div>\n");
+		write("<h1>QPage example page</h1>\n<a href=\"/\">Back to index</a><br/>\n\n<h2>Text editor with feedback</h2>\n\n<textarea id=\"texted\" rows=\"5\" cols=\"150\"></textarea>\n<br/>\n<button id=\"submit\">Clear textbox</button>\n<button id=\"dispose\">Dispose page</button>\n<br/>\n<div id=\"mylabel\">static content</div>\nThe time is updated using server push:\n<div id=\"counter\">static content</div>\n");
 	}
 }
