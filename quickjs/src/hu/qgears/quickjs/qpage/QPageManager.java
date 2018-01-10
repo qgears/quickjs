@@ -1,17 +1,12 @@
 package hu.qgears.quickjs.qpage;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpSessionEvent;
-import javax.servlet.http.HttpSessionListener;
-
-import org.eclipse.jetty.server.Request;
-
 public class QPageManager {
-	private static Object syncObject=new Object();
 	private Map<String, QPage> pages=new HashMap<>();
 	public static Timer disposeTimer=new Timer("QPage dispose timer");
 	private int idCtr=0;
@@ -21,19 +16,7 @@ public class QPageManager {
 	 * It does not help from attacks like stealing of sessions. The session manager must do that task.
 	 */
 	private String salt=""+System.currentTimeMillis();
-	public static QPageManager getManager(HttpSession sess) {
-		synchronized (syncObject) {
-			QPageManager manager=(QPageManager)sess.getAttribute(QPageManager.class.getSimpleName());
-			if(manager==null)
-			{
-				manager=new QPageManager();
-				sess.setAttribute(QPageManager.class.getSimpleName(), manager);
-			}
-			return manager;
-		}
-	}
-	public QPage getPage(Request baseRequest) {
-		String id=baseRequest.getParameter(QPage.class.getSimpleName());
+	public QPage getPage(String id) {
 		synchronized (pages) {
 			return pages.get(id); 
 		}
@@ -48,34 +31,20 @@ public class QPageManager {
 			pages.put(identifier, qPage);
 		}
 	}
-	public static HttpSessionListener createSessionListener()
-	{
-		return new HttpSessionListener() {
-			
-			@Override
-			public void sessionDestroyed(HttpSessionEvent se) {
-				QPageManager manager;
-				synchronized (syncObject) {
-					manager=(QPageManager)se.getSession().getAttribute(QPageManager.class.getSimpleName());
-				}
-				if(manager!=null)
-				{
-					manager.dispose();
-				}
-				System.out.println("Session diposed!");
-			}
-			
-			@Override
-			public void sessionCreated(HttpSessionEvent se) {
-				System.out.println("Session created!");
-			}
-		};
-	}
-	protected void dispose() {
-		for(QPage p: pages.values())
+	public void dispose() {
+		List<QPage> toDispose;
+		synchronized (pages) {
+			toDispose=new ArrayList<>(pages.values());
+			pages.clear();
+		}
+		for(QPage p: toDispose)
 		{
 			p.dispose();
 		}
-		pages.clear();
+	}
+	public void remove(QPage qPage) {
+		synchronized (pages) {
+			pages.remove(qPage.getId());
+		}
 	}
 }

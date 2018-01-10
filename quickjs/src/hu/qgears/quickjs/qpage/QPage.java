@@ -10,7 +10,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import hu.qgears.commons.signal.SignalFutureWrapper;
-import hu.qgears.quickjs.utils.InMemoryPost;
 
 /**
  * @author rizsi
@@ -26,6 +25,7 @@ public class QPage implements Closeable {
 	private int serverstateindex = 0;
 	private HtmlTemplate currentTemplate;
 	public boolean inited;
+	private final QPageManager qpm;
 	private static long TIMEOUT_POLL=15000;
 	private static long TIMEOUT_DISPOSE=TIMEOUT_POLL*2;
 	private LinkedBlockingQueue<Runnable> tasks=new LinkedBlockingQueue<>();
@@ -53,11 +53,11 @@ public class QPage implements Closeable {
 
 	class Message {
 		HtmlTemplate parent;
-		InMemoryPost post;
+		IInMemoryPost post;
 		int index;
 		boolean outOfOrder=false;
 
-		public Message(HtmlTemplate parent, InMemoryPost post) throws NumberFormatException, IOException {
+		public Message(HtmlTemplate parent, IInMemoryPost post) throws NumberFormatException, IOException {
 			super();
 			this.parent = parent;
 			this.post = post;
@@ -106,6 +106,7 @@ public class QPage implements Closeable {
 	}
 	private TimerTask disposeTimer;
 	public QPage(QPageManager qpm) {
+		this.qpm=qpm;
 		identifier = qpm.createId();
 		qpm.register(identifier, this);
 		reinitDisposeTimer();
@@ -149,7 +150,7 @@ public class QPage implements Closeable {
 		QSelectFastScroll.generateHeader(parent);
 	}
 
-	public boolean handle(HtmlTemplate parent, InMemoryPost post) throws IOException {
+	public boolean handle(HtmlTemplate parent, IInMemoryPost post) throws IOException {
 		if(!active)
 		{
 			new HtmlTemplate(parent)
@@ -247,6 +248,7 @@ public class QPage implements Closeable {
 	public void dispose() {
 		active=false;
 		disposedEvent.ready(this, null);
+		qpm.remove(this);
 		if(currentTemplate!=null)
 		{
 			generateDisposeJSCall();
@@ -271,6 +273,10 @@ public class QPage implements Closeable {
 
 	public boolean isThread() {
 		return Thread.currentThread()==thread;
+	}
+
+	public String getId() {
+		return identifier;
 	}
 
 }

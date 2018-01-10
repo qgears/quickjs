@@ -3,7 +3,6 @@
 ////import java.io.IOException;
 ////
 ////import hu.qgears.commons.UtilEventListener;
-////import hu.qgears.quickjs.utils.InMemoryPost;
 ////
 ////public class QTextEditor extends QComponent
 ////{
@@ -81,7 +80,7 @@ class QTextEditor extends QComponent
 ////		}.generate();		
 ////	}
 ////
-////	public void handle(HtmlTemplate parent, InMemoryPost post) throws IOException {
+////	public void handle(HtmlTemplate parent, IInMemoryPost post) throws IOException {
 ////		text.setPropertyFromClient(post.getParameter("text"));
 ////	}
 ////

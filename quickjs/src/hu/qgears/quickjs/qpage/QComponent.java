@@ -3,8 +3,6 @@ package hu.qgears.quickjs.qpage;
 import java.io.IOException;
 import java.io.Writer;
 
-import hu.qgears.quickjs.utils.InMemoryPost;
-
 public abstract class QComponent extends HtmlTemplate
 {
 
@@ -23,7 +21,7 @@ public abstract class QComponent extends HtmlTemplate
 
 	abstract public void init(HtmlTemplate parent);
 
-	abstract public void handle(HtmlTemplate parent, InMemoryPost post) throws IOException;
+	abstract public void handle(HtmlTemplate parent, IInMemoryPost post) throws IOException;
 
 	final public String getId() {
 		return id;

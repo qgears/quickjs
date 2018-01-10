@@ -8,6 +8,9 @@ import org.apache.commons.lang.StringEscapeUtils;
 public class HtmlTemplate {
 	protected Writer out;
 
+	public HtmlTemplate()
+	{
+	}
 	public HtmlTemplate(HtmlTemplate parent) {
 		this.out=parent.out;
 	}

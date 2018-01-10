@@ -1,0 +1,88 @@
+////package quickjs;
+////
+////import java.io.IOException;
+////import java.io.OutputStreamWriter;
+////import java.io.Writer;
+////import java.nio.charset.StandardCharsets;
+////
+////import javax.servlet.http.HttpServletRequest;
+////import javax.servlet.http.HttpServletResponse;
+////
+////import org.eclipse.jetty.server.Request;
+////
+////import hu.qgears.quickjs.qpage.HtmlTemplate;
+////
+////public class IndexHtml extends HtmlTemplate
+////{
+////	public void serve(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
+////		response.setContentType("text/html");
+////		response.setCharacterEncoding("UTF-8");
+////		Writer wr=new OutputStreamWriter(response.getOutputStream(), StandardCharsets.UTF_8);
+////		setWriter(wr);
+////		generateResponse();
+////		wr.close();
+////		response.setStatus(HttpServletResponse.SC_OK);
+////		baseRequest.setHandled(true);
+////	}
+////
+////	private void generateResponse() throws IOException {
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+
+<title>Example minimal web server</title>
+
+
+<script type="text/javascript">
+inputhandler=function(event)
+{
+	var xhr = new XMLHttpRequest();
+	xhr.responseType = "text";
+	xhr.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+			document.getElementById("responseDiv").innerHTML=this.responseText;
+		}
+	}.bind(xhr);
+	var url="query?id=id";
+	var inputs = document.getElementsByTagName('input');
+	for (var index = 0; index < inputs.length; ++index) {
+		var i=inputs[index];
+		url=url+"&"+i.id+"="+encodeURIComponent(i.value);
+	}
+	xhr.open("POST",url);
+	xhr.send();
+}
+window.onload = function(e){ 
+	var inputs, index;
+	
+	inputs = document.getElementsByTagName('input');
+	for (index = 0; index < inputs.length; ++index) {
+		var i=inputs[index];
+		i.onchange = inputhandler;
+		i.onkeypress=inputhandler;
+		i.onpaste=inputhandler;
+		i.oninput=inputhandler;
+	}
+}
+</script>
+
+</head>
+
+
+<h1>Example minimal Web server</h1>
+<a href="/">Back to index</a><br/>
+
+<table>
+////		for(int i=0;i<11;++i){
+<tr>
+<td>Line #Oi# row 1: <input type="text" id="input-#Oi#-1" name="input-#Oi#-1"></td>
+<td>Line #Oi# row 2: <input id="input-#Oi#-2"></td>
+</tr>
+////		}
+</table>
+<div id="responseDiv"></div>
+
+</html>
+////	}
+////}

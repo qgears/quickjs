@@ -3,7 +3,6 @@ package hu.qgears.quickjs.qpage;
 import java.io.IOException;
 
 import hu.qgears.commons.UtilEvent;
-import hu.qgears.quickjs.utils.InMemoryPost;
 
 public class QButton extends QComponent
 {
@@ -33,7 +32,7 @@ public class QButton extends QComponent
 		}.generate();		
 	}
 
-	public void handle(HtmlTemplate parent, InMemoryPost post) throws IOException {
+	public void handle(HtmlTemplate parent, IInMemoryPost post) throws IOException {
 		clicked.eventHappened(this);
 	}
 

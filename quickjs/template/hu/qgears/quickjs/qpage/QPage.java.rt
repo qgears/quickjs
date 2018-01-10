@@ -10,7 +10,6 @@
 ////import java.util.concurrent.TimeoutException;
 ////
 ////import hu.qgears.commons.signal.SignalFutureWrapper;
-////import hu.qgears.quickjs.utils.InMemoryPost;
 ////
 /////**
 //// * @author rizsi
@@ -26,6 +25,7 @@
 ////	private int serverstateindex = 0;
 ////	private HtmlTemplate currentTemplate;
 ////	public boolean inited;
+////	private final QPageManager qpm;
 ////	private static long TIMEOUT_POLL=15000;
 ////	private static long TIMEOUT_DISPOSE=TIMEOUT_POLL*2;
 ////	private LinkedBlockingQueue<Runnable> tasks=new LinkedBlockingQueue<>();
@@ -53,11 +53,11 @@ page.processServerMessage(#Oserverstateindex#,function(page)
 ////
 ////	class Message {
 ////		HtmlTemplate parent;
-////		InMemoryPost post;
+////		IInMemoryPost post;
 ////		int index;
 ////		boolean outOfOrder=false;
 ////
-////		public Message(HtmlTemplate parent, InMemoryPost post) throws NumberFormatException, IOException {
+////		public Message(HtmlTemplate parent, IInMemoryPost post) throws NumberFormatException, IOException {
 ////			super();
 ////			this.parent = parent;
 ////			this.post = post;
@@ -106,6 +106,7 @@ page.processServerMessage(#Oserverstateindex#,function(page)
 ////	}
 ////	private TimerTask disposeTimer;
 ////	public QPage(QPageManager qpm) {
+////		this.qpm=qpm;
 ////		identifier = qpm.createId();
 ////		qpm.register(identifier, this);
 ////		reinitDisposeTimer();
@@ -295,7 +296,7 @@ window.addEventListener("beforeunload", function(){
 ////		QSelectFastScroll.generateHeader(parent);
 ////	}
 ////
-////	public boolean handle(HtmlTemplate parent, InMemoryPost post) throws IOException {
+////	public boolean handle(HtmlTemplate parent, IInMemoryPost post) throws IOException {
 ////		if(!active)
 ////		{
 ////			new HtmlTemplate(parent)
@@ -393,6 +394,7 @@ page.dispose("Server side compontent is already disposed.");
 ////	public void dispose() {
 ////		active=false;
 ////		disposedEvent.ready(this, null);
+////		qpm.remove(this);
 ////		if(currentTemplate!=null)
 ////		{
 ////			generateDisposeJSCall();
@@ -416,6 +418,10 @@ page.dispose("Server object disposed.")////			}
 ////
 ////	public boolean isThread() {
 ////		return Thread.currentThread()==thread;
+////	}
+////
+////	public String getId() {
+////		return identifier;
 ////	}
 ////
 ////}

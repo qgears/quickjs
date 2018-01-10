@@ -6,7 +6,6 @@ import java.util.List;
 
 import hu.qgears.commons.UtilComma;
 import hu.qgears.commons.UtilEventListener;
-import hu.qgears.quickjs.utils.InMemoryPost;
 
 abstract public class QSelect extends QComponent {
 
@@ -86,7 +85,7 @@ abstract public class QSelect extends QComponent {
 	}
 
 	@Override
-	final public void handle(HtmlTemplate parent, InMemoryPost post) throws IOException {
+	final public void handle(HtmlTemplate parent, IInMemoryPost post) throws IOException {
 		setWriter(parent.getWriter());
 		try {
 			selected.setPropertyFromClient(Integer.parseInt(post.getParameter("selected")));
