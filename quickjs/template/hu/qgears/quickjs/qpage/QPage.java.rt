@@ -1,0 +1,421 @@
+////package hu.qgears.quickjs.qpage;
+////
+////import java.io.Closeable;
+////import java.io.IOException;
+////import java.util.HashMap;
+////import java.util.Map;
+////import java.util.TimerTask;
+////import java.util.concurrent.LinkedBlockingQueue;
+////import java.util.concurrent.TimeUnit;
+////import java.util.concurrent.TimeoutException;
+////
+////import hu.qgears.commons.signal.SignalFutureWrapper;
+////import hu.qgears.quickjs.utils.InMemoryPost;
+////
+/////**
+//// * @author rizsi
+//// *
+//// */
+////public class QPage implements Closeable {
+////	public static String idAttribute = QPage.class.getSimpleName();
+////	private String identifier = "id";
+////	private volatile boolean active = true;
+////	private Map<String, QComponent> components = new HashMap<>();
+////	private Object syncObject = new Object();
+////	private int currentMessageIndex = 0;
+////	private int serverstateindex = 0;
+////	private HtmlTemplate currentTemplate;
+////	public boolean inited;
+////	private static long TIMEOUT_POLL=15000;
+////	private static long TIMEOUT_DISPOSE=TIMEOUT_POLL*2;
+////	private LinkedBlockingQueue<Runnable> tasks=new LinkedBlockingQueue<>();
+////	public final SignalFutureWrapper<QPage> disposedEvent=new SignalFutureWrapper<>();
+////	private volatile Thread thread;
+////	
+////	class MessageFramingTemplate extends HtmlTemplate {
+////
+////		public MessageFramingTemplate(HtmlTemplate parent) {
+////			super(parent);
+////		}
+////
+////		public void openMessage() {
+page.processServerMessage(#Oserverstateindex#,function(page)
+{
+	page.resetDisposeTimeout();
+////			serverstateindex++;
+////		}
+////
+////		public void closeMessage() {
+});
+////		}
+////
+////	}
+////
+////	class Message {
+////		HtmlTemplate parent;
+////		InMemoryPost post;
+////		int index;
+////		boolean outOfOrder=false;
+////
+////		public Message(HtmlTemplate parent, InMemoryPost post) throws NumberFormatException, IOException {
+////			super();
+////			this.parent = parent;
+////			this.post = post;
+////			index = Integer.parseInt(post.getParameter("messageindex"));
+////		}
+////		public Message(HtmlTemplate parent, boolean outOfOrder) throws NumberFormatException, IOException {
+////			super();
+////			this.parent = parent;
+////			this.outOfOrder=outOfOrder;
+////		}
+////		protected void executeTask() throws IOException
+////		{
+////			String cid = post.getParameter("component");
+////			QComponent ed = components.get(cid);
+////			ed.handle(parent, post);
+////		}
+////
+////		public void executeOnThread() throws Exception {
+////			long t = System.currentTimeMillis();
+////			synchronized (syncObject) {
+////				// Proper ordering of messages!
+////				if(!outOfOrder)
+////				{
+////					while (index != currentMessageIndex) {
+////						syncObject.wait(10000);
+////						if (System.currentTimeMillis() > t + 10000) {
+////							// TODO crash the client! User feedback of internal
+////							// error!
+////							throw new TimeoutException();
+////						}
+////					}
+////					currentMessageIndex++;
+////				}
+////				MessageFramingTemplate msft = new MessageFramingTemplate(parent);
+////				thread=Thread.currentThread();
+////				currentTemplate=parent;
+////				msft.openMessage();
+////				executeTask();
+////				currentTemplate=null;
+////				msft.closeMessage();
+////				syncObject.notifyAll();
+////				reinitDisposeTimer();
+////				thread=null;
+////			}
+////		}
+////	}
+////	private TimerTask disposeTimer;
+////	public QPage(QPageManager qpm) {
+////		identifier = qpm.createId();
+////		qpm.register(identifier, this);
+////		reinitDisposeTimer();
+////	}
+////
+////	private void reinitDisposeTimer() {
+////		if(disposeTimer!=null)
+////		{
+////			disposeTimer.cancel();
+////			disposeTimer=null;
+////		}
+////		disposeTimer=new TimerTask() {
+////			
+////			@Override
+////			public void run() {
+////				dispose();
+////			}
+////		};
+////		QPageManager.disposeTimer.schedule(disposeTimer, TIMEOUT_DISPOSE);
+////	}
+////
+////	public void writeHeaders(final HtmlTemplate parent) {
+////		new HtmlTemplate(parent) {
+////			public void generate() {
+<script language="javascript" type="text/javascript">
+
+class QPage
+{
+	constructor()
+	{
+		this.messageindex=0;
+		this.serverstateindex=0;
+		this.waitingMessages={};
+		this.components={};
+		this.disposed=false;
+	}
+	/** Register an on dispose callback to show a different page disposed UI than the default implementation. */
+	setDisposeCallback(disposeCallback)
+	{
+		this.disposeCallback=disposeCallback;
+	}
+	processServerMessage(serverstate, message)
+	{
+		if(serverstate==this.serverstateindex)
+		{
+			message(this);
+			this.serverstateindex++;
+			while(this.waitingMessages[this.serverstateindex])
+			{
+				this.waitingMessages[this.serverstateindex](this);
+				delete this.waitingMessages[this.serverstateindex];
+				this.serverstateindex++;
+			}
+		}else
+		{
+			this.waitingMessages[serverstate]=message;
+			// TODO out of order server message - init timeout until which it must be processed
+		}
+	}
+	start()
+	{
+		this.query();
+	}
+	query()
+	{
+		var FD = new FormData();
+		FD.append("periodic", "true");		
+		this.sendPure(FD);
+	}
+	createFormData(component)
+	{
+		var FD = new FormData();
+		FD.append("component", component.identifier);
+		return FD;
+	}
+	sendPure(FD)
+	{
+		if(!this.disposed)
+		{
+			var xhr = new XMLHttpRequest();
+			xhr.qpage=this;
+			xhr.responseType = "text";
+			xhr.onreadystatechange = function() {
+				if (this.readyState == 4) {
+					if(this.status == 200)
+					{
+						var page=this.qpage;
+						eval(this.responseText);
+					}
+					else
+					{
+						this.qpage.dispose("Server communication XHR fault. Status code: "+this.status);
+					}
+				}
+			}.bind(xhr);
+			xhr.open("POST",'?QPage=#Oidentifier#');
+			xhr.send(FD);
+		}
+	}
+	beforeUnload()
+	{
+		var FD = new FormData();
+		FD.append("unload", "true");		
+		this.sendPure(FD);
+	}
+	send(FD)
+	{
+		FD.append("messageindex", this.messageindex);
+		this.messageindex++;
+		this.sendPure(FD);
+	}
+	resetDisposeTimeout()
+	{
+		if(this.disposeTimeout)
+		{
+			clearTimeout(this.disposeTimeout);
+		}
+		this.disposeTimeout=setTimeout(this.disposeByTimeout.bind(this), #OTIMEOUT_DISPOSE#);
+	}
+	disposeByTimeout()
+	{
+		this.dispose("Timeout of server communication loop.");
+	}
+	dispose(causeMsg)
+	{
+		console.info("QPage disposed: "+causeMsg);
+		// Multiple dispose calls are possible (invalid XHR response+timer) but only show dispose UI once.
+		if(!this.disposed)
+		{
+			this.disposed=true;
+			if(this.disposeCallback)
+			{
+				this.disposeCallback(this, causeMsg);
+			}else
+			{
+				var body=document.body;
+				var div = document.createElement("div");
+				div.style.top = "0%";
+				div.style.left = "0%";
+				div.style.width = "100%";
+				div.style.height = "100%";
+				div.style.position = "absolute";
+				div.style.color = "white";
+				div.style.display="block";
+				div.style.zIndex=1001;
+				div.style.backgroundColor="rgba(0,0,0,.8)";
+				div.innerHTML = "Page is disposed. Cause: "+causeMsg;
+				body.appendChild(div);
+			}
+		}
+	}
+}
+class QComponent
+{
+	constructor(page, identifier)
+	{
+		this.page=page;
+		page.components[identifier]=this;
+		this.identifier=identifier;
+		this.dom=document.getElementById(identifier);
+		if(!this.dom)
+		{
+			console.error("Dom object missing: '"+identifier+"'");
+		}
+		this.addDomListeners();
+	}
+}
+globalQPage=new QPage();
+window.addEventListener("load", function(){
+	var page=this;
+////				for (QComponent c : components.values()) {
+////					c.init(parent);
+////				}
+	page.start();
+}.bind(globalQPage), false);
+window.addEventListener("beforeunload", function(){
+	this.beforeUnload();
+}.bind(globalQPage), false);
+</script>
+////				inited=true;
+////			}
+////		}.generate();
+////		QButton.generateHeader(parent);
+////		QTextEditor.generateHeader(parent);
+////		QLabel.generateHeader(parent);
+////		QSelectCombo.generateHeader(parent);
+////		QSelectFastScroll.generateHeader(parent);
+////	}
+////
+////	public boolean handle(HtmlTemplate parent, InMemoryPost post) throws IOException {
+////		if(!active)
+////		{
+////			new HtmlTemplate(parent)
+////			{
+////				public void generate() {
+page.dispose("Server side compontent is already disposed.");
+////				}
+////			}.generate();
+////		}else
+////		{
+////			if ("true".equals(post.getParameter("periodic"))) {
+////				handlePeriodicQuery(parent);
+////				return true;
+////			}
+////			if ("true".equals(post.getParameter("unload"))) {
+////				handleUnloadQuery(parent);
+////				return true;
+////			}
+////			Message m = new Message(parent, post);
+////			try {
+////				m.executeOnThread();
+////			} catch (Exception e) {
+////				throw new IOException(e);
+////			}
+////		}
+////		return true;
+////	}
+////	private void handleUnloadQuery(HtmlTemplate parent) {
+////		dispose();
+////	}
+////
+////	public void submitToUI(Runnable r) {
+////		if(!disposedEvent.isDone())
+////		{
+////			tasks.add(r);
+////		}
+////	}
+////
+////	private void handlePeriodicQuery(HtmlTemplate parent) {
+////		try {
+////			final Runnable task=tasks.poll(TIMEOUT_POLL, TimeUnit.MILLISECONDS);
+////			new Message(parent, true)
+////			{
+////				protected void executeTask() throws IOException {
+////					try{
+////						if(task!=null)
+////						{
+////							task.run();
+////						}
+////						while(!tasks.isEmpty())
+////						{
+////							Runnable t=tasks.poll();
+////							t.run();
+////						}
+////					}catch(Exception e)
+////					{
+////						// TODO
+////						e.printStackTrace();
+////					}
+////					if (active) {
+////						parent.write("page.query();\n");
+////					}
+////				};
+////			}.executeOnThread();
+////		} catch (Exception e) {
+////			// TODO Auto-generated catch block
+////			e.printStackTrace();
+////		}
+//////		new HtmlTemplate(parent) {
+//////			public void generate() {
+//////				write("console.info(\"Hello QPage reply! \"+page);\n");
+//////				if (active) {
+//////					write("page.query();\n");
+//////				}
+//////			}
+//////		}.generate();
+////	}
+////
+////	@Override
+////	public void close() {
+////		active = false;
+////	}
+////
+////	public void add(QComponent qTextEditor) {
+////		components.put(qTextEditor.getId(), qTextEditor);
+////	}
+////
+////	public HtmlTemplate getCurrentTemplate() {
+////		return currentTemplate;
+////	}
+////
+////	/**
+////	 * Dispose is called on the session dispose event from the Web Servers thread.
+////	 */
+////	public void dispose() {
+////		active=false;
+////		disposedEvent.ready(this, null);
+////		if(currentTemplate!=null)
+////		{
+////			generateDisposeJSCall();
+////		}else
+////		{
+////			submitToUI(new Runnable() {
+////				@Override
+////				public void run() {
+////				}
+////			});
+////		}
+////	}
+////
+////	private void generateDisposeJSCall() {
+////		new HtmlTemplate(currentTemplate)
+////		{
+////			public void generate() {
+page.dispose("Server object disposed.")////			}	
+////		}.generate();
+////	}
+////
+////	public boolean isThread() {
+////		return Thread.currentThread()==thread;
+////	}
+////
+////}

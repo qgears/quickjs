@@ -1,0 +1,81 @@
+////package hu.qgears.quickjs.qpage;
+////
+////import java.io.IOException;
+////
+////import hu.qgears.commons.UtilEventListener;
+////import hu.qgears.quickjs.utils.InMemoryPost;
+////
+////public class QLabel extends QComponent
+////{
+////	public final QProperty<String> innerhtml=new QProperty<>();
+////	public QLabel(QPage page, String identifier) {
+////		super(page, identifier);
+////		innerhtml.serverChangedEvent.addListener(new UtilEventListener<String>() {
+////			
+////			@Override
+////			public void eventHappened(String msg) {
+////				textChanged(msg);
+////			}
+////		});
+////	}
+////
+////	public static void generateHeader(HtmlTemplate parent)
+////	{
+////		new HtmlTemplate(parent){
+////
+////			public void generate() {
+<script language="javascript" type="text/javascript">
+class QLabel extends QComponent
+{
+	addDomListeners()
+	{
+	}
+	initValue(text)
+	{
+		this.dom.innerHTML=text;
+	}
+}
+</script>
+////			}
+////			
+////		}.generate();
+////	}
+////
+////	public void generateExampleHtmlObject(HtmlTemplate parent) {
+////		new HtmlTemplate(parent){
+////
+////			public void generate() {
+<div id="#Oid#"></div>
+////			}
+////			
+////		}.generate();		
+////	}
+////
+////	public void handle(HtmlTemplate parent, InMemoryPost post) throws IOException {
+////	}
+////
+////	@Override
+////	public void init(HtmlTemplate parent) {
+////		new HtmlTemplate(parent)
+////		{
+////
+////			public void generate() {
+	new QLabel(page, "#Oid#").initValue("////				writeJSValue(innerhtml.getProperty());
+");
+////			}
+////			
+////		}.generate();
+////	}
+////	protected void textChanged(final String msg) {
+////		if(page.inited)
+////		{
+////			new ChangeTemplate(page.getCurrentTemplate()){
+////				public void generate() {
+page.components['////					writeJSValue(id);
+'].initValue("////					writeJSValue(msg);
+");
+////				}
+////			}.generate();
+////		}
+////	}
+////}
