@@ -39,11 +39,11 @@ public class QExample01 extends AbstractQPage
 		textEd.text.clientChangedEvent.addListener(msg->l.innerhtml.setPropertyFromServer(StringEscapeUtils.escapeHtml(msg)));
 		
 		// Create a label that is updated by a server side thread periodically. (To demonstrate server push feature.)
-		// Events that are coming from non UI scope (other threads) have to be submitted to the UI thread as in the example.
 		final QLabel counter=new QLabel(page, "counter");
 		counter.innerhtml.setPropertyFromServer("");
 		
 		// Timer task that passes execution to the UI executor to update the label to current time
+		// Events that are coming from non UI scope (other threads) have to be submitted to the UI thread as in the example.
 		QTimerTask tt=new QTimerTask(()->counter.getPage().submitToUI(()->counter.innerhtml.setPropertyFromServer(df.format(new Date()))));
 		timer.schedule(tt, 1000, 1000);
 		
@@ -51,7 +51,7 @@ public class QExample01 extends AbstractQPage
 		page.disposedEvent.addOnReadyHandler(p->{tt.cancel(); System.out.println("Page disposed.");});
 	}
 	/**
-	 * See the rtemplate version of this file: https://github.com/rizsi/quickjs/blob/master/quickjs-example/template/hu/qgears/quickjs/qpage/example/QExample01.java.rt#L58
+	 * See the rtemplate version of this file <a href="https://github.com/rizsi/quickjs/blob/master/quickjs-example/template/hu/qgears/quickjs/qpage/example/QExample01.java.rt#L58">here</a>
 	 */
 	@Override
 	protected void writeBody() {
