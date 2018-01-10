@@ -12,6 +12,12 @@ Jetty based example setup is part of the project.
 
 This is not a production ready framework just a technology demo to demonstrate a minimal latency Jetty based web server response.
 
+## Example code
+
+[Example01 code with text editor area online feedback and server push.](https://github.com/rizsi/quickjs/blob/ada96b2110cfbbcb832722896f7bbb26e4072ff0/quickjs-example/src/hu/qgears/quickjs/qpage/example/QExample01.java#L18)
+
+[HTML template of the same page](https://github.com/rizsi/quickjs/blob/ada96b2110cfbbcb832722896f7bbb26e4072ff0/quickjs-example/template/hu/qgears/quickjs/qpage/example/QExample01.java.rt#L58) (implemented using [RTemplate](https://github.com/qgears/rtemplate)):
+
 ## Executable download and launch
 
 http://rizsi.com/quickjs/quickjs-0.0.0.jar
