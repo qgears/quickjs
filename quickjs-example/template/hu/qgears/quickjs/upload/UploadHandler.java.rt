@@ -1,0 +1,127 @@
+////package hu.qgears.quickjs.upload;
+////
+////import java.io.File;
+////import java.io.IOException;
+////import java.io.OutputStream;
+////import java.io.OutputStreamWriter;
+////import java.nio.charset.StandardCharsets;
+////
+////import javax.servlet.http.HttpServletResponse;
+////
+////import org.eclipse.jetty.server.Request;
+////
+////import hu.qgears.commons.UtilFile;
+////import hu.qgears.quickjs.qpage.HtmlTemplate;
+////import hu.qgears.quickjs.utils.InMemoryMultiPartInputStreamParser;
+////
+////public class UploadHandler extends HtmlTemplate
+////{
+////	private File uploadFolder;
+////	public UploadHandler(File uploadFolder) {
+////		this.uploadFolder=uploadFolder;
+////	}
+////	private long maxChunkSize=5000000;
+////
+////	public void handle(Request baseRequest, HttpServletResponse response) {
+////		String pathinfo=baseRequest.getPathInfo();
+////		if("/upload.js".equals(pathinfo))
+////		{
+////			response.setContentType("application/x-javascript");
+////			try(OutputStream os=response.getOutputStream())
+////			{
+////				os.write(UtilFile.loadFile(getClass().getResource("upload.js")));
+////				response.setStatus(HttpServletResponse.SC_OK);
+////			}catch(Exception e)
+////			{
+////				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+////				e.printStackTrace();
+////			}
+////			baseRequest.setHandled(true);
+////		}else if("/upload".equals(pathinfo))
+////		{
+////			try {
+////				UploadFileHandler h=new UploadFileHandler(uploadFolder);
+////				InMemoryMultiPartInputStreamParser p=new InMemoryMultiPartInputStreamParser(baseRequest.getInputStream(), baseRequest.getContentType(), h);
+////				p.setMaxRequestSize(maxChunkSize+1000000).parse();
+////				response.setContentType("text/html");
+////				h.writeResponse(response.getOutputStream());
+////				response.setStatus(HttpServletResponse.SC_OK);
+////			} catch (Exception e1) {
+////				try {
+////					response.setContentType("text/html");
+////					response.getOutputStream().write("ERROR".getBytes(StandardCharsets.UTF_8));
+////				} catch (IOException e) {
+////					e.printStackTrace();
+////				}
+////				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+////				e1.printStackTrace();
+////			}
+////			baseRequest.setHandled(true);
+////		}
+////		else
+////		{
+////			response.setContentType("text/html; charset=utf-8");
+////			try {
+////				setWriter(new OutputStreamWriter(response.getOutputStream(), StandardCharsets.UTF_8));
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+
+<title>#HgetTitle()#</title>
+
+<script type="text/javascript" src="./upload.js"></script>
+<script type="text/javascript">
+function handleFiles(files)
+{
+	var numFiles = files.length;
+	for (var i = 0, numFiles = files.length; i < numFiles; i++) {
+		var file = files[i];
+		console.log("File to handle: "+file.name+" "+file.size);
+		fu=new FileUpload(file, #OmaxChunkSize#);
+		fu.progress=function(file, bytes){showProgress(file, bytes, ""); };
+		fu.error=function(file, bytes){
+			showProgress(file, bytes, " ERROR");
+			var restart=document.getElementById("restart");
+			restart.style.display="inline";
+		};
+		fu.finished=function(file, bytes){showProgress(file, bytes, " FINISHED"); };
+		fu.start();
+	}
+}
+function restart()
+{
+	fu.start();
+	var restart=document.getElementById("restart");
+	restart.style.display="none";
+}
+function showProgress(file, bytes, msg)
+{
+	document.getElementById("progress").innerHTML=file.name+" - "+bytes+" bytes"+msg;
+}
+</script>
+</head>
+
+<h1>#HgetTitle()#</h1>
+
+<input type="file" id="input" onchange="handleFiles(this.files)">
+
+<div id="progress"></div>
+<button id="restart" style="display:none;" onclick="restart()">Restart upload</button>
+</body>
+</html>
+////				getWriter().flush();
+////				response.setStatus(HttpServletResponse.SC_OK);
+////			} catch (IOException e) {
+////				response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+////				e.printStackTrace();
+////			}
+////			baseRequest.setHandled(true);
+////		}
+////	}
+////
+////	private String getTitle() {
+////		return "Example Big file upload";
+////	}
+////
+////}

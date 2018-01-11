@@ -1,5 +1,6 @@
 package hu.qgears.quickjs.qpage.example;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -16,50 +17,69 @@ import org.eclipse.jetty.server.session.HashSessionIdManager;
 import org.eclipse.jetty.server.session.HashSessionManager;
 import org.eclipse.jetty.server.session.SessionHandler;
 
+import hu.qgears.quickjs.upload.UploadFileHandler;
+import hu.qgears.quickjs.upload.UploadHandler;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
+import joptsimple.annot.AnnotatedClass;
 import quickjs.HelloWorld;
 
 /**
- * Executable main class that opens a Jetty web server and handles QPage based web applications
- * within it.
+ * Executable main class that opens a Jetty web server and handles QPage based
+ * web applications within it.
  */
-public class QExampleMain extends AbstractHandler
-{
-	byte[] staticreply="Hello!".getBytes(StandardCharsets.UTF_8);
+public class QExampleMain extends AbstractHandler {
+	byte[] staticreply = "Hello!".getBytes(StandardCharsets.UTF_8);
+	private Args clargs;
+	public static class Args
+	{
+		public String host="127.0.0.1";
+		public int port=8888;
+		public File uploadFolder=null;
+	}
+
+	public QExampleMain(Args clargs) {
+		this.clargs=clargs;
+	}
 
 	public static void main(String[] args) throws Exception {
-		InetSocketAddress sa=new InetSocketAddress("127.0.0.1", 8888);
-		Server server = new Server(sa);
 		
-        // Specify the Session ID Manager
-        HashSessionIdManager idmanager = new HashSessionIdManager();
-        server.setSessionIdManager(idmanager);
+		Args clargs = new Args();
+		AnnotatedClass cl = new AnnotatedClass();
+		cl.parseAnnotations(clargs);
+		System.out.println("QuickJS example demo program. Usage:\n");
+		cl.printHelpOn(System.out);
+		cl.parseArgs(args);
+		
+		InetSocketAddress sa = new InetSocketAddress(clargs.host, clargs.port);
+		Server server = new Server(sa);
 
-        // Sessions are bound to a context.
-        ContextHandler context = new ContextHandler("/");
-        server.setHandler(context);
+		// Specify the Session ID Manager
+		HashSessionIdManager idmanager = new HashSessionIdManager();
+		server.setSessionIdManager(idmanager);
 
-        // Create the SessionHandler (wrapper) to handle the sessions
-        HashSessionManager manager = new HashSessionManager();
-        SessionHandler sessions = new SessionHandler(manager);
-        sessions.addEventListener(HttpSessionQPageManager.createSessionListener());
-        context.setHandler(sessions);
-        sessions.setHandler(new QExampleMain());
-        server.start();
-        server.join();
+		// Sessions are bound to a context.
+		ContextHandler context = new ContextHandler("/");
+		server.setHandler(context);
+
+		// Create the SessionHandler (wrapper) to handle the sessions
+		HashSessionManager manager = new HashSessionManager();
+		SessionHandler sessions = new SessionHandler(manager);
+		sessions.addEventListener(HttpSessionQPageManager.createSessionListener());
+		context.setHandler(sessions);
+		sessions.setHandler(new QExampleMain(clargs));
+		server.start();
+		server.join();
 	}
 
 	@Override
-	public void handle(String target, final Request baseRequest, HttpServletRequest request, 
-			final HttpServletResponse response)
-			throws IOException, ServletException {
-		switch(target)
-		{
+	public void handle(String target, final Request baseRequest, HttpServletRequest request,
+			final HttpServletResponse response) throws IOException, ServletException {
+		switch (target) {
 		case "/":
-//			response.sendRedirect("/index");
-//			baseRequest.setHandled(true);
-//			break;
-//		case "/index":
+			// response.sendRedirect("/index");
+			// baseRequest.setHandled(true);
+			// break;
+			// case "/index":
 			new QPageHandler(Index.class).handle(target, baseRequest, request, response);
 			break;
 		case "/01":
@@ -79,6 +99,12 @@ public class QExampleMain extends AbstractHandler
 			baseRequest.setHandled(true);
 			break;
 		default:
+			if(clargs.uploadFolder!=null && target.startsWith("/upload/"))
+			{
+				baseRequest.setPathInfo(target.substring("/upload".length()));
+				new UploadHandler(clargs.uploadFolder).handle(baseRequest, response);
+				return;
+			}
 			HelloWorld.handle(target, baseRequest, request, response);
 			break;
 		}
