@@ -29,7 +29,7 @@ public class UploadHandler extends HtmlTemplate
 			response.setContentType("application/x-javascript");
 			try(OutputStream os=response.getOutputStream())
 			{
-				os.write(UtilFile.loadFile(getClass().getResource("upload.js")));
+				os.write(UtilFile.loadFile(UploadHandler.class.getResource("upload.js")));
 				response.setStatus(HttpServletResponse.SC_OK);
 			}catch(Exception e)
 			{
@@ -80,7 +80,7 @@ public class UploadHandler extends HtmlTemplate
 		}
 	}
 
-	private String getTitle() {
+	protected String getTitle() {
 		return "Example Big file upload";
 	}
 
