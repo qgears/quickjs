@@ -11,6 +11,7 @@ import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QSelect;
 import hu.qgears.quickjs.qpage.QSelectCombo;
 import hu.qgears.quickjs.qpage.QTextEditor;
+import hu.qgears.quickjs.utils.AbstractQPage;
 
 /**
  * A simple example of a QPage based web application. 

@@ -14,6 +14,7 @@
 ////import hu.qgears.quickjs.qpage.HtmlTemplate;
 ////import hu.qgears.quickjs.qpage.QPage;
 ////import hu.qgears.quickjs.qpage.QPageManager;
+////import hu.qgears.quickjs.utils.AbstractQPage;
 ////import hu.qgears.quickjs.utils.HttpSessionQPageManager;
 ////import hu.qgears.quickjs.utils.InMemoryPost;
 ////

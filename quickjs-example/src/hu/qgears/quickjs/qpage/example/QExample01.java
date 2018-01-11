@@ -10,6 +10,7 @@ import hu.qgears.quickjs.qpage.QButton;
 import hu.qgears.quickjs.qpage.QLabel;
 import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QTextEditor;
+import hu.qgears.quickjs.utils.AbstractQPage;
 import hu.qgears.quickjs.utils.QTimerTask;
 
 /**

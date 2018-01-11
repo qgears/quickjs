@@ -1,4 +1,4 @@
-package hu.qgears.quickjs.qpage.example;
+package hu.qgears.quickjs.utils;
 
 import java.io.Writer;
 
