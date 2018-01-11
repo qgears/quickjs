@@ -17,7 +17,6 @@ import org.eclipse.jetty.server.session.HashSessionIdManager;
 import org.eclipse.jetty.server.session.HashSessionManager;
 import org.eclipse.jetty.server.session.SessionHandler;
 
-import hu.qgears.quickjs.upload.UploadFileHandler;
 import hu.qgears.quickjs.upload.UploadHandler;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
 import joptsimple.annot.AnnotatedClass;

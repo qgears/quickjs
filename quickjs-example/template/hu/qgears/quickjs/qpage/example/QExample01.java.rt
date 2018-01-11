@@ -4,8 +4,7 @@
 ////import java.util.Date;
 ////import java.util.Timer;
 ////
-////import org.apache.commons.lang.StringEscapeUtils;
-////
+////import hu.qgears.commons.EscapeString;
 ////import hu.qgears.quickjs.qpage.QButton;
 ////import hu.qgears.quickjs.qpage.QLabel;
 ////import hu.qgears.quickjs.qpage.QPage;
@@ -37,7 +36,7 @@
 ////		// Create a feedback label that is updated whenever the editor text area is edited.
 ////		final QLabel l=new QLabel(page, "mylabel");
 ////		l.innerhtml.setPropertyFromServer("initial value");
-////		textEd.text.clientChangedEvent.addListener(msg->l.innerhtml.setPropertyFromServer(StringEscapeUtils.escapeHtml(msg)));
+////		textEd.text.clientChangedEvent.addListener(msg->l.innerhtml.setPropertyFromServer(EscapeString.escapeHtml(msg)));
 ////		
 ////		// Create a label that is updated by a server side thread periodically. (To demonstrate server push feature.)
 ////		final QLabel counter=new QLabel(page, "counter");

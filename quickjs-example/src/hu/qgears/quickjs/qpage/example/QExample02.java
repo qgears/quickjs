@@ -3,8 +3,7 @@ package hu.qgears.quickjs.qpage.example;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang.StringEscapeUtils;
-
+import hu.qgears.commons.EscapeString;
 import hu.qgears.commons.UtilEventListener;
 import hu.qgears.quickjs.qpage.QLabel;
 import hu.qgears.quickjs.qpage.QPage;
@@ -43,7 +42,7 @@ public class QExample02 extends AbstractQPage
 					setOptions(0, selarr[0], "");
 					result.innerhtml.setPropertyFromServer("");
 				} catch (Exception e) {
-					result.innerhtml.setPropertyFromServer(StringEscapeUtils.escapeHtml("Value must be a positive number!"));
+					result.innerhtml.setPropertyFromServer(EscapeString.escapeHtml("Value must be a positive number!"));
 				}	
 			}
 		});

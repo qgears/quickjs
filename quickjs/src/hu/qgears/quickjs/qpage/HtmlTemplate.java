@@ -3,7 +3,7 @@ package hu.qgears.quickjs.qpage;
 import java.io.IOException;
 import java.io.Writer;
 
-import org.apache.commons.lang.StringEscapeUtils;
+import hu.qgears.commons.EscapeString;
 
 public class HtmlTemplate {
 	protected Writer out;
@@ -18,11 +18,19 @@ public class HtmlTemplate {
 		this.out=out;
 	}
 	protected void writeHtml(String value) {
-		writeObject(StringEscapeUtils.escapeHtml(value));
+		try {
+			EscapeString.escapeHtml(out, value);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	protected void writeJSValue(String text) {
-		writeObject(StringEscapeUtils.escapeJavaScript(text));
+		try {
+			EscapeString.escapeJavaScript(out, text);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**
@@ -30,7 +38,11 @@ public class HtmlTemplate {
 	 * @param key
 	 */
 	protected void writeValue(String key) {
-		writeObject(StringEscapeUtils.escapeHtml(key));
+		try {
+			EscapeString.escapeHtml(out, key);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	protected void writeObject(Object o) {
