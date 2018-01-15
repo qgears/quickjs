@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?> <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>hu.qgears</groupId>
+		<artifactId>root</artifactId>
+		<version>1.0.0</version>
+		<relativePath>../repository-builder/parent-poms/root</relativePath>
+	</parent> 
+	
+	<groupId>hu.qgears</groupId>
+	<artifactId>quickjs-parent</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>pom</packaging>
+
+	<properties>
+		<java-src-version>1.8</java-src-version>
+		<java-trg-version>1.8</java-trg-version>
+	</properties>
+
+	<repositories>
+		<repository>
+			<id>mars-repo</id>
+			<url>http://download.eclipse.org/releases/mars/</url>
+			<layout>p2</layout>
+		 </repository>
+		<repository>
+			<id>qgears-opensource-repo</id>
+			<url>http://qgears.net/opensource/updates/</url>
+			<layout>p2</layout>
+		 </repository>
+	</repositories>
+
+	<profiles>
+		<!-- This profile is activated when the version bump script is executed.
+			It adds each the aggregator pom of the component (../../) as a child module 
+			of this component, so the tycho-version-plugin will be able to detect parent-child 
+			relationships propertly, so also changes the version string in the parent pom reference.
+		--> 
+		<profile>
+			<id>versionbump</id>
+			<activation>
+				<property>
+					<name>newVersion</name>
+				</property>
+			</activation>
+			<modules>
+				<module>../../</module>
+			</modules>
+		</profile>
+	</profiles>
+</project>
