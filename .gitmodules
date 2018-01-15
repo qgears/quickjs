@@ -1,0 +1,3 @@
+[submodule "build/repository-builder"]
+	path = build/repository-builder
+	url = https://github.com/qgears/repository-builder.git
