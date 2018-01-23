@@ -1,11 +1,17 @@
 package hu.qgears.quickjs.qpage;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import hu.qgears.commons.UtilFile;
 
 public class QSelectFastScroll extends QSelect {
-
+	static List<String> scriptReferences=new ArrayList<>();
+	{
+		scriptReferences.add("fastscroll");
+		scriptReferences.add(QSelectFastScroll.class.getSimpleName());
+	}
 	public QSelectFastScroll(QPage page0, String id) {
 		super(page0, id);
 	}
@@ -18,8 +24,12 @@ public class QSelectFastScroll extends QSelect {
 		write("\" style=\"width:650px; height:150px;\"></div>\t\n");
 		setWriter(null);
 	}
+	@Override
+	public List<String> getScriptReferences() {
+		return scriptReferences;
+	}
 	
-	public static void generateHeader(HtmlTemplate parent)
+	public void generateHeader(HtmlTemplate parent)
 	{
 		new HtmlTemplate(parent){
 
@@ -27,7 +37,9 @@ public class QSelectFastScroll extends QSelect {
 				try {
 					write("<style>\n.option:hover {\n    background-color: yellow;\n}\n.option:active {\n    background-color: red;\n}\n</style>\n<script language=\"javascript\" type=\"text/javascript\">\n");
 					writeObject(UtilFile.loadAsString(getClass().getResource("fastscroll.js")));
-					write("class QSelectFastScroll extends QComponent\n{\n\taddDomListeners()\n\t{\n\t\tthis.fs=new FastScroll(this.dom);\n//\t\tthis.dom.onchange=this.onchange.bind(this);\n\t\tthis.fs.setClickListener(this.onchange.bind(this));\n\t}\n\tonchange(index)\n\t{\n\t\tvar fd=this.page.createFormData(this);\n\t\tfd.append(\"selected\", index);\n\t\tthis.page.send(fd);\n\t}\n\tsetSelected(value)\n\t{\n\t\tthis.fs.select(value);\n\t}\n\tsetOptions(options)\n\t{\n\t\tthis.fs.setEntries(options);\n\t}\n}\n</script>\n");
+					write("\n");
+					writeObject(UtilFile.loadAsString(getClass().getResource("QSelectFastScroll.js")));
+					write("\n</script>\n");
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
@@ -35,5 +47,12 @@ public class QSelectFastScroll extends QSelect {
 			
 		}.generate();
 	}
-
+	@Override
+	public byte[] loadJs(String name) throws IOException {
+		if(name.equals("fastscroll"))
+		{
+			return UtilFile.loadFile(getClass().getResource(name+".js"));
+		}
+		return super.loadJs(name);
+	}
 }

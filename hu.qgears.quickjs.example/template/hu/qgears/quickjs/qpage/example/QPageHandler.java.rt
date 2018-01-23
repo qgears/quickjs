@@ -25,12 +25,15 @@
 //// * This logic must be reimplemented to include QPage applications within a servlet for example.
 //// */
 ////public class QPageHandler {
-////	private Class<? extends AbstractQPage> qPageClass;
-////	public QPageHandler(Class<? extends AbstractQPage> qPageClass) {
-////		this.qPageClass=qPageClass;
+////	private IQPageFactory pageFactory;
+////	public QPageHandler(IQPageFactory pageFactory) {
+////		this.pageFactory=pageFactory;
+////	}
+////	public QPageHandler(Class<? extends AbstractQPage> pageClass) {
+////		this.pageFactory=req->pageClass.newInstance();
 ////	}
 ////
-////	public void handle(String target, final Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
+////	public void handle(String target, final Request baseRequest, HttpServletRequest request, HttpServletResponse response, Object userData) throws IOException {
 //// 		HttpSession sess=baseRequest.getSession();
 ////		final QPageManager qpm=HttpSessionQPageManager.getManager(sess);
 ////		String id=baseRequest.getParameter(QPage.class.getSimpleName());
@@ -46,7 +49,7 @@
 ////					new HtmlTemplate(wr){
 ////						public void generate() throws Exception {
 ////							QPage newPage=new QPage(qpm);
-////							AbstractQPage inst=qPageClass.newInstance();
+////							AbstractQPage inst=pageFactory.createPage(userData);
 ////							inst.initApplication(this, newPage);
 ////						}
 ////					}.generate();
@@ -57,14 +60,17 @@
 ////				break;
 ////			default:
 ////				final QPage page=qpm.getPage(id);
-////				// handle posts
-////				new HtmlTemplate(wr){
-////					public void generate() throws Exception {
-////						InMemoryPost post=new InMemoryPost(baseRequest);
-////						page.handle(this, post);
-////						return;
-////					}
-////				}.generate();
+////				if(page!=null)
+////				{
+////					// handle posts
+////					new HtmlTemplate(wr){
+////						public void generate() throws Exception {
+////							InMemoryPost post=new InMemoryPost(baseRequest);
+////							page.handle(this, post);
+////							return;
+////						}
+////					}.generate();
+////				}
 ////				break;
 ////			}
 ////			baseRequest.setHandled(true);

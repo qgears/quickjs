@@ -79,16 +79,16 @@ public class QExampleMain extends AbstractHandler {
 			// baseRequest.setHandled(true);
 			// break;
 			// case "/index":
-			new QPageHandler(Index.class).handle(target, baseRequest, request, response);
+			new QPageHandler(Index.class).handle(target, baseRequest, request, response, null);
 			break;
 		case "/01":
-			new QPageHandler(QExample01.class).handle(target, baseRequest, request, response);
+			new QPageHandler(QExample01.class).handle(target, baseRequest, request, response, null);
 			break;
 		case "/02":
-			new QPageHandler(QExample02.class).handle(target, baseRequest, request, response);
+			new QPageHandler(QExample02.class).handle(target, baseRequest, request, response, null);
 			break;
 		case "/03":
-			new QPageHandler(QExample03.class).handle(target, baseRequest, request, response);
+			new QPageHandler(QExample03.class).handle(target, baseRequest, request, response, null);
 			break;
 		case "/performance":
 			response.setContentType("text/html");

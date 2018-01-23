@@ -17,6 +17,16 @@ public class HtmlTemplate {
 	public HtmlTemplate(Writer out) {
 		this.out=out;
 	}
+	protected void setParent(HtmlTemplate parent)
+	{
+		if(parent!=null)
+		{
+			this.out=parent.getWriter();
+		}else
+		{
+			this.out=null;
+		}
+	}
 	protected void writeHtml(String value) {
 		try {
 			EscapeString.escapeHtml(out, value);

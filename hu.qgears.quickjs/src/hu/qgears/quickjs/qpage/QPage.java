@@ -2,13 +2,16 @@ package hu.qgears.quickjs.qpage;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import hu.qgears.commons.UtilFile;
 import hu.qgears.commons.signal.SignalFutureWrapper;
 
 /**
@@ -31,6 +34,8 @@ public class QPage implements Closeable {
 	private LinkedBlockingQueue<Runnable> tasks=new LinkedBlockingQueue<>();
 	public final SignalFutureWrapper<QPage> disposedEvent=new SignalFutureWrapper<>();
 	private volatile Thread thread;
+	private String scriptsAsSeparateFile=null;
+	private List<QComponent> toInit=new ArrayList<>();
 	
 	class MessageFramingTemplate extends HtmlTemplate {
 
@@ -96,6 +101,11 @@ public class QPage implements Closeable {
 				currentTemplate=parent;
 				msft.openMessage();
 				executeTask();
+				for(QComponent c: toInit)
+				{
+					c.init();
+				}
+				toInit.clear();
 				currentTemplate=null;
 				msft.closeMessage();
 				syncObject.notifyAll();
@@ -129,25 +139,70 @@ public class QPage implements Closeable {
 	}
 
 	public void writeHeaders(final HtmlTemplate parent) {
+		if(scriptsAsSeparateFile!=null)
+		{
+			new HtmlTemplate(parent) {
+				public void generate() {
+					write("<script language=\"javascript\" type=\"text/javascript\" src=\"");
+					writeObject(scriptsAsSeparateFile);
+					write("/QPage.js\"></script>\n");
+					for(QComponent c: QPageTypesRegistry.getInstance().getTypes())
+					{
+						for(String scriptRef: c.getScriptReferences())
+						{
+							write("<script language=\"javascript\" type=\"text/javascript\" src=\"");
+							writeObject(scriptsAsSeparateFile);
+							write("/");
+							writeObject(scriptRef);
+							write(".js\"></script>\n");
+						}
+					}
+				}
+			}.generate();
+		}else
+		{
+			generateStaticScripts(parent);
+		}
+	}
+
+	public void generateInitialization(HtmlTemplate parent) {
+		currentTemplate=parent;
 		new HtmlTemplate(parent) {
 			public void generate() {
-				write("<script language=\"javascript\" type=\"text/javascript\">\n\nclass QPage\n{\n\tconstructor()\n\t{\n\t\tthis.messageindex=0;\n\t\tthis.serverstateindex=0;\n\t\tthis.waitingMessages={};\n\t\tthis.components={};\n\t\tthis.disposed=false;\n\t}\n\t/** Register an on dispose callback to show a different page disposed UI than the default implementation. */\n\tsetDisposeCallback(disposeCallback)\n\t{\n\t\tthis.disposeCallback=disposeCallback;\n\t}\n\tprocessServerMessage(serverstate, message)\n\t{\n\t\tif(serverstate==this.serverstateindex)\n\t\t{\n\t\t\tmessage(this);\n\t\t\tthis.serverstateindex++;\n\t\t\twhile(this.waitingMessages[this.serverstateindex])\n\t\t\t{\n\t\t\t\tthis.waitingMessages[this.serverstateindex](this);\n\t\t\t\tdelete this.waitingMessages[this.serverstateindex];\n\t\t\t\tthis.serverstateindex++;\n\t\t\t}\n\t\t}else\n\t\t{\n\t\t\tthis.waitingMessages[serverstate]=message;\n\t\t\t// TODO out of order server message - init timeout until which it must be processed\n\t\t}\n\t}\n\tstart()\n\t{\n\t\tthis.query();\n\t}\n\tquery()\n\t{\n\t\tvar FD = new FormData();\n\t\tFD.append(\"periodic\", \"true\");\t\t\n\t\tthis.sendPure(FD);\n\t}\n\tcreateFormData(component)\n\t{\n\t\tvar FD = new FormData();\n\t\tFD.append(\"component\", component.identifier);\n\t\treturn FD;\n\t}\n\tsendPure(FD)\n\t{\n\t\tif(!this.disposed)\n\t\t{\n\t\t\tvar xhr = new XMLHttpRequest();\n\t\t\txhr.qpage=this;\n\t\t\txhr.responseType = \"text\";\n\t\t\txhr.onreadystatechange = function() {\n\t\t\t\tif (this.readyState == 4) {\n\t\t\t\t\tif(this.status == 200)\n\t\t\t\t\t{\n\t\t\t\t\t\tvar page=this.qpage;\n\t\t\t\t\t\teval(this.responseText);\n\t\t\t\t\t}\n\t\t\t\t\telse\n\t\t\t\t\t{\n\t\t\t\t\t\tthis.qpage.dispose(\"Server communication XHR fault. Status code: \"+this.status);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}.bind(xhr);\n\t\t\txhr.open(\"POST\",'?QPage=");
+				write("<script language=\"javascript\" type=\"text/javascript\">\nglobalQPage=new QPage('");
 				writeObject(identifier);
-				write("');\n\t\t\txhr.send(FD);\n\t\t}\n\t}\n\tbeforeUnload()\n\t{\n\t\tvar FD = new FormData();\n\t\tFD.append(\"unload\", \"true\");\t\t\n\t\tthis.sendPure(FD);\n\t}\n\tsend(FD)\n\t{\n\t\tFD.append(\"messageindex\", this.messageindex);\n\t\tthis.messageindex++;\n\t\tthis.sendPure(FD);\n\t}\n\tresetDisposeTimeout()\n\t{\n\t\tif(this.disposeTimeout)\n\t\t{\n\t\t\tclearTimeout(this.disposeTimeout);\n\t\t}\n\t\tthis.disposeTimeout=setTimeout(this.disposeByTimeout.bind(this), ");
+				write("', ");
 				writeObject(TIMEOUT_DISPOSE);
-				write(");\n\t}\n\tdisposeByTimeout()\n\t{\n\t\tthis.dispose(\"Timeout of server communication loop.\");\n\t}\n\tdispose(causeMsg)\n\t{\n\t\tconsole.info(\"QPage disposed: \"+causeMsg);\n\t\t// Multiple dispose calls are possible (invalid XHR response+timer) but only show dispose UI once.\n\t\tif(!this.disposed)\n\t\t{\n\t\t\tthis.disposed=true;\n\t\t\tif(this.disposeCallback)\n\t\t\t{\n\t\t\t\tthis.disposeCallback(this, causeMsg);\n\t\t\t}else\n\t\t\t{\n\t\t\t\tvar body=document.body;\n\t\t\t\tvar div = document.createElement(\"div\");\n\t\t\t\tdiv.style.top = \"0%\";\n\t\t\t\tdiv.style.left = \"0%\";\n\t\t\t\tdiv.style.width = \"100%\";\n\t\t\t\tdiv.style.height = \"100%\";\n\t\t\t\tdiv.style.position = \"absolute\";\n\t\t\t\tdiv.style.color = \"white\";\n\t\t\t\tdiv.style.display=\"block\";\n\t\t\t\tdiv.style.zIndex=1001;\n\t\t\t\tdiv.style.backgroundColor=\"rgba(0,0,0,.8)\";\n\t\t\t\tdiv.innerHTML = \"Page is disposed. Cause: \"+causeMsg;\n\t\t\t\tbody.appendChild(div);\n\t\t\t}\n\t\t}\n\t}\n}\nclass QComponent\n{\n\tconstructor(page, identifier)\n\t{\n\t\tthis.page=page;\n\t\tpage.components[identifier]=this;\n\t\tthis.identifier=identifier;\n\t\tthis.dom=document.getElementById(identifier);\n\t\tif(!this.dom)\n\t\t{\n\t\t\tconsole.error(\"Dom object missing: '\"+identifier+\"'\");\n\t\t}\n\t\tthis.addDomListeners();\n\t}\n}\nglobalQPage=new QPage();\nwindow.addEventListener(\"load\", function(){\n\tvar page=this;\n");
-				for (QComponent c : components.values()) {
-					c.init(parent);
-				}
-				write("\tpage.start();\n}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\n</script>\n");
-				inited=true;
+				write(");\nwindow.addEventListener(\"load\", function(){\n\tvar page=this;\n");
+					currentTemplate=this;
+					for (QComponent c : components.values()) {
+						c.init();
+					}
+					currentTemplate=null;
+					write("\tpage.start();\n}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\n</script>\n");
 			}
 		}.generate();
-		QButton.generateHeader(parent);
-		QTextEditor.generateHeader(parent);
-		QLabel.generateHeader(parent);
-		QSelectCombo.generateHeader(parent);
-		QSelectFastScroll.generateHeader(parent);
+		currentTemplate=null;
+		inited=true;
+	}
+
+	public void generateStaticScripts(HtmlTemplate parent) {
+		new HtmlTemplate(parent) {
+			public void generate() {
+				try {
+					write("<script language=\"javascript\" type=\"text/javascript\">\n");
+					writeObject(UtilFile.loadAsString(QPage.class.getResource("QPage.js")));
+					write("\n</script>\n");
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}.generate();
+		for(QComponent c: QPageTypesRegistry.getInstance().getTypes())
+		{
+			c.generateHeader(parent);
+		}
 	}
 
 	public boolean handle(HtmlTemplate parent, IInMemoryPost post) throws IOException {
@@ -279,4 +334,19 @@ public class QPage implements Closeable {
 		return identifier;
 	}
 
+	public void setScriptsAsSeparateFile(String absolutePath) {
+		this.scriptsAsSeparateFile = absolutePath;
+	}
+
+	public void remove(QComponent qComponent) {
+		components.remove(qComponent.id);
+	}
+
+	public void registerToInit(QComponent qComponent) {
+		toInit.add(qComponent);
+	}
+
+	public void setCurrentTemplate(HtmlTemplate parent) {
+		currentTemplate=parent;
+	}
 }

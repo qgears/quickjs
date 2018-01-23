@@ -69,8 +69,8 @@ abstract public class QSelect extends QComponent {
 
 
 	@Override
-	final public void init(HtmlTemplate parent) {
-		setWriter(parent.getWriter());
+	final public void doInit() {
+		setParent(page.getCurrentTemplate());
 		write("\tnew ");
 		writeObject(getClass().getSimpleName());
 		write("(page, \"");
@@ -81,7 +81,7 @@ abstract public class QSelect extends QComponent {
 		{
 			sendSelected();
 		}
-		setWriter(null);
+		setParent(null);
 	}
 
 	@Override

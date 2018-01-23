@@ -6,9 +6,22 @@ class FileUpload
 		this.at=0;
 		this.id=""+Math.floor((Math.random() * 1000000000) + 1);
 		this.chunksize=chunkSize;
+		this.stopped=false;
+	}
+	stop()
+	{
+		this.stopped=true;
+	}
+	continue()
+	{
+		if(!this.stopped)
+		{
+			this.start();
+		}
 	}
 	start()
 	{
+		this.stopped=false;
 		this.nextAt=Math.min(this.at+this.chunksize, this.file.size);
 		var slice=this.file.slice(this.at, this.nextAt);
 		var xhr = new XMLHttpRequest();
@@ -49,7 +62,7 @@ class FileUpload
 	{
 		console.info("PROGRESS "+bytes+" bytes");
 	}
-	finished(file)
+	finished(file, bytes)
 	{
 		console.info("FINISHED");
 	}

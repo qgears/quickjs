@@ -80,13 +80,13 @@ public class UploadFileHandler extends HtmlTemplate implements IMultipartHandler
 			{
 				throw new IOException("Missing mandatory parameters");
 			}
-			System.out.println("File: '"+filename+"' at "+start+" Receiving N bytes: "+(end-start));
+			// System.out.println("File: '"+filename+"' at "+start+" Receiving N bytes: "+(end-start));
 			return new BufferedOutputStream(new RAFOutput(validateFilename(this.filename), start, end));
 		}
 		return new OutputStream() {
 			@Override
 			public void write(int b) throws IOException {
-				// Dummy - non handled parameters are omitted.s
+				// Dummy - non handled parameters are omitted.
 			}
 		};
 	}
@@ -107,7 +107,7 @@ public class UploadFileHandler extends HtmlTemplate implements IMultipartHandler
 			write(";\nthis.progress(this.file, this.at);\n");
 			if(filesize>end)
 			{
-				write("this.start();\n");
+				write("this.continue();\n");
 			} else
 			{
 				write("this.finished(this.file, this.at);\n");

@@ -80,13 +80,13 @@
 ////			{
 ////				throw new IOException("Missing mandatory parameters");
 ////			}
-////			System.out.println("File: '"+filename+"' at "+start+" Receiving N bytes: "+(end-start));
+////			// System.out.println("File: '"+filename+"' at "+start+" Receiving N bytes: "+(end-start));
 ////			return new BufferedOutputStream(new RAFOutput(validateFilename(this.filename), start, end));
 ////		}
 ////		return new OutputStream() {
 ////			@Override
 ////			public void write(int b) throws IOException {
-////				// Dummy - non handled parameters are omitted.s
+////				// Dummy - non handled parameters are omitted.
 ////			}
 ////		};
 ////	}
@@ -106,7 +106,7 @@ this.at=#Oend#;
 this.progress(this.file, this.at);
 ////			if(filesize>end)
 ////			{
-this.start();
+this.continue();
 ////			} else
 ////			{
 this.finished(this.file, this.at);

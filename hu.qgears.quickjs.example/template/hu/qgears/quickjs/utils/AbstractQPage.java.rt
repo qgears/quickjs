@@ -35,17 +35,24 @@
 ////	 */
 ////	abstract protected void initQPage(QPage page);
 ////
-////	private void generateHtmlContent() {
+////	protected void generateHtmlContent() {
 <!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 ////		page.writeHeaders(this);
+////		writeHeaders();
 </head>
 <body>
+////		page.setCurrentTemplate(this);
 ////		writeBody();
+////		page.setCurrentTemplate(null);
+////		page.generateInitialization(this);
 </body>
 </html>
+////	}
+////
+////	protected void writeHeaders() {
 ////	}
 ////
 ////	/**

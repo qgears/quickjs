@@ -2,11 +2,13 @@
 ////
 ////import java.io.IOException;
 ////
+////import hu.qgears.commons.UtilEvent;
 ////import hu.qgears.commons.UtilEventListener;
 ////
 ////public class QTextEditor extends QComponent
 ////{
 ////	public final QProperty<String> text=new QProperty<>();
+////	public final UtilEvent<String> enterPressed=new UtilEvent<>();
 ////	public QTextEditor(QPage page, String identifier) {
 ////		super(page, identifier);
 ////		text.serverChangedEvent.addListener(new UtilEventListener<String>() {
@@ -18,56 +20,14 @@
 ////	}
 ////	
 ////	protected void serverTextChanged(final String msg) {
-////		if(page.inited)
+////		if(inited)
 ////		{
 ////			new ChangeTemplate(page.getCurrentTemplate()){
 ////				public void generate() {
-page.components['////					writeJSValue(id);
-'].initValue("////					writeJSValue(msg);
-");
+page.components['#JSid#'].initValue("#JSmsg#");
 ////				}
 ////			}.generate();
 ////		}
-////	}
-////
-////	public static void generateHeader(HtmlTemplate parent)
-////	{
-////		new HtmlTemplate(parent){
-////
-////			public void generate() {
-<style>
-.dirty
-{
-background-color: lightblue;
-}
-.error
-{
-background-color: red;
-}
-</style>
-<script language="javascript" type="text/javascript">
-class QTextEditor extends QComponent
-{
-	addDomListeners()
-	{
-		this.dom.oninput=this.oninput.bind(this);
-	}
-	oninput()
-	{
-		this.dom.className="dirty";
-		var fd=this.page.createFormData(this);
-		fd.append("text", this.dom.value);
-		this.page.send(fd);
-	}
-	initValue(text)
-	{
-		this.dom.value=text;
-	}
-}
-</script>
-////			}
-////			
-////		}.generate();
 ////	}
 ////
 ////	public void generateExampleHtmlObject(HtmlTemplate parent) {
@@ -81,19 +41,22 @@ class QTextEditor extends QComponent
 ////	}
 ////
 ////	public void handle(HtmlTemplate parent, IInMemoryPost post) throws IOException {
-////		text.setPropertyFromClient(post.getParameter("text"));
+////		String ntext=post.getParameter("text");
+////		if(ntext!=null)
+////		{
+////			text.setPropertyFromClient(ntext);
+////		}
+////		String exter=post.getParameter("enter");
+////		if(exter!=null)
+////		{
+////			enterPressed.eventHappened(exter);
+////		}
 ////	}
 ////
 ////	@Override
-////	public void init(HtmlTemplate parent) {
-////		new HtmlTemplate(parent)
-////		{
-////
-////			public void generate() {
-	new QTextEditor(page, "#Oid#").initValue("////				writeJSValue(text.getProperty());
-");
-////			}
-////			
-////		}.generate();
+////	public void doInit() {
+////		setParent(page.getCurrentTemplate());
+	new QTextEditor(page, "#Oid#").initValue("#JStext.getProperty()#");
+////		setParent(null);
 ////	}
 ////}

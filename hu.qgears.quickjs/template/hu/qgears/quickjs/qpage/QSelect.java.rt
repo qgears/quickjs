@@ -45,31 +45,28 @@
 ////
 ////
 ////	private void sendOptions(List<String> msg) {
-	page.components['////		writeJSValue(id);
-'].setOptions([////		UtilComma c=new UtilComma(", ");
+	page.components['#JSid#'].setOptions([////		UtilComma c=new UtilComma(", ");
 ////		for(String option: msg)
 ////		{
-#Oc.getSeparator()#"////			writeJSValue(option);
-"////		}
+#Oc.getSeparator()#"#JSoption#"////		}
 ]);
 ////	}
 ////	
 ////	private void sendSelected() {
-	page.components['////		writeJSValue(id);
-'].setSelected("#Oselected.getProperty()#");
+	page.components['#JSid#'].setSelected("#Oselected.getProperty()#");
 ////	}
 ////
 ////
 ////	@Override
-////	final public void init(HtmlTemplate parent) {
-////		setWriter(parent.getWriter());
+////	final public void doInit() {
+////		setParent(page.getCurrentTemplate());
 	new #OgetClass().getSimpleName()#(page, "#Oid#");
 ////		sendOptions(options.getProperty());
 ////		if(selected.getProperty()!=null)
 ////		{
 ////			sendSelected();
 ////		}
-////		setWriter(null);
+////		setParent(null);
 ////	}
 ////
 ////	@Override

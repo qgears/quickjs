@@ -35,12 +35,19 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	 */
 	abstract protected void initQPage(QPage page);
 
-	private void generateHtmlContent() {
+	protected void generateHtmlContent() {
 		write("<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n");
 		page.writeHeaders(this);
+		writeHeaders();
 		write("</head>\n<body>\n");
+		page.setCurrentTemplate(this);
 		writeBody();
+		page.setCurrentTemplate(null);
+		page.generateInitialization(this);
 		write("</body>\n</html>\n");
+	}
+
+	protected void writeHeaders() {
 	}
 
 	/**
