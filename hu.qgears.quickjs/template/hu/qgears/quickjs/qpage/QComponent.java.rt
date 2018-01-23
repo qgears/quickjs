@@ -29,27 +29,6 @@
 ////			}
 ////		}
 ////	}
-//////	protected void initialize(String parentDomId) {
-//////		if(page!=null&&page.inited)
-//////		{
-//////			HtmlTemplate html=new HtmlTemplate(new StringWriter());
-//////			generateExampleHtmlObject(html);
-//////			setWriter(getPage().getCurrentTemplate().out);
-//////			write("\tvar dom=document.createElement(\"div\");\n\tdom.innerHTML=\"");
-//////			writeJSValue(html.getWriter().toString());
-//////			write("\";\n");
-//////			if(parentDomId!=null)
-//////			{
-//////				write("\tdocument.getElementById(\"");
-//////				writeJSValue(parentDomId);
-//////				write("\").appendChild(dom.childNodes[0]);\n");
-//////			} else {
-//////				write("\tpage.getNewDomParent().appendChild(dom.childNodes[0]);\n");
-//////			} 
-//////			setWriter(null);
-//////			init();
-//////		}
-//////	}
 ////
 ////	abstract public void generateExampleHtmlObject(HtmlTemplate parent);
 ////
