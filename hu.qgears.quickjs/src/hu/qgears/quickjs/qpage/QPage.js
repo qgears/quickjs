@@ -49,6 +49,12 @@ class QPage
 		FD.append("component", component.identifier);
 		return FD;
 	}
+	createCustomFormData()
+	{
+		var FD = new FormData();
+		FD.append("custom", "true");
+		return FD;
+	}
 	sendPure(FD)
 	{
 		if(!this.disposed)

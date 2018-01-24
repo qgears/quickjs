@@ -11,6 +11,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import hu.qgears.commons.UtilEvent;
 import hu.qgears.commons.UtilFile;
 import hu.qgears.commons.signal.SignalFutureWrapper;
 
@@ -36,6 +37,7 @@ public class QPage implements Closeable {
 	private volatile Thread thread;
 	private String scriptsAsSeparateFile=null;
 	private List<QComponent> toInit=new ArrayList<>();
+	public final UtilEvent<IInMemoryPost> customQuery=new UtilEvent<>();
 	
 	class MessageFramingTemplate extends HtmlTemplate {
 
@@ -75,9 +77,14 @@ public class QPage implements Closeable {
 		}
 		protected void executeTask() throws IOException
 		{
-			String cid = post.getParameter("component");
-			QComponent ed = components.get(cid);
-			ed.handle(parent, post);
+			if ("true".equals(post.getParameter("custom"))) {
+				customQuery.eventHappened(post);
+			}else
+			{
+				String cid = post.getParameter("component");
+				QComponent ed = components.get(cid);
+				ed.handle(parent, post);
+			}
 		}
 
 		public void executeOnThread() throws Exception {
@@ -348,5 +355,8 @@ public class QPage implements Closeable {
 
 	public void setCurrentTemplate(HtmlTemplate parent) {
 		currentTemplate=parent;
+	}
+	public QPageManager getQPageManager() {
+		return qpm;
 	}
 }

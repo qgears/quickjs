@@ -30,7 +30,7 @@
 ////		this.pageFactory=pageFactory;
 ////	}
 ////	public QPageHandler(Class<? extends AbstractQPage> pageClass) {
-////		this.pageFactory=req->pageClass.newInstance();
+////		this.pageFactory=req->{AbstractQPage ret=pageClass.newInstance(); ret.setUserData(req); return ret;};
 ////	}
 ////
 ////	public void handle(String target, final Request baseRequest, HttpServletRequest request, HttpServletResponse response, Object userData) throws IOException {

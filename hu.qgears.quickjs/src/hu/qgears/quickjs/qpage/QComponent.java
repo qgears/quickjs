@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import hu.qgears.commons.UtilFile;
 
@@ -109,6 +110,7 @@ public abstract class QComponent extends HtmlTemplate
 	}
 
 	public void addChild(QComponent child) {
+		Objects.requireNonNull(child);
 		children.add(child);
 	}
 

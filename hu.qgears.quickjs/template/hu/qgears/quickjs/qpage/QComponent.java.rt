@@ -5,6 +5,7 @@
 ////import java.util.ArrayList;
 ////import java.util.Collections;
 ////import java.util.List;
+////import java.util.Objects;
 ////
 ////import hu.qgears.commons.UtilFile;
 ////
@@ -107,6 +108,7 @@
 ////	}
 ////
 ////	public void addChild(QComponent child) {
+////		Objects.requireNonNull(child);
 ////		children.add(child);
 ////	}
 ////

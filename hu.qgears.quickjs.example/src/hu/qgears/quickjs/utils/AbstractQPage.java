@@ -11,6 +11,7 @@ import hu.qgears.quickjs.qpage.QPage;
  * Java based web server.
  */
 abstract public class AbstractQPage extends HtmlTemplate {
+	protected Object userData;
 	public AbstractQPage() {
 		super((Writer)null);
 	}
@@ -54,4 +55,8 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	 * Generate the 
 	 */
 	protected abstract void writeBody();
+
+	public void setUserData(Object req) {
+		userData=req;
+	}
 }

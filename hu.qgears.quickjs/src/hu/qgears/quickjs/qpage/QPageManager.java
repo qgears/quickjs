@@ -6,8 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 
+/**
+ * The session object in terms of QPage.
+ */
 public class QPageManager {
 	private Map<String, QPage> pages=new HashMap<>();
+	private Map<String, Object> userdata=new HashMap<>();
 	public static Timer disposeTimer=new Timer("QPage dispose timer");
 	private int idCtr=0;
 	/**
@@ -45,6 +49,16 @@ public class QPageManager {
 	public void remove(QPage qPage) {
 		synchronized (pages) {
 			pages.remove(qPage.getId());
+		}
+	}
+	public void setUserData(String key, Object o) {
+		synchronized (userdata) {
+			userdata.put(key, o);
+		}
+	}
+	public Object getUserData(String string) {
+		synchronized (userdata) {
+			return userdata.get(string);
 		}
 	}
 }
