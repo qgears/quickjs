@@ -22,7 +22,7 @@ abstract public class JSHandler extends AbstractHandler
 		String pathinfo=baseRequest.getPathInfo();
 		if(handlesJs(pathinfo))
 		{
-			response.setContentType("application/x-javascript");
+			response.setContentType(getMimeType());
 			try(OutputStream os=response.getOutputStream())
 			{
 				writeTo(os, pathinfo);
@@ -35,6 +35,10 @@ abstract public class JSHandler extends AbstractHandler
 			baseRequest.setHandled(true);
 			return;
 		}
+	}
+
+	protected String getMimeType() {
+		return "application/x-javascript";
 	}
 
 	protected boolean handlesJs(String pathinfo) {
