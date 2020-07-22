@@ -16,19 +16,19 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/
 	<packaging>pom</packaging>
 
 	<properties>
-		<java-src-version>1.8</java-src-version>
-		<java-trg-version>1.8</java-trg-version>
+		<java-src-version>8</java-src-version>
+		<java-trg-version>8</java-trg-version>
 	</properties>
 
 	<repositories>
 		<repository>
-			<id>mars-repo</id>
-			<url>http://download.eclipse.org/releases/mars/</url>
+			<id>eclipse-2020-03-mirror</id>
+			<url>https://download.eclipse.org/releases/2020-03</url>
 			<layout>p2</layout>
 		 </repository>
 		<repository>
 			<id>qgears-opensource-repo</id>
-			<url>http://qgears.net/opensource/updates/</url>
+			<url>https://qgears.com/opensource/updates/</url>
 			<layout>p2</layout>
 		 </repository>
 	</repositories>
