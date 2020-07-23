@@ -13,8 +13,7 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.handler.ContextHandler;
-import org.eclipse.jetty.server.session.HashSessionIdManager;
-import org.eclipse.jetty.server.session.HashSessionManager;
+import org.eclipse.jetty.server.session.DefaultSessionIdManager;
 import org.eclipse.jetty.server.session.SessionHandler;
 
 import hu.qgears.quickjs.upload.UploadHandler;
@@ -53,16 +52,16 @@ public class QExampleMain extends AbstractHandler {
 		Server server = new Server(sa);
 
 		// Specify the Session ID Manager
-		HashSessionIdManager idmanager = new HashSessionIdManager();
-		server.setSessionIdManager(idmanager);
+		DefaultSessionIdManager sessionIdManager = new DefaultSessionIdManager(server);
+		server.setSessionIdManager(sessionIdManager);
 
 		// Sessions are bound to a context.
 		ContextHandler context = new ContextHandler("/");
 		server.setHandler(context);
 
 		// Create the SessionHandler (wrapper) to handle the sessions
-		HashSessionManager manager = new HashSessionManager();
-		SessionHandler sessions = new SessionHandler(manager);
+		SessionHandler sessions = new SessionHandler();
+		sessions.setSessionIdManager(sessionIdManager);
 		sessions.addEventListener(HttpSessionQPageManager.createSessionListener());
 		context.setHandler(sessions);
 		sessions.setHandler(new QExampleMain(clargs));
