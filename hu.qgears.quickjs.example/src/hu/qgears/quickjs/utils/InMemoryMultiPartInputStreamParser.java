@@ -95,6 +95,10 @@ public class InMemoryMultiPartInputStreamParser {
 
 		// Get first boundary
 		String line = _in.readLine();
+		if(line==null)
+		{
+			throw new IOException("Missing initial multi part boundary.");
+		}
 		line = line.trim();
 		if (!line.equals(boundary) && !line.equals(lastBoundary)) {
 			throw new IOException("Missing initial multi part boundary.");

@@ -103,7 +103,7 @@ public class QExample02 extends AbstractQPage
 		write("</h1>\n<a href=\"/\">Back to index</a><br/>\n\nEach selector initializes the possible values in the next selector. Each selector contains the entered number of entries.<br/>\n\nNumber of entries within the selectors:\n<input id=\"number\" size=\"100\"></input>\n<div id=\"result\"></div>\n");
 		for(int i=0; i<selarr.length; ++i)
 		{
-			selarr[i].generateExampleHtmlObject(this);
+			selarr[i].generateHtmlObject(this);
 		}
 	}
 	protected String getTypeName()

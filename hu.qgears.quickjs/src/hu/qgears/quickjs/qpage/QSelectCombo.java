@@ -2,16 +2,25 @@ package hu.qgears.quickjs.qpage;
 
 public class QSelectCombo extends QSelect {
 
-	public QSelectCombo(QPage page0, String id) {
-		super(page0, id);
+	public QSelectCombo(IQContainer parent, String id) {
+		super(parent, id);
+	}
+	public QSelectCombo(IQContainer parent) {
+		super(parent);
 	}
 	
 	@Override
-	public void generateExampleHtmlObject(HtmlTemplate parent) {
-		setWriter(parent.getWriter());
+	public void generateHtmlObject() {
 		write("<select id=\"");
 		writeJSValue(id);
 		write("\" style=\"width: 250px;\" size=10></select>\t\n");
-		setWriter(null);
+	}
+	public String getSelectionValue() {
+		Integer sel=selected.getProperty();
+		if(sel!=null && sel>=0 && sel<options.getProperty().size())
+		{
+			return options.getProperty().get(sel);
+		}
+		return null;
 	}
 }

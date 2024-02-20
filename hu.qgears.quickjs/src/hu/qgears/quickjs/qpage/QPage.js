@@ -5,91 +5,176 @@ class QPage
 		this.identifier=identifier;
 		this.messageindex=0;
 		this.serverstateindex=0;
-		this.waitingMessages={};
 		this.components={};
 		this.disposed=false;
+		this.state=0;
 		this.timeoutDispose=timeoutDispose;
+		this.sessionIdParameterAdditional="";
 	}
-	/** Register an on dispose callback to show a different page disposed UI than the default implementation. */
-	setDisposeCallback(disposeCallback)
+	getComponent(id)
 	{
-		this.disposeCallback=disposeCallback;
-	}
-	processServerMessage(serverstate, message)
-	{
-		if(serverstate==this.serverstateindex)
+		const ret=this.components[id];
+		if(ret===undefined)
 		{
-			message(this);
-			this.serverstateindex++;
-			while(this.waitingMessages[this.serverstateindex])
+			throw new Error("Element with id does not exist: "+id);
+		}
+		return ret;
+	}
+	/** Register a showStateCallback callback to show a page offline/page disposed UI.
+	 * The callback receives state updates: 0 - before connection
+	 * 1 - connection ok
+	 * 2 - connection not ok
+	 * 3 - disposed
+	 */
+	setShowStateCallback(showStateCallback)
+	{
+		this.showStateCallback=showStateCallback;
+	}
+	message(header, parts)
+	{
+		// Websocket messages
+		if(header==="js")
+		{
+			var page=this;
+			var args=parts;
+			try
 			{
-				this.waitingMessages[this.serverstateindex](this);
-				delete this.waitingMessages[this.serverstateindex];
-				this.serverstateindex++;
+				eval(parts[0]);
+			}catch(exc)
+			{
+				console.error("Executing: server JS message:");
+				console.error(exc);
+				console.error(parts[0]);
 			}
+		}
+	}
+	stateChange(state)
+	{
+		if(state==3 && !this.disposed)
+		{
+			this.dispose("Communication error");
+		}
+		if(this.state!=state)
+		{
+			this.state=state;
+			this.showState();
+		}
+	}
+	showState()
+	{
+		if(this.showStateCallback)
+		{
+			this.showStateCallback(this.state);
 		}else
 		{
-			this.waitingMessages[serverstate]=message;
-			// TODO out of order server message - init timeout until which it must be processed
+			if(this.state==2)
+			{
+				console.info("Offline");
+			}else if(this.state==3)
+			{
+				setTimeout(function(){
+					var body=document.body;
+					var div = document.createElement("div");
+					div.style.top = "0%";
+					div.style.left = "0%";
+					div.style.width = "100%";
+					div.style.height = "100%";
+					div.style.position = "absolute";
+					div.style.color = "white";
+					div.style.display="block";
+					div.style.zIndex=1001;
+					div.style.backgroundColor="rgba(0,0,0,.8)";
+					div.innerHTML = "Page is disposed.";
+					body.appendChild(div);
+				}.bind(this), 2000);
+			}
 		}
+	}
+	createWebSocketUrl(websocketName='true')
+	{
+	
+		const url=window.location.origin.replace('http', 'ws')+window.location.pathname+'?websocket='+websocketName+'&QPage='+this.identifier+this.sessionIdParameterAdditional;
+		return url;
 	}
 	start()
 	{
-		this.query();
+		const url=this.createWebSocketUrl();
+		this.comm=new IndexedComm().init(url, this);
+		if(this.supports_history_api())
+		{
+			window.addEventListener("popstate", function(e) {
+				var FD = {};
+				FD.history_popstate="true";
+				FD.pathname=location.pathname;
+				FD.search=location.search;
+				this.send(FD);
+			}.bind(this));
+		}
+		document.addEventListener("visibilitychange", function() {
+			// Even if it is not handled on the server it triggers reconnection
+			// in case the client is in a dormant state.
+			// This will soon update the UI.
+			this.sendCustomJson("visibilitychange", document.visibilityState);
+		}.bind(this));
+		window.addEventListener('resize', this.windowResized.bind(this));
+		this.windowResized();
+		var fd=this.createFormData(this);
+		fd.type="started";
+		this.send(fd);
 	}
-	query()
+	windowResized()
 	{
-		var FD = new FormData();
-		FD.append("periodic", "true");		
-		this.sendPure(FD);
+		var fd=this.createFormData(this);
+		fd.type="windowSize";
+		fd.width=window.innerWidth;
+		fd.height=window.innerHeight;
+		this.send(fd);
 	}
 	createFormData(component)
 	{
-		var FD = new FormData();
-		FD.append("component", component.identifier);
+		var FD = {};
+		FD.component=component.identifier;
 		return FD;
 	}
-	createCustomFormData()
+	sendCustomJson(type, jsonObj)
 	{
-		var FD = new FormData();
-		FD.append("custom", "true");
-		return FD;
+		const toSend={};
+		toSend.type=type;
+		toSend.data=jsonObj;
+		toSend.custom=true;
+		// toSend.component=component.identifier;
+		this.send(toSend);
 	}
-	sendPure(FD)
+	sendJson(type, jsonObj)
+	{
+		const toSend={};
+		toSend.type=type;
+		toSend.data=jsonObj;
+		// toSend.component=component.identifier;
+		this.send(toSend);
+	}
+	/** Send a JSON message that will land inside a component's user message event. */
+	sendUserJson(component, jsonObj)
+	{
+		const toSend={};
+		toSend.user=jsonObj;
+		toSend.component=component.identifier;
+		this.send(toSend);
+	}
+	send(msg, ...args)
 	{
 		if(!this.disposed)
 		{
-			var xhr = new XMLHttpRequest();
-			xhr.qpage=this;
-			xhr.responseType = "text";
-			xhr.onreadystatechange = function() {
-				if (this.readyState == 4) {
-					if(this.status == 200)
-					{
-						var page=this.qpage;
-						eval(this.responseText);
-					}
-					else
-					{
-						this.qpage.dispose("Server communication XHR fault. Status code: "+this.status);
-					}
-				}
-			}.bind(xhr);
-			xhr.open("POST",'?QPage='+this.identifier);
-			xhr.send(FD);
+			this.comm.send(msg, ...args);
 		}
 	}
 	beforeUnload()
 	{
 		var FD = new FormData();
-		FD.append("unload", "true");		
-		this.sendPure(FD);
-	}
-	send(FD)
-	{
-		FD.append("messageindex", this.messageindex);
-		this.messageindex++;
-		this.sendPure(FD);
+		FD.unload="true";		
+		this.send(FD);
+		// All further communication is invalid - close the communication object so that it does not reopen!
+		this.comm.close();
 	}
 	resetDisposeTimeout()
 	{
@@ -106,29 +191,11 @@ class QPage
 	dispose(causeMsg)
 	{
 		console.info("QPage disposed: "+causeMsg);
-		// Multiple dispose calls are possible (invalid XHR response+timer) but only show dispose UI once.
+		// Multiple dispose calls are possible filter to one single - also prevents endless loop
 		if(!this.disposed)
 		{
 			this.disposed=true;
-			if(this.disposeCallback)
-			{
-				this.disposeCallback(this, causeMsg);
-			}else
-			{
-				var body=document.body;
-				var div = document.createElement("div");
-				div.style.top = "0%";
-				div.style.left = "0%";
-				div.style.width = "100%";
-				div.style.height = "100%";
-				div.style.position = "absolute";
-				div.style.color = "white";
-				div.style.display="block";
-				div.style.zIndex=1001;
-				div.style.backgroundColor="rgba(0,0,0,.8)";
-				div.innerHTML = "Page is disposed. Cause: "+causeMsg;
-				body.appendChild(div);
-			}
+			this.comm.close();
 		}
 	}
 	getNewDomParent()
@@ -168,29 +235,15 @@ class QPage
 			document.body.style.overflow="";
 		}
 	}
-}
-class QComponent
-{
-	constructor(page, identifier)
-	{
-		this.page=page;
-		page.components[identifier]=this;
-		this.identifier=identifier;
-		this.dom=document.getElementById(identifier);
-		if(!this.dom)
-		{
-			console.error("Dom object missing: '"+identifier+"'");
-		}
-		this.addDomListeners();
+	supports_history_api() {
+		return !!(window.history && history.pushState);
 	}
-	dispose()
+	/**
+	 * This is appended to the WebSocket queries.
+	 * (should have format like: &jsessionid=XYZASDF )
+	 */
+	setSessionIdParameterAdditional(sessionIdParameterAdditional)
 	{
-		delete this.page.components[this.identifier];
-		var p=this.dom.parentNode;
-		if(p)
-		{
-			p.removeChild(this.dom);
-		}
+		this.sessionIdParameterAdditional=sessionIdParameterAdditional;
 	}
 }
-

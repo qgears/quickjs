@@ -14,11 +14,14 @@ public class QPageJSHandler extends JSHandler
 
 	@Override
 	protected void writeTo(OutputStream os, String pathinfo) throws IOException {
-		if(pathinfo.equals("/QPage.js"))
+		for(String s: QPage.scripts)
 		{
-			os.write(UtilFile.loadFile(QPage.class.getResource("QPage.js")));
+			if(pathinfo.equals("/"+s))
+			{
+				os.write(UtilFile.loadFile(QPage.class.getResource(s)));
+				return;
+			}
 		}
-		else
 		{
 			String name=pathinfo.substring(1, pathinfo.length()-3);
 			if(name.contains("/")||name.contains(".."))
@@ -38,9 +41,12 @@ public class QPageJSHandler extends JSHandler
 	}
 	@Override
 	protected boolean handlesJs(String pathinfo) {
-		if(pathinfo.equals("/QPage.js"))
+		for(String s: QPage.scripts)
 		{
-			return true;
+			if(pathinfo.equals("/"+s))
+			{
+				return true;
+			}
 		}
 		QComponent t=QPageTypesRegistry.getInstance().getType(pathinfo.substring(1, pathinfo.length()-3));
 		if(t!=null)

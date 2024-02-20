@@ -4,33 +4,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONObject;
+
 import hu.qgears.commons.UtilComma;
 import hu.qgears.commons.UtilEventListener;
 
 abstract public class QSelect extends QComponent {
-
 	public final QProperty<List<String>> options=new QProperty<>((List<String>)new ArrayList<String>());
 	public final QProperty<Integer> selected=new QProperty<>();
-	public QSelect(QPage page0, String id) {
-		super(page0, id);
-		options.serverChangedEvent.addListener(new UtilEventListener<List<String>>() {
-			
-			@Override
-			public void eventHappened(List<String> msg) {
-				serverOptionsChanged(msg);
-			}
-		});
-		selected.serverChangedEvent.addListener(new UtilEventListener<Integer>() {
-			@Override
-			public void eventHappened(Integer msg) {
-				if(page.inited)
-				{
-					setWriter(page.getCurrentTemplate().getWriter());
-					sendSelected();
-					setWriter(null);
-				}
-			}
-		});
+	public QSelect(IQContainer parent, String id) {
+		super(parent, id);
+	}
+	public QSelect(IQContainer parent) {
+		super(parent);
 	}
 	
 	protected void serverOptionsChanged(final List<String> msg)
@@ -69,8 +55,7 @@ abstract public class QSelect extends QComponent {
 
 
 	@Override
-	final public void doInit() {
-		setParent(page.getCurrentTemplate());
+	final public void doInitJSObject() {
 		write("\tnew ");
 		writeObject(getClass().getSimpleName());
 		write("(page, \"");
@@ -81,14 +66,33 @@ abstract public class QSelect extends QComponent {
 		{
 			sendSelected();
 		}
-		setParent(null);
+		options.serverChangedEvent.addListener(new UtilEventListener<List<String>>() {
+			@Override
+			public void eventHappened(List<String> msg) {
+				serverOptionsChanged(msg);
+			}
+		});
+		selected.serverChangedEvent.addListener(new UtilEventListener<Integer>() {
+			@Override
+			public void eventHappened(Integer msg) {
+				if(page.inited)
+				{
+					setWriter(page.getCurrentTemplate().getWriter());
+					sendSelected();
+					setWriter(null);
+				}
+			}
+		});
 	}
 
 	@Override
-	final public void handle(HtmlTemplate parent, IInMemoryPost post) throws IOException {
+	final public void handle(HtmlTemplate parent, JSONObject post) throws IOException {
 		setWriter(parent.getWriter());
 		try {
-			selected.setPropertyFromClient(Integer.parseInt(post.getParameter("selected")));
+			if(post.has("selected"))
+			{
+				selected.setPropertyFromClient(post.getInt("selected"));
+			}
 		} catch (NumberFormatException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

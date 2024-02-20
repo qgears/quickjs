@@ -3,9 +3,9 @@ class QLabel extends QComponent
 	addDomListeners()
 	{
 	}
-	initValue(text)
+	setInnerHtml(text)
 	{
-		this.dom.innerHTML=text;
+		this.controlledNode.innerHTML=text;
 	}
 }
 

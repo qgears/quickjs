@@ -9,7 +9,7 @@ class QSelectFastScroll extends QComponent
 	onchange(index)
 	{
 		var fd=this.page.createFormData(this);
-		fd.append("selected", index);
+		fd.selected=index;
 		this.page.send(fd);
 	}
 	setSelected(value)

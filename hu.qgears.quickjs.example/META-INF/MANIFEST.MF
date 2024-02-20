@@ -4,16 +4,27 @@ Bundle-Name: Quickjs-example
 Bundle-SymbolicName: hu.qgears.quickjs.example
 Bundle-Version: 3.0.0.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
-Require-Bundle: hu.qgears.quickjs;bundle-version="1.0.0",
- org.eclipse.jetty.continuation;bundle-version="9.2.13",
- org.eclipse.jetty.http;bundle-version="9.2.13",
- org.eclipse.jetty.io;bundle-version="9.2.13",
- org.eclipse.jetty.server;bundle-version="9.2.13",
- org.eclipse.jetty.servlet;bundle-version="9.2.13",
- org.eclipse.jetty.util;bundle-version="9.2.13",
- javax.servlet;bundle-version="3.1.0",
- org.slf4j.api;bundle-version="1.7.2",
- joptsimple;bundle-version="1.2.0"
+Require-Bundle: hu.qgears.quickjs;bundle-version="1.0.0";visibility:=reexport,
+ org.eclipse.jetty.continuation;bundle-version="[9.4.0,9.5.0)";visibility:=reexport,
+ org.eclipse.jetty.http;bundle-version="[9.4.0,9.5.0)";visibility:=reexport,
+ org.eclipse.jetty.io;bundle-version="[9.4.0,9.5.0)";visibility:=reexport,
+ org.eclipse.jetty.server;bundle-version="[9.4.0,9.5.0)";visibility:=reexport,
+ org.eclipse.jetty.servlet;bundle-version="[9.4.0,9.5.0)";visibility:=reexport,
+ org.eclipse.jetty.util;bundle-version="[9.4.0,9.5.0)";visibility:=reexport,
+ javax.servlet;bundle-version="3.1.0";visibility:=reexport,
+ org.slf4j.api;bundle-version="1.7.2";visibility:=reexport,
+ joptsimple;bundle-version="1.2.0";visibility:=reexport,
+ org.json;bundle-version="1.0.0",
+ org.eclipse.jetty.websocket.servlet;bundle-version="9.4.31";visibility:=reexport,
+ org.eclipse.jetty.security;bundle-version="9.4.31",
+ org.eclipse.jetty.websocket.api;bundle-version="9.4.31";visibility:=reexport,
+ org.eclipse.jetty.websocket.server;bundle-version="9.4.31";visibility:=reexport,
+ org.eclipse.jetty.websocket.common;bundle-version="9.4.31";visibility:=reexport,
+ org.eclipse.jetty.websocket.client;bundle-version="9.4.31";visibility:=reexport,
+ org.eclipse.jetty.client;bundle-version="9.4.31"
 Export-Package: hu.qgears.quickjs.qpage.example,
+ hu.qgears.quickjs.qpage.example.websocket,
+ hu.qgears.quickjs.tcpwebsocketproxy,
  hu.qgears.quickjs.upload,
  hu.qgears.quickjs.utils
+Automatic-Module-Name: hu.qgears.quickjs.example

@@ -1,0 +1,46 @@
+= Template output state for the QuickJS framework
+
+ * When the page is initiated then the first request is served on the web server thread. (As response to the first GET http query.)
+ * After the first query is replied then an executor is set up that executes any tasks that are added to the task queue of the page.
+ ** For example external events or timers can add tasks here.
+ ** Each task locks the global lock of the page and thus it is synchronized with client side event processing
+ * Client side event processing:
+ ** A websocket communication is set up when the page is GET
+ ** Websocket handlers parse client side messages and process them (on the websocket receiver thread)
+    while processing the client messages the page global lock is also locked and thus it is synchronized with task queue tasks.
+
+== Initial HTML output mode.
+
+While the first query is served it is possible to implement direct HTML output.
+This is useful because these HTML objects are initialized at once and thus there is no lickering when the page is loaded.
+
+== HTML node output mode
+
+HTML is generated in memory. Then converted to javascript that creates the DOM tree and inserts it into a node within the DOM tree.
+
+== QuickJS object initialization mode
+
+QuickJS widgets have JavaScript initialization code that is send by the server to the
+client to be executed. This code is sent after the DOM creating code is executed on the client
+because the DOM has to be available when the widget listeners are attached to the DOM object.
+
+== Javascript output mode
+
+Javascript is generated and evaluated when received by the client.
+
+== Order of execution of template outputs:
+
+ * Initial HTML (only when the initial query is executed)
+ * In each transaction
+ ** DOM creation (in order of execution)
+ ** QuickJS object initialization
+ ** QuickJS property update
+
+
+== Identifier of QuickJS widgets
+
+Each widget has a unique identifier (unique within the page instance) and this is the same on the Java side and
+the JS side (JS object and DOM node identifier).
+
+This identifier is generated automatically when the QuickJS object is created on the server side. (Or it can also be set manually in case of many widgets.)
+Because we need the identifier to create the HTML that is the reason why the QuickJS object is created first then HTML (DOM) is created and then the object is initialized.

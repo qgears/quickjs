@@ -6,13 +6,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 
+import hu.qgears.commons.UtilTimer;
+
 /**
  * The session object in terms of QPage.
  */
 public class QPageManager {
+	public QPageManager() {
+	}
 	private Map<String, QPage> pages=new HashMap<>();
 	private Map<String, Object> userdata=new HashMap<>();
-	public static Timer disposeTimer=new Timer("QPage dispose timer");
+	public static Timer disposeTimer=UtilTimer.javaTimer;
 	private int idCtr=0;
 	/**
 	 * Salt is used to separate page ids in case of the server is restarted but sessions are

@@ -33,12 +33,10 @@ public class HttpSessionQPageManager {
 				{
 					manager.dispose();
 				}
-				System.out.println("Session diposed!");
 			}
 			
 			@Override
 			public void sessionCreated(HttpSessionEvent se) {
-				System.out.println("Session created!");
 			}
 		};
 	}

@@ -1,22 +1,36 @@
 package hu.qgears.quickjs.qpage.example;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
+import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.server.handler.HandlerCollection;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.util.thread.ThreadPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QPageManager;
+import hu.qgears.quickjs.qpage.example.websocket.QWSMessagingServlet;
 import hu.qgears.quickjs.utils.AbstractQPage;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
-import hu.qgears.quickjs.utils.InMemoryPost;
+import hu.qgears.quickjs.utils.IQTestEnvironment;
+import hu.qgears.quickjs.utils.UtilJetty;
 
 /**
  * Jetty compatible http query handler that includes an {@link AbstractQPage}.
@@ -24,20 +38,97 @@ import hu.qgears.quickjs.utils.InMemoryPost;
  * This is the only Jetty specific part of the example implementation.
  * This logic must be reimplemented to include QPage applications within a servlet for example.
  */
-public class QPageHandler {
+public class QPageHandler extends HandlerCollection {
+	private static Logger log=LoggerFactory.getLogger(QPageHandler.class);
 	private IQPageFactory pageFactory;
+	public static final String key=QPageHandler.class.getName()+".objectParameter";
+	private Function<ServletRequest, Object> userParameterGetter=request->request.getAttribute(key);
+	private Map<String, AbstractHandler> webSocketHandlers=new HashMap<>();
+	public static void setUserParameter(ServletRequest request, Object userParameter)
+	{
+		request.setAttribute(key, userParameter);
+	}
+	/**
+	 * @Deprecated ctx parameter is not necessary"
+	 * @param ctx
+	 * @param pageFactory
+	 */
+	@Deprecated
+	public QPageHandler(QPageContext ctx, IQPageFactory pageFactory) {
+		this.pageFactory=pageFactory;
+		createWebSocketEntry();
+	}
+	/**
+	 * @Deprecated ctx parameter is not necessary"
+	 * @param ctx
+	 * @param pageClass
+	 */
+	@Deprecated
+	public QPageHandler(QPageContext ctx, Class<? extends AbstractQPage> pageClass) {
+		this.pageFactory=req->{AbstractQPage ret=pageClass.getConstructor().newInstance(); ret.setUserData(req); return ret;};
+		createWebSocketEntry();
+	}
 	public QPageHandler(IQPageFactory pageFactory) {
 		this.pageFactory=pageFactory;
+		createWebSocketEntry();
 	}
 	public QPageHandler(Class<? extends AbstractQPage> pageClass) {
-		this.pageFactory=req->{AbstractQPage ret=pageClass.newInstance(); ret.setUserData(req); return ret;};
+		this.pageFactory=req->{AbstractQPage ret=pageClass.getConstructor().newInstance(); ret.setUserData(req); return ret;};
+		createWebSocketEntry();
 	}
-
-	public void handle(String target, final Request baseRequest, HttpServletRequest request, HttpServletResponse response, Object userData) throws IOException {
- 		HttpSession sess=baseRequest.getSession();
+	private void createWebSocketEntry() {
+		ServletContextHandler websocketHandler=QWSMessagingServlet.createHandler();
+		addWebSocketHandler("true", websocketHandler);
+		try {
+			AbstractQPage pagePrototype=pageFactory.createPage(null);
+			pagePrototype.configureWebsocketHandlers(this);
+		} catch (Exception e) {
+			log.error("createWebocketEntry", e);
+		}
+	}
+	public void addWebSocketHandler(String string, AbstractHandler websocketHandler) {
+		addHandler(websocketHandler);
+		webSocketHandlers.put(string, websocketHandler);
+	}
+	@Override
+	public void handle(String target, final Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
+		HttpSession sess=baseRequest.getSession();
 		final QPageManager qpm=HttpSessionQPageManager.getManager(sess);
 		String id=baseRequest.getParameter(QPage.class.getSimpleName());
+		if(!isStarted())
+		{
+			throw new RuntimeException("Handler is used but not started");
+		}
+		String websocket=baseRequest.getParameter("websocket");
+		AbstractHandler selectedWebsocketHandler=webSocketHandlers.get(websocket);
+		
+		if(selectedWebsocketHandler!=null)
+		{
+			try {
+				// Fix issue with nginx passthrough:
+				// Ngninx unencodes the path which causes exception in SErvletupgradeRequest
+				// For some reason all non-websocket queries work fine.
+				// We do not use the path information is websocket factory so we just
+				// remove the path as a workaround.
+				/**
+				 * Caused by: java.net.URISyntaxException: Illegal character in path at index 36: ws://localhost:9092/queryresult/VIN="qwerty"?websocket=true&QPage=1602001882489_4
+ at java.base/java.net.URI$Parser.fail(URI.java:2913)
+at java.base/java.net.URI$Parser.checkChars(URI.java:3084)
+at java.base/java.net.URI$Parser.parseHierarchical(URI.java:3166)
+at java.base/java.net.URI$Parser.parse(URI.java:3114)
+ at java.base/java.net.URI.<init>(URI.java:600)
+ at org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest.<init>(ServletUpgradeRequest.java:65)
+				 */
+				baseRequest.setURIPathQuery("/");
+				selectedWebsocketHandler.handle(target, baseRequest, request, response);
+			} catch (Exception e) {
+				log.error("Handle websocket query", e);
+			}
+			return;
+		}
 		try {
+			// QPage requests are always genuine and they have no use to cache.
+			UtilJetty.setResponseNotCacheable(response);
 			response.setContentType("text/html; charset=utf-8");
 			final Writer wr=new OutputStreamWriter(response.getOutputStream(), StandardCharsets.UTF_8);
 			switch(baseRequest.getMethod())
@@ -45,40 +136,66 @@ public class QPageHandler {
 			case "GET":
 				if(id==null)
 				{
+					Object userData=userParameterGetter==null?null:userParameterGetter.apply(request);
 					// handle initial get
 					new HtmlTemplate(wr){
 						public void generate() throws Exception {
 							QPage newPage=new QPage(qpm);
+							QPageContext qpc=QPageContext.getCurrent();
+							newPage.setSessionId(baseRequest.getSession().getId());
 							AbstractQPage inst=pageFactory.createPage(userData);
+							inst.setRequest(baseRequest, request);
 							inst.initApplication(this, newPage);
+							newPage.setExecutor(r->{
+								try
+								{
+									Server server=getServer();
+									if(server!=null)
+									{
+										ThreadPool tp=server.getThreadPool();
+										if(!newPage.disposedEvent.isDone() && server.isRunning())
+										{
+											tp.execute(r);
+										}
+									}
+								}catch(Exception e)
+								{
+									log.error("executor error", e);
+								}
+							});
+							if(qpc!=null)
+							{
+								IQTestEnvironment testEnvironment=qpc.getTestEnvironment();
+								if(testEnvironment!=null)
+								{
+									testEnvironment.qPageCreated(baseRequest, newPage);
+								}
+								newPage.setSessionIdParameterName(qpc.getSessionIdParameter());
+							}
 						}
 					}.generate();
 				}else
 				{
-					System.err.println("Page exists query invalid!");
+					log.error("Page exists with id: "+id+" query invalid!");
 				}
 				break;
 			default:
-				final QPage page=qpm.getPage(id);
-				if(page!=null)
-				{
-					// handle posts
-					new HtmlTemplate(wr){
-						public void generate() throws Exception {
-							InMemoryPost post=new InMemoryPost(baseRequest);
-							page.handle(this, post);
-							return;
-						}
-					}.generate();
-				}
 				break;
 			}
 			baseRequest.setHandled(true);
 			wr.close();
 		}catch(Exception e)
 		{
-			throw new IOException("Processing page: "+target+" "+baseRequest.getMethod(), e);
+			if(e instanceof EOFException)
+			{
+				// Client closed page before content was sent to it - normal no need to log exception.
+				log.info("Page query closed by client: "+target+" "+baseRequest.getMethod());
+			}
+			throw new IOException("Processing page: "+target+" "+baseRequest.getMethod()+" "+baseRequest.getParameter("QPage"), e);
 		}
 	}
-
+	public QPageHandler setUserParameterGetter(Function<ServletRequest, Object> userParameterGetter) {
+		this.userParameterGetter = userParameterGetter;
+		return this;
+	}
 }

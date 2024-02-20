@@ -8,10 +8,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.handler.AbstractHandler;
 
-public class HelloWorld {
+public class HelloWorld extends AbstractHandler {
 	static byte[] staticreply="Hello!".getBytes(StandardCharsets.UTF_8);
-	static public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
+	@Override
+	public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
 		throws IOException, ServletException {
 		String path=request.getPathInfo();
 		switch(path)

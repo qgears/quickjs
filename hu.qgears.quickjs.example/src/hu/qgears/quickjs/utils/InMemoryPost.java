@@ -35,5 +35,7 @@ public class InMemoryPost implements IMultipartHandler, IInMemoryPost
 		}
 		return new String(bos.toByteArray(), StandardCharsets.UTF_8);
 	}
-
+	public Map<String, ByteArrayOutputStream> getParameters() {
+		return parameters;
+	}
 }

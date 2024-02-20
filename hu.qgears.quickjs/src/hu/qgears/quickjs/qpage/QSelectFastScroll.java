@@ -12,17 +12,18 @@ public class QSelectFastScroll extends QSelect {
 		scriptReferences.add("fastscroll");
 		scriptReferences.add(QSelectFastScroll.class.getSimpleName());
 	}
-	public QSelectFastScroll(QPage page0, String id) {
-		super(page0, id);
+	public QSelectFastScroll(IQContainer parent, String id) {
+		super(parent, id);
+	}
+	public QSelectFastScroll(IQContainer parent) {
+		super(parent);
 	}
 	
 	@Override
-	public void generateExampleHtmlObject(HtmlTemplate parent) {
-		setWriter(parent.getWriter());
+	public void generateHtmlObject() {
 		write("<div id=\"");
 		writeJSValue(id);
 		write("\" style=\"width:650px; height:150px;\"></div>\t\n");
-		setWriter(null);
 	}
 	@Override
 	public List<String> getScriptReferences() {

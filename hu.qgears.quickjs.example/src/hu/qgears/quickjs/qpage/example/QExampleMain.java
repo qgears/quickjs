@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -13,9 +14,12 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.session.DefaultSessionIdManager;
 import org.eclipse.jetty.server.session.SessionHandler;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 
+import hu.qgears.quickjs.qpage.example.websocket.QWSMessagingServlet;
 import hu.qgears.quickjs.upload.UploadHandler;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
 import joptsimple.annot.AnnotatedClass;
@@ -28,6 +32,9 @@ import quickjs.HelloWorld;
 public class QExampleMain extends AbstractHandler {
 	byte[] staticreply = "Hello!".getBytes(StandardCharsets.UTF_8);
 	private Args clargs;
+	ServletContextHandler ws;
+	QPageContext qpc;
+	private Server server;
 	public static class Args
 	{
 		public String host="127.0.0.1";
@@ -37,23 +44,27 @@ public class QExampleMain extends AbstractHandler {
 
 	public QExampleMain(Args clargs) {
 		this.clargs=clargs;
+		ws=QWSMessagingServlet.createHandler();
 	}
 
 	public static void main(String[] args) throws Exception {
-		
 		Args clargs = new Args();
 		AnnotatedClass cl = new AnnotatedClass();
 		cl.parseAnnotations(clargs);
 		System.out.println("QuickJS example demo program. Usage:\n");
 		cl.printHelpOn(System.out);
 		cl.parseArgs(args);
-		
+		new QExampleMain(clargs).launch();
+	}
+	private void launch() throws Exception
+	{
 		InetSocketAddress sa = new InetSocketAddress(clargs.host, clargs.port);
-		Server server = new Server(sa);
+		server = new Server(sa);
+		qpc=new QPageContext(server);
 
 		// Specify the Session ID Manager
-		DefaultSessionIdManager sessionIdManager = new DefaultSessionIdManager(server);
-		server.setSessionIdManager(sessionIdManager);
+		DefaultSessionIdManager idmanager = new DefaultSessionIdManager(server, new SecureRandom());
+		server.setSessionIdManager(idmanager);
 
 		// Sessions are bound to a context.
 		ContextHandler context = new ContextHandler("/");
@@ -61,10 +72,14 @@ public class QExampleMain extends AbstractHandler {
 
 		// Create the SessionHandler (wrapper) to handle the sessions
 		SessionHandler sessions = new SessionHandler();
-		sessions.setSessionIdManager(sessionIdManager);
 		sessions.addEventListener(HttpSessionQPageManager.createSessionListener());
 		context.setHandler(sessions);
-		sessions.setHandler(new QExampleMain(clargs));
+		
+		HandlerList hl=new HandlerList(this,
+				new HelloWorld());
+		sessions.setHandler(hl);
+		ws.setServer(server);
+		ws.start();
 		server.start();
 		server.join();
 	}
@@ -74,26 +89,30 @@ public class QExampleMain extends AbstractHandler {
 			final HttpServletResponse response) throws IOException, ServletException {
 		switch (target) {
 		case "/":
-			// response.sendRedirect("/index");
-			// baseRequest.setHandled(true);
-			// break;
-			// case "/index":
-			new QPageHandler(Index.class).handle(target, baseRequest, request, response, null);
+			new QPageHandler(qpc, Index.class).handle(target, baseRequest, request, response);
 			break;
 		case "/01":
-			new QPageHandler(QExample01.class).handle(target, baseRequest, request, response, null);
+			new QPageHandler(qpc, QExample01.class).handle(target, baseRequest, request, response);
 			break;
 		case "/02":
-			new QPageHandler(QExample02.class).handle(target, baseRequest, request, response, null);
+			new QPageHandler(qpc, QExample02.class).handle(target, baseRequest, request, response);
 			break;
 		case "/03":
-			new QPageHandler(QExample03.class).handle(target, baseRequest, request, response, null);
+			new QPageHandler(qpc, QExample03.class).handle(target, baseRequest, request, response);
+			break;
+		case "/04":
+			new QPageHandler(qpc, QExample04DynamicDivs.class).handle(target, baseRequest, request, response);
 			break;
 		case "/performance":
 			response.setContentType("text/html");
 			response.setCharacterEncoding("UTF-8");
 			response.getOutputStream().write(staticreply);
 			response.setStatus(HttpServletResponse.SC_OK);
+			baseRequest.setHandled(true);
+			break;
+		case "/messaging":
+		case "/wsexample":
+			ws.handle(target, baseRequest, request, response);
 			baseRequest.setHandled(true);
 			break;
 		default:
@@ -103,7 +122,8 @@ public class QExampleMain extends AbstractHandler {
 				new UploadHandler(clargs.uploadFolder).handle(baseRequest, response);
 				return;
 			}
-			HelloWorld.handle(target, baseRequest, request, response);
+			baseRequest.setHandled(true);
+			// Unhandled
 			break;
 		}
 	}

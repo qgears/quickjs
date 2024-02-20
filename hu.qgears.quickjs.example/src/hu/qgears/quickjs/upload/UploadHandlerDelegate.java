@@ -65,4 +65,7 @@ public class UploadHandlerDelegate
 	public long getMaxChunkSize() {
 		return maxChunkSize;
 	}
+	public void setMaxChunkSize(long maxChunkSize) {
+		this.maxChunkSize = maxChunkSize;
+	}
 }

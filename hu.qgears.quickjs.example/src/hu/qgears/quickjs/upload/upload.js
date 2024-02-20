@@ -21,6 +21,7 @@ class FileUpload
 	}
 	start()
 	{
+		console.info("Upload start: "+this.file+" "+this.at+" "+this.chunksize);
 		this.stopped=false;
 		this.nextAt=Math.min(this.at+this.chunksize, this.file.size);
 		var slice=this.file.slice(this.at, this.nextAt);
@@ -42,17 +43,21 @@ class FileUpload
 	}
 	onLoad(evt)
 	{
+		console.info("Upload XHR onLoad: "+evt.target.status);
 		if(evt.target.status==200)
 		{
 			eval(evt.target.responseText);
 		}else
 		{
 			this.error(this.file, this.at);
+			console.error("Upload XHR error status: "+evt.target.status+" "+evt.target.statusText);
 		}
 	}
-	onError()
+	onError(evt)
 	{
 		this.error(this.file, this.at);
+		console.error("Upload XHR error:");
+		console.error(evt);
 	}
 	onProgress(evt)
 	{
@@ -60,15 +65,15 @@ class FileUpload
 	}
 	progress(file, bytes)
 	{
-		console.info("PROGRESS "+bytes+" bytes");
+		console.info("upload PROGRESS "+bytes+" bytes");
 	}
 	finished(file, bytes)
 	{
-		console.info("FINISHED");
+		console.info("upload FINISHED");
 	}
 	error(file, at)
 	{
-		console.info("ERROR");
+		console.info("upload ERROR: "+file+" "+at);
 	}
 }
 

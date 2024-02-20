@@ -8,7 +8,7 @@ class QSelectCombo extends QComponent
 	{
 		var value=this.dom.options [this.dom.selectedIndex].value;
 		var fd=this.page.createFormData(this);
-		fd.append("selected", value);
+		fd.selected=value;
 		this.page.send(fd);
 	}
 	setSelected(value)

@@ -1,0 +1,59 @@
+ = HTML5 history integration
+
+Related functions:
+
+ == QPage.historyPushState(String userVisibleStateName, String url): Create a history state and push it onto the stack.
+    Implementation calls history.pushState in the browser. JSON data is not supported because we already encode data into the url.
+    Recommended usage:
+----
+    		MultiMap<String> parameters=new MultiMap<>();
+			parameters.put("value", ""+i);
+			String url=UrlEncoded.encode(parameters, StandardCharsets.UTF_8, true);
+			page.historyPushState(""+i, "?"+url);
+----
+
+== Parse parameter on reload
+
+----
+	@Override
+	public void setBaseRequest(Request baseRequest) {
+		super.setBaseRequest(baseRequest);
+		try {
+			value=Integer.parseInt(baseRequest.getParameter("value"));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+----
+
+== Handle back and forward without reload
+
+----
+		page.historyPopState.addListener(e->{
+			HttpURI uri=new HttpURI(e.search);
+			MultiMap<String> parameters=new MultiMap<>();
+			try {
+				uri.decodeQueryTo(parameters, StandardCharsets.UTF_8);
+			} catch (UnsupportedEncodingException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			label.innerhtml.setPropertyFromServer("No reload: "+parameters.getString("value"));
+		});
+----
+
+== Create an advanced link that supports no reload navigation and standard navigation (open in tab, etc.) at the same time.
+
+----
+		QLink link=new QLink(page, "mylink", "?value=112");
+		link.clicked.addListener(e->{
+			int i=112;
+			label.innerhtml.setPropertyFromServer(""+i);
+			MultiMap<String> parameters=new MultiMap<>();
+			parameters.put("value", ""+i);
+			String url=UrlEncoded.encode(parameters, StandardCharsets.UTF_8, true);
+			page.historyPushState(""+i, "?"+url);
+		});
+----
+

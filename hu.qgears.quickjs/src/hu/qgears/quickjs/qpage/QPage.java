@@ -1,144 +1,248 @@
 package hu.qgears.quickjs.qpage;
 
+import java.awt.Point;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.TimerTask;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
+import org.apache.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import hu.qgears.commons.SafeTimerTask;
+import hu.qgears.commons.UtilComma;
 import hu.qgears.commons.UtilEvent;
 import hu.qgears.commons.UtilFile;
+import hu.qgears.commons.UtilListenableProperty;
+import hu.qgears.commons.UtilTimer;
 import hu.qgears.commons.signal.SignalFutureWrapper;
+import hu.qgears.quickjs.qpage.IndexedComm.Msg;
 
 /**
- * @author rizsi
- *
+ * QuickJS web page instance.
  */
-public class QPage implements Closeable {
+public class QPage implements Closeable, IQContainer, IUserObjectStorage {
+	private static Logger log=Logger.getLogger(QPage.class);
 	public static String idAttribute = QPage.class.getSimpleName();
 	private String identifier = "id";
 	private volatile boolean active = true;
 	private Map<String, QComponent> components = new HashMap<>();
 	private Object syncObject = new Object();
-	private int currentMessageIndex = 0;
-	private int serverstateindex = 0;
 	private HtmlTemplate currentTemplate;
 	public boolean inited;
 	private final QPageManager qpm;
-	private static long TIMEOUT_POLL=15000;
-	private static long TIMEOUT_DISPOSE=TIMEOUT_POLL*2;
-	private LinkedBlockingQueue<Runnable> tasks=new LinkedBlockingQueue<>();
+	private long TIMEOUT_DISPOSE=IndexedComm.timeoutPingMillis*2;
 	public final SignalFutureWrapper<QPage> disposedEvent=new SignalFutureWrapper<>();
-	private volatile Thread thread;
 	private String scriptsAsSeparateFile=null;
 	private List<QComponent> toInit=new ArrayList<>();
-	public final UtilEvent<IInMemoryPost> customQuery=new UtilEvent<>();
+	private List<QComponent> additionaComponentTypes=new ArrayList<QComponent>();
+	private Map<String, Object> userObjectStorage=new HashMap<String, Object>();
+	private IndexedComm indexedComm=new IndexedComm();
+	private Executor executor;
+	private volatile Thread thread;
+	private SafeTimerTask currentTimerTask;
+	private LinkedList<Runnable> tasks=new LinkedList<>();
+	private Map<String, IndexedComm> customWebSocketImplementations=Collections.synchronizedMap(new HashMap<>());
+	private String sessionIdParameterName;
+	private String sessionId;
+	private List<AutoCloseable> closeables;
+	public final UtilListenableProperty<Boolean> started=new UtilListenableProperty<Boolean>(false);
+	public static List<String> scripts=Arrays.asList("indexedComm.js", 
+			"QPage.js", "QComponent.js");
+	/**
+	 * Counter for component unique id creator.
+	 */
+	private int idCtr=0;
+	/**
+	 * Singleton to be used as a default component creator.
+	 */
+	public final ComponentCreator defaultCreator=new ComponentCreator();
+	private Map<String, UtilEvent<JSONObject>> customQueryListeners=new HashMap<>();
+	private Map<String, UtilEvent<IndexedComm.Msg>> customQueryListeners2=new HashMap<>();
+	public final UtilEvent<HtmlTemplate> afterComponentInitialization=new UtilEvent<>();
+	/**
+	 * document.visibilityState visible:true hidden:false
+	 */
+	public final UtilListenableProperty<Boolean> documentVisibilityState=new UtilListenableProperty<Boolean>(true);
+	/**
+	 * Event fired when user returns to a previous history state of the current page.
+	 * (eg. presses prev button)
+	 * See also historyPushState()
+	 */
+	public final UtilEvent<HistoryPopStateEvent> historyPopState=new UtilEvent<>();
+	/**
+	 * Size of the HTML Window client. Null before first report was received.
+	 * Auto-updated by client.
+	 */
+	public final UtilListenableProperty<Point> windowClientSize=new UtilListenableProperty<>();
 	
-	class MessageFramingTemplate extends HtmlTemplate {
-
-		public MessageFramingTemplate(HtmlTemplate parent) {
-			super(parent);
-		}
-
-		public void openMessage() {
-			write("page.processServerMessage(");
-			writeObject(serverstateindex);
-			write(",function(page)\n{\n\tpage.resetDisposeTimeout();\n");
-			serverstateindex++;
-		}
-
-		public void closeMessage() {
-			write("});\n");
-		}
-
-	}
-
+	private Supplier<AutoCloseable> setupContext=()->(()->{});
 	class Message {
-		HtmlTemplate parent;
-		IInMemoryPost post;
-		int index;
+		IndexedComm.Msg msg;
+		JSONObject post;
 		boolean outOfOrder=false;
 
-		public Message(HtmlTemplate parent, IInMemoryPost post) throws NumberFormatException, IOException {
+		public Message(IndexedComm.Msg msg) throws NumberFormatException, IOException {
 			super();
-			this.parent = parent;
-			this.post = post;
-			index = Integer.parseInt(post.getParameter("messageindex"));
+			this.msg = msg;
+			this.post = (JSONObject)msg.header;
 		}
-		public Message(HtmlTemplate parent, boolean outOfOrder) throws NumberFormatException, IOException {
+		public Message(boolean outOfOrder) throws NumberFormatException, IOException {
 			super();
-			this.parent = parent;
 			this.outOfOrder=outOfOrder;
 		}
 		protected void executeTask() throws IOException
 		{
-			if ("true".equals(post.getParameter("custom"))) {
-				customQuery.eventHappened(post);
+			if(!active)
+			{
+				currentTemplate.write("page.dispose(\"Server side compontent is already disposed.\");\n");
+				return;
+			}
+			if (post.has("history_popstate"))
+			{
+				historyPopState.eventHappened(new HistoryPopStateEvent(QPage.this, post.getString("pathname"), post.getString("search")));
+			}
+			else if (post.has("custom")) {
+				String type=post.getString("type");
+				UtilEvent<JSONObject> ev=getCustomQueryListener(type);
+				int n=ev.getNListeners();
+				ev.eventHappened(post);
+				UtilEvent<Msg> ev2=getCustomQueryListener2(type);
+				n+=ev2.getNListeners();
+				ev2.eventHappened(msg);
+				if(n==0)
+				{
+					log.error("No listener for custom message: "+post);
+				}
 			}else
 			{
-				String cid = post.getParameter("component");
-				QComponent ed = components.get(cid);
-				ed.handle(parent, post);
+				String cid = JSONHelper.getStringSafe(post, "component");
+				if(getId().equals(cid))
+				{
+					handleClientPost(msg, post);
+				}else
+				{
+					QComponent ed = components.get(cid);
+					if(ed!=null)
+					{
+						ed.handleClientPost(currentTemplate, msg, post);
+					}else
+					{
+						log.error("Client post target does not exist: "+cid+" "+post);
+					}
+				}
 			}
 		}
 
 		public void executeOnThread() throws Exception {
-			long t = System.currentTimeMillis();
 			synchronized (syncObject) {
-				// Proper ordering of messages!
-				if(!outOfOrder)
-				{
-					while (index != currentMessageIndex) {
-						syncObject.wait(10000);
-						if (System.currentTimeMillis() > t + 10000) {
-							// TODO crash the client! User feedback of internal
-							// error!
-							throw new TimeoutException();
-						}
-					}
-					currentMessageIndex++;
-				}
-				MessageFramingTemplate msft = new MessageFramingTemplate(parent);
+				// Proper ordering of messages is done by messaging subsystem
 				thread=Thread.currentThread();
-				currentTemplate=parent;
-				msft.openMessage();
-				executeTask();
-				for(QComponent c: toInit)
+				currentTemplate=new HtmlTemplate(new StringWriter());
+				currentTemplate.setupWebSocketArguments(true);
+				try(AutoCloseable s=setupContext.get())
 				{
-					c.init();
+					executeTask();
+					initAll();
 				}
-				toInit.clear();
+				indexedComm.sendMessage("js", currentTemplate.toWebSocketArguments());
 				currentTemplate=null;
-				msft.closeMessage();
-				syncObject.notifyAll();
 				reinitDisposeTimer();
 				thread=null;
 			}
 		}
 	}
-	private TimerTask disposeTimer;
+	/**
+	 * Call init on each uninitialized components.
+	 * Features:
+	 *  * Components are initialized in the order of creation in Java code.
+	 *  * This method of iteration allows objects to be created while we iterate the array!
+	 *    This way Creation of objects in initializator is possible.
+	 */
+	private void initAll() {
+		for(int i=0;i<toInit.size();++i)
+		{
+			QComponent c=toInit.get(i);
+			c.init();
+		}
+		toInit.clear();
+	}
+	public void handleClientPost(Msg msg, JSONObject post) {
+		String type=post.getString("type");
+		switch(type)
+		{
+		case "windowSize":
+			Point p=new Point(post.getInt("width"), post.getInt("height"));
+			windowClientSize.setProperty(p);
+			break;
+		case "started":
+			started.setProperty(true);
+			break;
+		default:
+			log.error("Unhandled post type: "+post);
+		}
+	}
+	private SafeTimerTask disposeTimer;
 	public QPage(QPageManager qpm) {
 		this.qpm=qpm;
+		thread=Thread.currentThread();
 		identifier = qpm.createId();
 		qpm.register(identifier, this);
 		reinitDisposeTimer();
+		indexedComm.received.addListener(msg->{
+			JSONObject jo=(JSONObject)msg.header;
+			if(jo.has("log"))
+			{
+				JSONArray a=jo.getJSONArray("log");
+				for(Object o: a)
+				{
+					log.info(""+o);
+				}
+			}else if(jo.has("unload")&&"true".equals(jo.get("unload"))) {
+				handleUnloadQuery();
+			}else if(jo.has("history_popstate")|| jo.has("custom")||jo.has("component"))
+			{
+				try {
+					new Message(msg).executeOnThread();
+				} catch (Exception e) {
+					log.error(e);
+				}
+			}
+		});
+		indexedComm.receivedPing.addListener(msg->{
+			reinitDisposeTimer();
+		});
+		getCustomQueryListener("visibilitychange").addListener(json->{
+			documentVisibilityState.setProperty("visible".equals(json.getString("data")));
+		});
 	}
 
-	private void reinitDisposeTimer() {
+	/**
+	 * Internal API. 
+	 * Can be used in the very rare case when for some reason the page is blocked for a time.
+	 * Callint this periodically will disable page disposal.
+	 */
+	public void reinitDisposeTimer() {
 		if(disposeTimer!=null)
 		{
 			disposeTimer.cancel();
 			disposeTimer=null;
 		}
-		disposeTimer=new TimerTask() {
+		disposeTimer=new SafeTimerTask() {
 			
 			@Override
-			public void run() {
+			public void doRun() {
 				dispose();
 			}
 		};
@@ -150,10 +254,26 @@ public class QPage implements Closeable {
 		{
 			new HtmlTemplate(parent) {
 				public void generate() {
-					write("<script language=\"javascript\" type=\"text/javascript\" src=\"");
-					writeObject(scriptsAsSeparateFile);
-					write("/QPage.js\"></script>\n");
+					for(String fname: scripts)
+					{
+						write("<script language=\"javascript\" type=\"text/javascript\" src=\"");
+						writeObject(scriptsAsSeparateFile);
+						write("/");
+						writeObject(fname);
+						write("\"></script>\n");
+					}
 					for(QComponent c: QPageTypesRegistry.getInstance().getTypes())
+					{
+						for(String scriptRef: c.getScriptReferences())
+						{
+							write("<script language=\"javascript\" type=\"text/javascript\" src=\"");
+							writeObject(scriptsAsSeparateFile);
+							write("/");
+							writeObject(scriptRef);
+							write(".js\"></script>\n");
+						}
+					}
+					for(QComponent c: getAdditionalComponentTypes())
 					{
 						for(String scriptRef: c.getScriptReferences())
 						{
@@ -176,33 +296,55 @@ public class QPage implements Closeable {
 		currentTemplate=parent;
 		new HtmlTemplate(parent) {
 			public void generate() {
-				write("<script language=\"javascript\" type=\"text/javascript\">\nglobalQPage=new QPage('");
+				write("<script language=\"javascript\" type=\"text/javascript\">\n// Script that starts the QuickJS communication loop and connects managed objects DOM and JS \nglobalQPage=new QPage('");
 				writeObject(identifier);
 				write("', ");
 				writeObject(TIMEOUT_DISPOSE);
-				write(");\nwindow.addEventListener(\"load\", function(){\n\tvar page=this;\n");
+				write(");\n");
+				if(sessionIdParameterName!=null){
+					write("globalQPage.setSessionIdParameterAdditional(\"&");
+					writeJSValue(sessionIdParameterName);
+					write("=");
+					writeJSValue(sessionId);
+					write("\");\n");
+				}
+				write("window.addEventListener(\"load\", function(){\n\tvar page=this;\n\tvar args=staticArgs();\n");
 					currentTemplate=this;
-					for (QComponent c : components.values()) {
-						c.init();
-					}
+					initAll();
 					currentTemplate=null;
-					write("\tpage.start();\n}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\n</script>\n");
+					write("\tpage.start();\n");
+					inited=true;
+					setCurrentTemplate(this);
+					afterComponentInitialization.eventHappened(this);
+					setCurrentTemplate(null);
+					write("}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
+					UtilComma c=new UtilComma(", ");
+					for(Object o: toWebSocketArguments())
+					{
+						// TODO handle blob!
+						writeObject(c.getSeparator());
+						write("\"");
+						writeJSValue(o.toString());
+						write("\"");
+					}
+					write("];\n};\n</script>\n");
 			}
 		}.generate();
 		currentTemplate=null;
-		inited=true;
 	}
 
 	public void generateStaticScripts(HtmlTemplate parent) {
 		new HtmlTemplate(parent) {
 			public void generate() {
 				try {
-					write("<script language=\"javascript\" type=\"text/javascript\">\n");
-					writeObject(UtilFile.loadAsString(QPage.class.getResource("QPage.js")));
-					write("\n</script>\n");
+					for(String fname: scripts)
+					{
+						write("<script language=\"javascript\" type=\"text/javascript\">\n");
+						writeObject(UtilFile.loadAsString(QPage.class.getResource(fname)));
+						write("\n</script>\n");
+					}
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log.error(e);
 				}
 			}
 		}.generate();
@@ -210,85 +352,179 @@ public class QPage implements Closeable {
 		{
 			c.generateHeader(parent);
 		}
-	}
-
-	public boolean handle(HtmlTemplate parent, IInMemoryPost post) throws IOException {
-		if(!active)
+		for(QComponent c: getAdditionalComponentTypes())
 		{
-			new HtmlTemplate(parent)
-			{
-				public void generate() {
-					write("page.dispose(\"Server side compontent is already disposed.\");\n");
-				}
-			}.generate();
-		}else
-		{
-			if ("true".equals(post.getParameter("periodic"))) {
-				handlePeriodicQuery(parent);
-				return true;
-			}
-			if ("true".equals(post.getParameter("unload"))) {
-				handleUnloadQuery(parent);
-				return true;
-			}
-			Message m = new Message(parent, post);
-			try {
-				m.executeOnThread();
-			} catch (Exception e) {
-				throw new IOException(e);
-			}
+			c.generateHeader(parent);
 		}
-		return true;
 	}
-	private void handleUnloadQuery(HtmlTemplate parent) {
+	private void handleUnloadQuery() {
+		// Unload means that the client does not accept more messages: comm has to be closed immediately.
+		indexedComm.close();
 		dispose();
 	}
-
 	public void submitToUI(Runnable r) {
 		if(!disposedEvent.isDone())
 		{
-			tasks.add(r);
+			synchronized (tasks) {
+				tasks.add(r);
+				// Otherwise we have one task already being executed
+				if(tasks.size()==1)
+				{
+					scheduleNext();
+				}
+			}
 		}
 	}
-
-	private void handlePeriodicQuery(HtmlTemplate parent) {
-		try {
-			final Runnable task=tasks.poll(TIMEOUT_POLL, TimeUnit.MILLISECONDS);
-			new Message(parent, true)
-			{
-				protected void executeTask() throws IOException {
-					try{
-						if(task!=null)
-						{
-							task.run();
-						}
-						while(!tasks.isEmpty())
-						{
-							Runnable t=tasks.poll();
-							t.run();
-						}
+	public <V> Future<V> submitToUICallable(Callable<V> c) {
+		SignalFutureWrapper<V> ret=new SignalFutureWrapper<V>();
+		if(!disposedEvent.isDone())
+		{
+			synchronized (tasks) {
+				tasks.add(()->{
+					try
+					{
+						V v=c.call();
+						ret.ready(v, null);
 					}catch(Exception e)
 					{
-						// TODO
-						e.printStackTrace();
+						ret.ready(null, e);
 					}
-					if (active) {
-						parent.write("page.query();\n");
+					catch(Throwable t)
+					{
+						ret.ready(null, t);
+						throw t;
 					}
-				};
-			}.executeOnThread();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+				});
+				// Otherwise we have one task already being executed
+				if(tasks.size()==1)
+				{
+					scheduleNext();
+				}
+			}
+		}else
+		{
+			ret.ready(null, new IllegalStateException("Page already disposed"));
 		}
-//		new HtmlTemplate(parent) {
-//			public void generate() {
-//				write("console.info(\"Hello QPage reply! \"+page);\n");
-//				if (active) {
-//					write("page.query();\n");
-//				}
-//			}
-//		}.generate();
+		return ret;
+	}
+	/**
+	 * In case the page is disposed before timeout then the task will not be executed!
+	 * To access the timer inside the runnable: see getCurrentTimerTask()
+	 * @param timeoutMillis
+	 * @param r
+	 */
+	public SafeTimerTask scheduleToUI(long timeoutMillis, Runnable r) {
+		SafeTimerTask ret=new SafeTimerTask() {
+			@Override
+			public void doRun() {
+				submitToUI(()->{
+					currentTimerTask=this;
+					try
+					{
+						r.run();
+					}finally
+					{
+						currentTimerTask=null;
+					}
+				});
+			}
+		};
+		if(!disposedEvent.isDone())
+		{
+			QPageManager.disposeTimer.schedule(ret, timeoutMillis);
+		}else
+		{
+			ret.cancel();
+		}
+		return ret;
+	}
+	/**
+	 * When page is disposed the task is cancelled when would run.
+	 * To access the timer inside the runnable: see getCurrentTimerTask()
+	 * @param timeoutMillis
+	 * @param periodMillis
+	 * @param r
+	 * @return
+	 */
+	public SafeTimerTask scheduleToUI(long timeoutMillis, long periodMillis, Runnable r) {
+		SafeTimerTask ret=new SafeTimerTask() {
+			@Override
+			public void doRun() {
+				if(disposedEvent.isDone())
+				{
+					this.cancel();
+					return;
+				}
+				submitToUI(()->{
+					currentTimerTask=this;
+					try
+					{
+						r.run();
+					}finally
+					{
+						currentTimerTask=null;
+					}
+				});
+			}
+		};
+		if(!disposedEvent.isDone())
+		{
+			QPageManager.disposeTimer.schedule(ret, timeoutMillis, periodMillis);
+		}else
+		{
+			ret.cancel();
+		}
+		return ret;
+	}
+	protected void scheduleNext() {
+		synchronized(tasks)
+		{
+			if(tasks.size()>0)
+			{
+				if(executor!=null)
+				{
+					executor.execute(new Runnable() {
+						@Override
+						public void run() {
+							Runnable r=tasks.peek();
+							while(r!=null)
+							{
+								synchronized (syncObject) {
+									try {
+										thread=Thread.currentThread();
+										currentTemplate=new HtmlTemplate(new StringWriter());
+										currentTemplate.setupWebSocketArguments(true);
+										try(AutoCloseable s=setupContext.get())
+										{
+											r.run();
+											initAll();
+										}
+										indexedComm.sendMessage("js", currentTemplate.toWebSocketArguments());
+									} catch (Exception e) {
+										log.error(e);
+										e.printStackTrace(); // TODO log.error does not print the stack trace!
+									} finally
+									{
+										currentTemplate=null;
+										thread=null;
+									}
+								}
+								synchronized (tasks) {
+									tasks.remove();
+									if(tasks.size()>0)
+									{
+										r=tasks.peek();
+									}else
+									{
+										r=null;
+									}
+								}
+							}
+						}
+					});
+				}
+			}
+		}
 	}
 
 	@Override
@@ -296,11 +532,18 @@ public class QPage implements Closeable {
 		active = false;
 	}
 
-	public void add(QComponent qTextEditor) {
-		components.put(qTextEditor.getId(), qTextEditor);
+	public void add(QComponent qComponent) {
+		QComponent prev=components.put(qComponent.getId(), qComponent);
+		if(prev!=null)
+		{
+			throw new RuntimeException("Key already used: "+qComponent.getId());
+		}
 	}
 
 	public HtmlTemplate getCurrentTemplate() {
+		return currentTemplate;
+	}
+	public HtmlTemplate getJsTemplate() {
 		return currentTemplate;
 	}
 
@@ -309,32 +552,95 @@ public class QPage implements Closeable {
 	 */
 	public void dispose() {
 		active=false;
-		disposedEvent.ready(this, null);
 		qpm.remove(this);
+		Runnable onThread=new Runnable() {
+			@Override
+			public void run() {
+				new HtmlTemplate(currentTemplate)
+				{
+					public void generate() {
+						write("page.dispose(\"Server object disposed.\");");
+					}	
+				}.generate();
+				// Do not send dispose of objects to the client: the objects on the disposed page remain visible.
+				HtmlTemplate prev=currentTemplate;
+				currentTemplate=new HtmlTemplate(new StringWriter());
+				currentTemplate.setupWebSocketArguments(false);
+				try {
+					for(QComponent c: new ArrayList<>(components.values()))
+					{
+						c.dispose();
+					}
+				} finally
+				{
+					currentTemplate=prev;
+				}
+				if(closeables!=null)
+				{
+					for(AutoCloseable c: closeables)
+					{
+						closeCloseable(c);
+					}
+				}
+				closeables=null;
+				/**
+				 * Timeout is required so that the last messages are sent first hopefully.
+				 */
+				UtilTimer.javaTimer.schedule(new SafeTimerTask() {
+					@Override
+					public void doRun() {
+						indexedComm.close();
+					}
+				}, 2000);
+				disposedEvent.ready(QPage.this, null);
+			}
+		};
 		if(currentTemplate!=null)
 		{
-			generateDisposeJSCall();
+			onThread.run();
 		}else
 		{
-			submitToUI(new Runnable() {
-				@Override
-				public void run() {
-				}
-			});
+			submitToUI(onThread);
 		}
 	}
 
-	private void generateDisposeJSCall() {
+	/**
+	 * HTML5 history API to set up a new URL within this page.
+	 * see html5_history.asciidoc
+	 * @param userVisibleStateName in most browsers this is unused
+	 * @param url
+	 */
+	public void historyPushState(String userVisibleStateName, String url)
+	{
 		new HtmlTemplate(currentTemplate)
 		{
 			public void generate() {
-				write("page.dispose(\"Server object disposed.\")");
+				write("if(page.supports_history_api())\n{\n\thistory.pushState(null, \"");
+				writeJSValue(userVisibleStateName);
+				write("\", \"");
+				writeJSValue(url);
+				write("\");\n}\n");
 			}	
 		}.generate();
 	}
-
-	public boolean isThread() {
-		return Thread.currentThread()==thread;
+	/**
+	 * HTML5 history API to set up a new URL within this page.
+	 * see html5_history.asciidoc
+	 * @param userVisibleStateName in most browsers this is unused
+	 * @param url
+	 */
+	public void historyReplaceState(String userVisibleStateName, String url)
+	{
+		new HtmlTemplate(currentTemplate)
+		{
+			public void generate() {
+				write("if(page.supports_history_api())\n{\n\thistory.replaceState(null, \"");
+				writeJSValue(userVisibleStateName);
+				write("\", \"");
+				writeJSValue(url);
+				write("\");\n}\n");
+			}	
+		}.generate();
 	}
 
 	public String getId() {
@@ -358,5 +664,183 @@ public class QPage implements Closeable {
 	}
 	public QPageManager getQPageManager() {
 		return qpm;
+	}
+
+	@Override
+	public QPage getPage() {
+		return this;
+	}
+
+	@Override
+	public IQContainer getParent() {
+		return null;
+	}
+
+	@Override
+	public void addChild(QComponent child) {
+	}
+
+	public List<QComponent> getAdditionalComponentTypes() {
+		return additionaComponentTypes;
+	}
+	public void addAdditionalType(QComponent type)
+	{
+		additionaComponentTypes.add(type);
+	}
+	/**
+	 * Create a unique component identifier.
+	 * @return
+	 */
+	public String createComponentId() {
+		return "generatedId"+(idCtr++);
+	}
+	public UtilEvent<JSONObject> getCustomQueryListener(String type) {
+		synchronized(customQueryListeners)
+		{
+			UtilEvent<JSONObject> li=customQueryListeners.get(type);
+			if(li==null)
+			{
+				li=new UtilEvent<>();
+				customQueryListeners.put(type, li);
+			}
+			return li;
+		}
+	}
+	public UtilEvent<IndexedComm.Msg> getCustomQueryListener2(String type) {
+		synchronized(customQueryListeners2)
+		{
+			UtilEvent<IndexedComm.Msg> li=customQueryListeners2.get(type);
+			if(li==null)
+			{
+				li=new UtilEvent<>();
+				customQueryListeners2.put(type, li);
+			}
+			return li;
+		}
+	}
+	@Override
+	public Map<String, Object> getUserObjectStorage() {
+		return userObjectStorage;
+	}
+	public IndexedComm getIndexedComm() {
+		return indexedComm;
+	}
+	public void setExecutor(Executor executor) {
+		thread=null;
+		this.executor = executor;
+		scheduleNext();
+	}
+	public boolean isQPageThread()
+	{
+		return thread==Thread.currentThread();
+	}
+	/**
+	 * Change dispose timeout for this page.
+	 * This timeout may be very long then the QPage object is stored until the application becomes online again.
+	 * @param timeoutMillis
+	 * @return this object itself
+	 */
+	public QPage setDisposeTimeout(long timeoutMillis)
+	{
+		this.TIMEOUT_DISPOSE=timeoutMillis;
+		reinitDisposeTimer();
+		return this;
+	}
+	/**
+	 * In case of a custom Websocket connection is used by a QPage component (file upload for example)
+	 * then return the object for the identifier.
+	 * @param string
+	 * @return
+	 */
+	public IndexedComm getCustomWebsocketImplementation(String string) {
+		return customWebSocketImplementations.get(string);
+	}
+	public String registerCustomWebsocketImplementation(IndexedComm websocketImplementation) {
+		String id=createComponentId();
+		customWebSocketImplementations.put(id, websocketImplementation);
+		return id;
+	}
+	public void unregisterCustomWebsocketImplementation(String id) {
+		customWebSocketImplementations.remove(id);
+	}
+	/**
+	 * In case current task is executed as a timer then the current timer is queryed by this query.
+	 * @return
+	 */
+	public SafeTimerTask getCurrentTimerTask() {
+		return currentTimerTask;
+	}
+	/**
+	 * When messages are processed on the WebSocket thread then
+	 * this supplier can be used to set up and tear down the context
+	 * for processing.
+	 * Can also be used to do synchronization between pages.
+	 * @param setupContext
+	 */
+	public void setSetupContext(Supplier<AutoCloseable> setupContext) {
+		this.setupContext = setupContext;
+	}
+	/**
+	 * In case a parameter based session is used then this will not be null.
+	 * Page HTML embedder implementation must call this.
+	 * @param sessionIdParameterName
+	 */
+	public void setSessionIdParameterName(String sessionIdParameterName) {
+		this.sessionIdParameterName=sessionIdParameterName;
+	}
+	/**
+	 * Page HTML embedder implementation must call this.
+	 * @param sessionId
+	 */
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
+	}
+	/**
+	 * Navigate the current page to an other url.
+	 * @param url can be relative or absolute url.
+	 */
+	public void navigateTo(String url) {
+		new HtmlTemplate(getCurrentTemplate())
+		{
+			public void generate() {
+				write("document.location='");
+				writeJSValue(url);
+				write("';\n");
+			}
+			
+		}.generate();
+	}
+	@Override
+	public void addCloseable(AutoCloseable closeable) {
+		if(!active)
+		{
+			closeCloseable(closeable);
+		}else
+		{
+			if(closeables==null)
+			{
+				closeables=new ArrayList<>();
+			}
+			closeables.add(closeable);
+		}
+	}
+	private void closeCloseable(AutoCloseable closeable) {
+		try {
+			closeable.close();
+		} catch (Exception e) {
+			Logger.getLogger(getClass()).error("Closing attached closeable", e);
+		}
+	}
+	/**
+	 * Send a reload query to the client.
+	 */
+	public void sendReload() {
+		new HtmlTemplate(getJsTemplate())
+		{
+			public void gen()
+			{
+				write("location.reload();");
+			}
+		}.gen();
 	}
 }
