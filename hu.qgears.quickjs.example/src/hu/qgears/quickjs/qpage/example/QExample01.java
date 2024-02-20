@@ -19,22 +19,24 @@ public class QExample01 extends AbstractQPage
 {
 	private static final Timer timer=new Timer("QExample01 server push update timer", true);
 	private SimpleDateFormat df=new SimpleDateFormat("yyyy. M dd. HH:mm:ss");
+	private QButton dispose=new QButton();
+	private QButton buttonClear=new QButton();
+	private QTextEditor textEd=new QTextEditor();
+	private QLabel l=new QLabel("mylabel");
 
 	@Override
 	protected void initQPage(final QPage page) {
 		// Create text editor object, initialize string content 
-		final QTextEditor textEd=new QTextEditor(page, "texted");
+		
 		textEd.text.setPropertyFromServer("Example text to edit");
 		
 		// Create clear text area button and add a listener that actually clears the text editor area.
-		QButton buttonClear=new QButton(page, "submit");
 		buttonClear.clicked.addListener(msg->textEd.text.setPropertyFromServer(""));
 		
 		// Create dispose button and add a listener that actually disposes this page.
-		new QButton(page, "dispose").clicked.addListener(msg->page.dispose());
+		dispose.clicked.addListener(msg->page.dispose());
 		
 		// Create a feedback label that is updated whenever the editor text area is edited.
-		final QLabel l=new QLabel(page, "mylabel");
 		l.innerhtml.setPropertyFromServer("initial value");
 		textEd.text.clientChangedEvent.addListener(msg->l.innerhtml.setPropertyFromServer(EscapeString.escapeHtml(msg)));
 		
@@ -55,6 +57,12 @@ public class QExample01 extends AbstractQPage
 	 */
 	@Override
 	protected void writeBody() {
-		write("<h1>QPage example page</h1>\n<a href=\"/\">Back to index</a><br/>\n\n<h2>Text editor with feedback</h2>\n\n<textarea id=\"texted\" rows=\"5\" cols=\"150\"></textarea>\n<br/>\n<button id=\"submit\">Clear textbox</button>\n<button id=\"dispose\">Dispose page</button>\n<br/>\n<div id=\"mylabel\">static content</div>\nThe time is updated using server push:\n<div id=\"counter\">static content</div>\n");
+		write("<h1>QPage example page</h1>\n<a href=\"/\">Back to index</a><br/>\n\n<h2>Text editor with feedback</h2>\n\n<textarea id=\"");
+		writeObject(textEd.getId());
+		write("\" rows=\"5\" cols=\"150\"></textarea>\n<br/>\n<button id=\"");
+		writeObject(buttonClear.getId());
+		write("\">Clear textbox</button>\n<button id=\"");
+		writeObject(dispose.getId());
+		write("\">Dispose page</button>\n<br/>\n<div id=\"mylabel\">static content</div>\nThe time is updated using server push:\n<div id=\"counter\">static content</div>\n");
 	}
 }

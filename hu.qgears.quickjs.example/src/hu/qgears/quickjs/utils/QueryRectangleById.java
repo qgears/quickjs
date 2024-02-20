@@ -7,6 +7,7 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.signal.SignalFutureWrapper;
 import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.QPage;
@@ -35,7 +36,7 @@ public class QueryRectangleById extends HtmlTemplate {
 				d.close();
 		});
 		page.submitToUI(()->{
-			try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+			try(NoExceptionAutoClosable c=activateJs())
 			{
 				write("{\n\tconst ret=[];\n\tconst nodeList = document.querySelectorAll(\"");
 				writeJSValue(selector);
@@ -45,6 +46,9 @@ public class QueryRectangleById extends HtmlTemplate {
 			}
 		});
 		return reply;
+	}
+	private NoExceptionAutoClosable activateJs() {
+		return setParent(QPage.getCurrent().getJsTemplate());
 	}
 	public SignalFutureWrapper<Rectangle> getRectangleById(QPage page, String id)
 	{

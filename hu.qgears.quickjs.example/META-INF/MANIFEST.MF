@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Quickjs-example
 Bundle-SymbolicName: hu.qgears.quickjs.example
-Bundle-Version: 3.0.0.qualifier
+Bundle-Version: 4.0.0.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Require-Bundle: hu.qgears.quickjs;bundle-version="1.0.0";visibility:=reexport,
  org.eclipse.jetty.continuation;bundle-version="[9.4.0,9.5.0)";visibility:=reexport,

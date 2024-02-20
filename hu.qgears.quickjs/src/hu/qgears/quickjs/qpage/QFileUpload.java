@@ -8,6 +8,7 @@ import java.util.TreeMap;
 
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
 import hu.qgears.quickjs.qpage.IndexedComm.Msg;
 
@@ -45,11 +46,13 @@ public class QFileUpload extends QComponent
 	public QFileUpload(IQContainer container, String id) {
 		super(container, id);
 		initCommListeners();
+		init();
 	}
 
 	public QFileUpload(IQContainer container) {
 		super(container);
 		initCommListeners();
+		init();
 	}
 	private void initCommListeners() {
 		comm.received.addListener(msg->{
@@ -158,7 +161,7 @@ public class QFileUpload extends QComponent
 
 	@Override
 	protected void doInitJSObject() {
-		try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("\tnew QFileUpload(page, \"");
 			writeObject(id);
@@ -174,7 +177,7 @@ public class QFileUpload extends QComponent
 	}
 
 	@Override
-	public void handle(HtmlTemplate parent, JSONObject post) throws IOException {
+	public void handle(JSONObject post) throws IOException {
 	}
 	public boolean isFileReady()
 	{
@@ -230,7 +233,7 @@ public class QFileUpload extends QComponent
 		}
 	}
 	private void installDropListenerPrivate(String string) {
-		try(ResetOutputObject roo=setParent(getPage().getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("globalQPage.components[\"");
 			writeObject(id);
@@ -251,5 +254,9 @@ public class QFileUpload extends QComponent
 	}
 	public long getAllEnqueued() {
 		return allEnqueued;
+	}
+	@Override
+	protected boolean isSelfInitialized() {
+		return true;
 	}
 }

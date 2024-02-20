@@ -16,6 +16,7 @@ import java.util.TreeSet;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
 import hu.qgears.commons.UtilFile;
 import hu.qgears.commons.UtilListenableProperty;
@@ -34,6 +35,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 {
 	protected QPage page;
 	protected String id;
+	@Deprecated
 	protected boolean inited;
 	private List<QComponent> children=new ArrayList<>();
 	private boolean disposed;
@@ -58,7 +60,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		{
 			if(e.getNListeners()==1)
 			{
-				try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+				try(NoExceptionAutoClosable c=activateJS())
 				{
 					write("\tpage.components[\"");
 					writeObject(id);
@@ -66,7 +68,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 				}
 			}else if(e.getNListeners()==0)
 			{
-				try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+				try(NoExceptionAutoClosable c=activateJS())
 				{
 					write("\tpage.components[\"");
 					writeObject(id);
@@ -78,6 +80,10 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 
 	public QComponent(IQContainer container, String id) {
 		super();
+		if(id==null && container!=null)
+		{
+			id=container.getPage().createComponentId();
+		}
 		this.id = id;
 		this.container=container;
 		if(container!=null)
@@ -87,7 +93,12 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		if(page!=null)
 		{
 			page.add(this);
-			page.registerToInit(this);
+			// TODO remove this feature totally
+			// page.registerToInit(this);
+			if(!isSelfInitialized())
+			{
+				init();
+			}
 		}
 		if(container!=null)
 		{
@@ -100,6 +111,20 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 */
 	public QComponent(IQContainer container) {
 		this(container, container.getPage().createComponentId());
+	}
+	/**
+	 * Create a component object with given identifier
+	 * @param id
+	 */
+	public QComponent(String id) {
+		this(QPage.getCurrent(), id);
+	}
+	/**
+	 * Create a component object with auto-generated unique identifier
+	 * and using QPage.getCurrent() as parent.
+	 */
+	public QComponent() {
+		this(QPage.getCurrent(), null);
 	}
 
 	public void generateHtmlObject(HtmlTemplate templateTarget)
@@ -117,9 +142,9 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 */
 	final public void init()
 	{
-		if(!inited)
+		if(!inited && page!=null)
 		{
-			try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+			try(NoExceptionAutoClosable c=activateJS())
 			{
 				doCreateHTMLObject();
 				doInitJSObject();
@@ -131,7 +156,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 			inited=true;
 			if(styleToAdd!=null)
 			{
-				try(ResetOutputObject roo=setParent(getPage().getCurrentTemplate()))
+				try(NoExceptionAutoClosable c=activateJS())
 				{
 					for(String s: styleToAdd)
 					{
@@ -146,7 +171,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 			}
 			if(styleToRemove!=null)
 			{
-				try(ResetOutputObject roo=setParent(getPage().getCurrentTemplate()))
+				try(NoExceptionAutoClosable c=activateJS())
 				{
 					for(String s: styleToRemove)
 					{
@@ -161,7 +186,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 			}
 			if(focused.getNListeners()>0)
 			{
-				try(ResetOutputObject roo=setParent(getPage().getCurrentTemplate()))
+				try(NoExceptionAutoClosable c=activateJS())
 				{
 					write("\tpage.components[\"");
 					writeObject(id);
@@ -202,7 +227,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 * @param parent
 	 * @param msg
 	 */
-	protected void handle(HtmlTemplate parent, Msg msg)
+	protected void handle(Msg msg)
 	{
 		JSONObject o=((JSONObject)msg.header);
 		if(o.has("type"))
@@ -223,7 +248,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 			}
 		}
 	}
-	abstract public void handle(HtmlTemplate parent, JSONObject post) throws IOException;
+	abstract public void handle(JSONObject post) throws IOException;
 
 	final public String getId() {
 		return id;
@@ -299,10 +324,9 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 			{
 				removeFromParentList();
 			}
-			HtmlTemplate parentTemplate=page.getCurrentTemplate();
-			if(parentTemplate!=null)
+			if(page.getJsTemplate()!=null)
 			{
-				try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+				try(NoExceptionAutoClosable c=activateJS())
 				{
 					write("\tpage.getComponent(\"");
 					writeJSValue(id);
@@ -402,7 +426,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public void styleAddClass(final String msg) {
 		if(inited)
 		{
-			try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+			try(NoExceptionAutoClosable c=activateJS())
 			{
 				write("page.components['");
 				writeJSValue(id);
@@ -435,7 +459,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	}
 	public void setDynamicStyleValue(final String styleKey, String value)
 	{
-		try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("page.components['");
 			writeJSValue(id);
@@ -449,7 +473,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public void styleRemoveClass(final String msg) {
 		if(inited)
 		{
-			try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+			try(NoExceptionAutoClosable c=activateJS())
 			{
 				write("page.components['");
 				writeJSValue(id);
@@ -511,7 +535,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		}
 		return userEvent;
 	}
-	public void handleClientPost(HtmlTemplate parent, IndexedComm.Msg msg, JSONObject post) throws IOException {
+	public void handleClientPost(IndexedComm.Msg msg, JSONObject post) throws IOException {
 		if(post.has("user"))
 		{
 			if(userEvent!=null)
@@ -520,8 +544,8 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 			}
 		}else
 		{
-			handle(parent, msg);
-			handle(parent, post);
+			handle(msg);
+			handle(post);
 		}
 	}
 	/**
@@ -559,7 +583,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	}
 	private void syncControlledNodeSelector()
 	{
-		try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("\tpage.components[\"");
 			writeJSValue(getId());
@@ -569,7 +593,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		}
 	}
 	private void syncChildContainerSelector() {
-		try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("\tpage.components[\"");
 			writeJSValue(getId());
@@ -605,7 +629,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		removeFromParentList();
 		newParent.children.add(this);
 		container=newParent;
-		try(ResetOutputObject roo=setParent(getPage().getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("\tpage.components[\"");
 			writeJSValue(getId());
@@ -643,7 +667,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		this.disabled=disabled;
 		if(inited)
 		{
-			try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+			try(NoExceptionAutoClosable c=activateJS())
 			{
 				write("page.components['");
 				writeJSValue(id);
@@ -664,7 +688,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	
 	private void startSizeListener()
 	{
-		try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("\tpage.components[\"");
 			writeObject(id);
@@ -681,5 +705,15 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 			}
 		}
 		return size;
+	}
+	/**
+	 * Means init() is called by subclass constructor. 
+	 * All must be true and then removed.
+	 * @return
+	 */
+	@Deprecated
+	protected boolean isSelfInitialized()
+	{
+		return false;
 	}
 }

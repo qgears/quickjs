@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
 import hu.qgears.commons.UtilEventListener;
 
@@ -18,7 +19,7 @@ public class QTimeEditor extends QComponent
 		super(container);
 	}
 	protected void serverTextChanged(final String msg) {
-		try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("page.components['");
 			writeJSValue(id);
@@ -34,7 +35,7 @@ public class QTimeEditor extends QComponent
 		write("\"></input>\n");
 	}
 
-	public void handle(HtmlTemplate parent, JSONObject post) throws IOException {
+	public void handle(JSONObject post) throws IOException {
 		String ntext=JSONHelper.getStringSafe(post,"text");
 		if(ntext!=null)
 		{
@@ -49,18 +50,19 @@ public class QTimeEditor extends QComponent
 
 	@Override
 	public void doInitJSObject() {
-		setParent(page.getCurrentTemplate());
-		write("\tnew QTimeEditor(page, \"");
-		writeObject(id);
-		write("\").initValue(\"");
-		writeJSValue(text.getProperty());
-		write("\");\n");
-		setParent(null);
-		text.serverChangedEvent.addListener(new UtilEventListener<String>() {
-			@Override
-			public void eventHappened(String msg) {
-				serverTextChanged(msg);
-			}
-		});
+		try(NoExceptionAutoClosable c=activateJS())
+		{
+			write("\tnew QTimeEditor(page, \"");
+			writeObject(id);
+			write("\").initValue(\"");
+			writeJSValue(text.getProperty());
+			write("\");\n");
+			text.serverChangedEvent.addListener(new UtilEventListener<String>() {
+				@Override
+				public void eventHappened(String msg) {
+					serverTextChanged(msg);
+				}
+			});
+		}
 	}
 }

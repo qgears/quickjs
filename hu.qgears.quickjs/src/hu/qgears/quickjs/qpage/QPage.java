@@ -20,6 +20,7 @@ import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.SafeTimerTask;
 import hu.qgears.commons.UtilComma;
 import hu.qgears.commons.UtilEvent;
@@ -39,13 +40,14 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 	private volatile boolean active = true;
 	private Map<String, QComponent> components = new HashMap<>();
 	private Object syncObject = new Object();
-	private HtmlTemplate currentTemplate;
+	private HtmlTemplate initialHtmlTemplate;
+	private HtmlTemplate jsTemplate=createJsTemplate();
+	@Deprecated
 	public boolean inited;
 	private final QPageManager qpm;
 	private long TIMEOUT_DISPOSE=IndexedComm.timeoutPingMillis*2;
 	public final SignalFutureWrapper<QPage> disposedEvent=new SignalFutureWrapper<>();
 	private String scriptsAsSeparateFile=null;
-	private List<QComponent> toInit=new ArrayList<>();
 	private List<QComponent> additionaComponentTypes=new ArrayList<QComponent>();
 	private Map<String, Object> userObjectStorage=new HashMap<String, Object>();
 	private IndexedComm indexedComm=new IndexedComm();
@@ -57,6 +59,10 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 	private String sessionIdParameterName;
 	private String sessionId;
 	private List<AutoCloseable> closeables;
+	/**
+	 * The current page handled on this thread.
+	 */
+	private static ThreadLocal<QPage> currentPage=new ThreadLocal<>();
 	public final UtilListenableProperty<Boolean> started=new UtilListenableProperty<Boolean>(false);
 	public static List<String> scripts=Arrays.asList("indexedComm.js", 
 			"QPage.js", "QComponent.js");
@@ -67,9 +73,11 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 	/**
 	 * Singleton to be used as a default component creator.
 	 */
+	@Deprecated
 	public final ComponentCreator defaultCreator=new ComponentCreator();
 	private Map<String, UtilEvent<JSONObject>> customQueryListeners=new HashMap<>();
 	private Map<String, UtilEvent<IndexedComm.Msg>> customQueryListeners2=new HashMap<>();
+	@Deprecated
 	public final UtilEvent<HtmlTemplate> afterComponentInitialization=new UtilEvent<>();
 	/**
 	 * document.visibilityState visible:true hidden:false
@@ -106,77 +114,66 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 		{
 			if(!active)
 			{
-				currentTemplate.write("page.dispose(\"Server side compontent is already disposed.\");\n");
+				jsTemplate.write("page.dispose(\"Server side compontent is already disposed.\");\n");
 				return;
 			}
-			if (post.has("history_popstate"))
+			try(NoExceptionAutoClosable c=setThreadCurrentPage())
 			{
-				historyPopState.eventHappened(new HistoryPopStateEvent(QPage.this, post.getString("pathname"), post.getString("search")));
-			}
-			else if (post.has("custom")) {
-				String type=post.getString("type");
-				UtilEvent<JSONObject> ev=getCustomQueryListener(type);
-				int n=ev.getNListeners();
-				ev.eventHappened(post);
-				UtilEvent<Msg> ev2=getCustomQueryListener2(type);
-				n+=ev2.getNListeners();
-				ev2.eventHappened(msg);
-				if(n==0)
+				if (post.has("history_popstate"))
 				{
-					log.error("No listener for custom message: "+post);
+					historyPopState.eventHappened(new HistoryPopStateEvent(QPage.this, post.getString("pathname"), post.getString("search")));
 				}
-			}else
-			{
-				String cid = JSONHelper.getStringSafe(post, "component");
-				if(getId().equals(cid))
-				{
-					handleClientPost(msg, post);
+				else if (post.has("custom")) {
+					String type=post.getString("type");
+					UtilEvent<JSONObject> ev=getCustomQueryListener(type);
+					int n=ev.getNListeners();
+					ev.eventHappened(post);
+					UtilEvent<Msg> ev2=getCustomQueryListener2(type);
+					n+=ev2.getNListeners();
+					ev2.eventHappened(msg);
+					if(n==0)
+					{
+						log.error("No listener for custom message: "+post);
+					}
 				}else
 				{
-					QComponent ed = components.get(cid);
-					if(ed!=null)
+					String cid = JSONHelper.getStringSafe(post, "component");
+					if(getId().equals(cid))
 					{
-						ed.handleClientPost(currentTemplate, msg, post);
+						handleClientPost(msg, post);
 					}else
 					{
-						log.error("Client post target does not exist: "+cid+" "+post);
+						QComponent ed = components.get(cid);
+						if(ed!=null)
+						{
+							ed.handleClientPost(msg, post);
+						}else
+						{
+							log.error("Client post target does not exist: "+cid+" "+post);
+						}
 					}
 				}
 			}
 		}
-
 		public void executeOnThread() throws Exception {
 			synchronized (syncObject) {
 				// Proper ordering of messages is done by messaging subsystem
 				thread=Thread.currentThread();
-				currentTemplate=new HtmlTemplate(new StringWriter());
-				currentTemplate.setupWebSocketArguments(true);
-				try(AutoCloseable s=setupContext.get())
+				try(NoExceptionAutoClosable c=setThreadCurrentPage())
 				{
-					executeTask();
-					initAll();
+					try(AutoCloseable s=setupContext.get())
+					{
+						executeTask();
+					}
+					indexedComm.sendMessage("js", jsTemplate.toWebSocketArguments());
+				}finally
+				{
+					jsTemplate=createJsTemplate();
+					thread=null;
+					reinitDisposeTimer();
 				}
-				indexedComm.sendMessage("js", currentTemplate.toWebSocketArguments());
-				currentTemplate=null;
-				reinitDisposeTimer();
-				thread=null;
 			}
 		}
-	}
-	/**
-	 * Call init on each uninitialized components.
-	 * Features:
-	 *  * Components are initialized in the order of creation in Java code.
-	 *  * This method of iteration allows objects to be created while we iterate the array!
-	 *    This way Creation of objects in initializator is possible.
-	 */
-	private void initAll() {
-		for(int i=0;i<toInit.size();++i)
-		{
-			QComponent c=toInit.get(i);
-			c.init();
-		}
-		toInit.clear();
 	}
 	public void handleClientPost(Msg msg, JSONObject post) {
 		String type=post.getString("type");
@@ -292,9 +289,8 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 		}
 	}
 
-	public void generateInitialization(HtmlTemplate parent) {
-		currentTemplate=parent;
-		new HtmlTemplate(parent) {
+	public void generateInitialization() {
+		new HtmlTemplate(initialHtmlTemplate) {
 			public void generate() {
 				write("<script language=\"javascript\" type=\"text/javascript\">\n// Script that starts the QuickJS communication loop and connects managed objects DOM and JS \nglobalQPage=new QPage('");
 				writeObject(identifier);
@@ -308,29 +304,26 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 					writeJSValue(sessionId);
 					write("\");\n");
 				}
+				afterComponentInitialization.eventHappened(this);
 				write("window.addEventListener(\"load\", function(){\n\tvar page=this;\n\tvar args=staticArgs();\n");
-					currentTemplate=this;
-					initAll();
-					currentTemplate=null;
-					write("\tpage.start();\n");
-					inited=true;
-					setCurrentTemplate(this);
-					afterComponentInitialization.eventHappened(this);
-					setCurrentTemplate(null);
-					write("}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
-					UtilComma c=new UtilComma(", ");
-					for(Object o: toWebSocketArguments())
-					{
-						// TODO handle blob!
-						writeObject(c.getSeparator());
-						write("\"");
-						writeJSValue(o.toString());
-						write("\"");
-					}
-					write("];\n};\n</script>\n");
+				writeObject(jsTemplate.getWriter().toString());
+				write("\tpage.start();\n");
+				jsTemplate=createJsTemplate();
+				inited=true;
+				write("}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
+				UtilComma c=new UtilComma(", ");
+				for(Object o: toWebSocketArguments())
+				{
+					// TODO handle blob!
+					writeObject(c.getSeparator());
+					write("\"");
+					writeJSValue(o.toString());
+					write("\"");
+				}
+				write("];\n};\n</script>\n");
 			}
 		}.generate();
-		currentTemplate=null;
+		initialHtmlTemplate=null;
 	}
 
 	public void generateStaticScripts(HtmlTemplate parent) {
@@ -490,22 +483,19 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 							while(r!=null)
 							{
 								synchronized (syncObject) {
-									try {
+									try (NoExceptionAutoClosable c=setThreadCurrentPage()) {
 										thread=Thread.currentThread();
-										currentTemplate=new HtmlTemplate(new StringWriter());
-										currentTemplate.setupWebSocketArguments(true);
 										try(AutoCloseable s=setupContext.get())
 										{
 											r.run();
-											initAll();
 										}
-										indexedComm.sendMessage("js", currentTemplate.toWebSocketArguments());
+										indexedComm.sendMessage("js", jsTemplate.toWebSocketArguments());
 									} catch (Exception e) {
 										log.error(e);
 										e.printStackTrace(); // TODO log.error does not print the stack trace!
 									} finally
 									{
-										currentTemplate=null;
+										jsTemplate=createJsTemplate();
 										thread=null;
 									}
 								}
@@ -540,11 +530,8 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 		}
 	}
 
-	public HtmlTemplate getCurrentTemplate() {
-		return currentTemplate;
-	}
 	public HtmlTemplate getJsTemplate() {
-		return currentTemplate;
+		return jsTemplate;
 	}
 
 	/**
@@ -556,16 +543,16 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 		Runnable onThread=new Runnable() {
 			@Override
 			public void run() {
-				new HtmlTemplate(currentTemplate)
+				new HtmlTemplate(jsTemplate)
 				{
 					public void generate() {
 						write("page.dispose(\"Server object disposed.\");");
 					}	
 				}.generate();
 				// Do not send dispose of objects to the client: the objects on the disposed page remain visible.
-				HtmlTemplate prev=currentTemplate;
-				currentTemplate=new HtmlTemplate(new StringWriter());
-				currentTemplate.setupWebSocketArguments(false);
+				HtmlTemplate prev=jsTemplate;
+				jsTemplate=new HtmlTemplate(new StringWriter());
+				jsTemplate.setupWebSocketArguments(false);
 				try {
 					for(QComponent c: new ArrayList<>(components.values()))
 					{
@@ -573,7 +560,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 					}
 				} finally
 				{
-					currentTemplate=prev;
+					jsTemplate=prev;
 				}
 				if(closeables!=null)
 				{
@@ -595,7 +582,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 				disposedEvent.ready(QPage.this, null);
 			}
 		};
-		if(currentTemplate!=null)
+		if(jsTemplate!=null)
 		{
 			onThread.run();
 		}else
@@ -612,7 +599,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 	 */
 	public void historyPushState(String userVisibleStateName, String url)
 	{
-		new HtmlTemplate(currentTemplate)
+		new HtmlTemplate(jsTemplate)
 		{
 			public void generate() {
 				write("if(page.supports_history_api())\n{\n\thistory.pushState(null, \"");
@@ -631,7 +618,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 	 */
 	public void historyReplaceState(String userVisibleStateName, String url)
 	{
-		new HtmlTemplate(currentTemplate)
+		new HtmlTemplate(jsTemplate)
 		{
 			public void generate() {
 				write("if(page.supports_history_api())\n{\n\thistory.replaceState(null, \"");
@@ -655,13 +642,6 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 		components.remove(qComponent.id);
 	}
 
-	public void registerToInit(QComponent qComponent) {
-		toInit.add(qComponent);
-	}
-
-	public void setCurrentTemplate(HtmlTemplate parent) {
-		currentTemplate=parent;
-	}
 	public QPageManager getQPageManager() {
 		return qpm;
 	}
@@ -800,7 +780,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 	 * @param url can be relative or absolute url.
 	 */
 	public void navigateTo(String url) {
-		new HtmlTemplate(getCurrentTemplate())
+		new HtmlTemplate(jsTemplate)
 		{
 			public void generate() {
 				write("document.location='");
@@ -842,5 +822,39 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 				write("location.reload();");
 			}
 		}.gen();
+	}
+	/**
+	 * Set this QPage object to be the current for this thread.
+	 * @return
+	 */
+	public NoExceptionAutoClosable setThreadCurrentPage() {
+		QPage prev=currentPage.get();
+		currentPage.set(this);
+		return new NoExceptionAutoClosable() {
+			@Override
+			public void close() {
+				currentPage.set(prev);
+			}
+		};
+	}
+	public static QPage getCurrent() {
+		return currentPage.get();
+	}
+
+	public void setInitialHtmlTemplate(HtmlTemplate htmlTemplate) {
+		this.initialHtmlTemplate=htmlTemplate;
+	}
+	private HtmlTemplate createJsTemplate() {
+		HtmlTemplate ret=new HtmlTemplate(new StringWriter());
+		ret.setupWebSocketArguments(true);
+		return ret;
+	}
+	/**
+	 * Set the current JS template to redirect output from the current one.
+	 * Can only be used from QuickJS package.
+	 * @param subJs
+	 */
+	protected void setJsTemplate(HtmlTemplate subJs) {
+		this.jsTemplate=subJs;
 	}
 }

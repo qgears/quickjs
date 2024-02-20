@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEventListener;
 
 public class QSvgContainer extends QComponent
@@ -45,12 +46,18 @@ public class QSvgContainer extends QComponent
 	// public final UtilEvent<String> enterPressed=new UtilEvent<>();
 	public QSvgContainer(IQContainer container, String identifier) {
 		super(container, identifier);
+		init();
 	}
 	public QSvgContainer(IQContainer container) {
 		super(container);
+		init();
+	}
+	public QSvgContainer() {
+		super();
+		init();
 	}
 	protected void serverSvgChanged(final String msg) {
-		try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("page.components['");
 			writeJSValue(id);
@@ -60,7 +67,7 @@ public class QSvgContainer extends QComponent
 		}
 	}
 	private void viewBoxChanged(Geometry g) {
-		try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("page.components['");
 			writeJSValue(id);
@@ -88,7 +95,7 @@ public class QSvgContainer extends QComponent
 		write("</svg>\n");
 	}
 
-	public void handle(HtmlTemplate parent, JSONObject post) throws IOException {
+	public void handle(JSONObject post) throws IOException {
 /*		String ntext=JSONHelper.getStringSafe(post,"text");
 		if(ntext!=null)
 		{
@@ -104,40 +111,45 @@ public class QSvgContainer extends QComponent
 
 	@Override
 	public void doInitJSObject() {
-		setParent(page.getCurrentTemplate());
-		write("\tnew QSvgContainer(page, \"");
-		writeObject(id);
-		write("\").initValue(\"");
-		writeJSValue(svg.getProperty());
-		write("\")\n");
-		if(geometry.getProperty()!=null)
+		try(NoExceptionAutoClosable c=activateJS())
 		{
-			write("\t.setViewBox(");
-			writeObject(geometry.getProperty().vbX);
-			write(",");
-			writeObject(geometry.getProperty().vbY);
-			write(",");
-			writeObject(geometry.getProperty().vbW);
-			write(",");
-			writeObject(geometry.getProperty().vbH);
-			write(")\n");
-		}
-		if(geometry.getProperty()!=null)
-		{
-			write("\t.setSize(");
-			writeObject(geometry.getProperty().width);
-			write(",");
-			writeObject(geometry.getProperty().height);
-			write(")\n");
-		}
-		write("\t;\n");
-		setParent(null);
-		svg.serverChangedEvent.addListener(new UtilEventListener<String>() {
-			@Override
-			public void eventHappened(String msg) {
-				serverSvgChanged(msg);
+			write("\tnew QSvgContainer(page, \"");
+			writeObject(id);
+			write("\").initValue(\"");
+			writeJSValue(svg.getProperty());
+			write("\")\n");
+			if(geometry.getProperty()!=null)
+			{
+				write("\t.setViewBox(");
+				writeObject(geometry.getProperty().vbX);
+				write(",");
+				writeObject(geometry.getProperty().vbY);
+				write(",");
+				writeObject(geometry.getProperty().vbW);
+				write(",");
+				writeObject(geometry.getProperty().vbH);
+				write(")\n");
 			}
-		});
-		geometry.serverChangedEvent.addListener(vb->viewBoxChanged(vb));
+			if(geometry.getProperty()!=null)
+			{
+				write("\t.setSize(");
+				writeObject(geometry.getProperty().width);
+				write(",");
+				writeObject(geometry.getProperty().height);
+				write(")\n");
+			}
+			write("\t;\n");
+			svg.serverChangedEvent.addListener(new UtilEventListener<String>() {
+				@Override
+				public void eventHappened(String msg) {
+					serverSvgChanged(msg);
+				}
+			});
+			geometry.serverChangedEvent.addListener(vb->viewBoxChanged(vb));
+		}
+	}
+	@Override
+	protected boolean isSelfInitialized() {
+		return true;
 	}
 }

@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilComma;
 import hu.qgears.commons.UtilEventListener;
 
@@ -14,18 +15,21 @@ abstract public class QSelect extends QComponent {
 	public final QProperty<Integer> selected=new QProperty<>();
 	public QSelect(IQContainer parent, String id) {
 		super(parent, id);
+		init();
 	}
 	public QSelect(IQContainer parent) {
 		super(parent);
+		init();
 	}
 	
 	protected void serverOptionsChanged(final List<String> msg)
 	{
 		if(page.inited)
 		{
-			setWriter(page.getCurrentTemplate().getWriter());
-			sendOptions(msg);
-			setWriter(null);
+			try(NoExceptionAutoClosable c=activateJS())
+			{
+				sendOptions(msg);
+			}
 		}
 	}
 
@@ -56,47 +60,57 @@ abstract public class QSelect extends QComponent {
 
 	@Override
 	final public void doInitJSObject() {
-		write("\tnew ");
-		writeObject(getClass().getSimpleName());
-		write("(page, \"");
-		writeObject(id);
-		write("\");\n");
-		sendOptions(options.getProperty());
-		if(selected.getProperty()!=null)
+		try(NoExceptionAutoClosable c=activateJS())
 		{
-			sendSelected();
-		}
-		options.serverChangedEvent.addListener(new UtilEventListener<List<String>>() {
-			@Override
-			public void eventHappened(List<String> msg) {
-				serverOptionsChanged(msg);
+			write("\tnew ");
+			writeObject(getClass().getSimpleName());
+			write("(page, \"");
+			writeObject(id);
+			write("\");\n");
+			sendOptions(options.getProperty());
+			if(selected.getProperty()!=null)
+			{
+				sendSelected();
 			}
-		});
-		selected.serverChangedEvent.addListener(new UtilEventListener<Integer>() {
-			@Override
-			public void eventHappened(Integer msg) {
-				if(page.inited)
-				{
-					setWriter(page.getCurrentTemplate().getWriter());
-					sendSelected();
-					setWriter(null);
+			options.serverChangedEvent.addListener(new UtilEventListener<List<String>>() {
+				@Override
+				public void eventHappened(List<String> msg) {
+					serverOptionsChanged(msg);
 				}
-			}
-		});
+			});
+			selected.serverChangedEvent.addListener(new UtilEventListener<Integer>() {
+				@Override
+				public void eventHappened(Integer msg) {
+					if(page.inited)
+					{
+						try(NoExceptionAutoClosable c=activateJS())
+						{
+							sendSelected();
+							setWriter(null);
+						}
+					}
+				}
+			});
+		}
 	}
 
 	@Override
-	final public void handle(HtmlTemplate parent, JSONObject post) throws IOException {
-		setWriter(parent.getWriter());
-		try {
-			if(post.has("selected"))
-			{
-				selected.setPropertyFromClient(post.getInt("selected"));
+	final public void handle( JSONObject post) throws IOException {
+		try(NoExceptionAutoClosable c=activateJS())
+		{
+			try {
+				if(post.has("selected"))
+				{
+					selected.setPropertyFromClient(post.getInt("selected"));
+				}
+			} catch (NumberFormatException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-		} catch (NumberFormatException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
-		setWriter(null);
+	}
+	@Override
+	protected boolean isSelfInitialized() {
+		return true;
 	}
 }

@@ -4,12 +4,13 @@ import java.io.IOException;
 
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
 import hu.qgears.commons.UtilEventListener;
 
 public class QButton extends QComponent
 {
-	public final UtilEvent<QButton> clicked=new UtilEvent<>();
+	public final UtilEvent<QButtonEvent> clicked=new UtilEvent<>();
 	/**
 	 * Set the HTML content of the "controlled node".
 	 * Default value is null and that means no update on the node.
@@ -20,73 +21,83 @@ public class QButton extends QComponent
 	 * right click event propagation is stopped.
 	 */
 	@SuppressWarnings("resource")
-	public final UtilEventWithListenerTrack<QButton> rightClicked=new UtilEventWithListenerTrack<>(e->{
+	public final UtilEventWithListenerTrack<QButtonEvent> rightClicked=new UtilEventWithListenerTrack<>(e->{
 		if(inited)
 		{
 			if(e.getNListeners()==1)
 			{
-				setParent(page.getCurrentTemplate());
-				write("\tpage.components[\"");
-				writeObject(id);
-				write("\"].addRightClickListener(true);\n");
-				setParent(null);
+				try(NoExceptionAutoClosable c=activateJS())
+				{
+					write("\tpage.components[\"");
+					writeObject(id);
+					write("\"].addRightClickListener(true);\n");
+				}
 			}else if(e.getNListeners()==0)
 			{
-				setParent(page.getCurrentTemplate());
-				write("\tpage.components[\"");
-				writeObject(id);
-				write("\"].addRightClickListener(false);\n");
-				setParent(null);
+				try(NoExceptionAutoClosable c=activateJS())
+				{
+					write("\tpage.components[\"");
+					writeObject(id);
+					write("\"].addRightClickListener(false);\n");
+				}
 			}
 		}
 	});
 	/**
 	 * Mouse down event. In case a listener is added then mouse down event listening is activated.
 	 */
-	public final UtilEventWithListenerTrack<QButton> mouseDown=new UtilEventWithListenerTrack<>(e->{
+	public final UtilEventWithListenerTrack<QButtonEvent> mouseDown=new UtilEventWithListenerTrack<>(e->{
 		if(inited)
 		{
 			if(e.getNListeners()==1)
 			{
-				setParent(page.getCurrentTemplate());
-				write("\tpage.components[\"");
-				writeObject(id);
-				write("\"].addMouseDownListener(true);\n");
-				setParent(null);
+				try(NoExceptionAutoClosable c=activateJS())
+				{
+					write("\tpage.components[\"");
+					writeObject(id);
+					write("\"].addMouseDownListener(true);\n");
+				}
 			}else if(e.getNListeners()==0)
 			{
-				setParent(page.getCurrentTemplate());
-				write("\tpage.components[\"");
-				writeObject(id);
-				write("\"].addMouseDownListener(false);\n");
-				setParent(null);
+				try(NoExceptionAutoClosable c=activateJS())
+				{
+					write("\tpage.components[\"");
+					writeObject(id);
+					write("\"].addMouseDownListener(false);\n");
+				}
 			}
 		}
 	});
 	public QButton(IQContainer container, String identifier) {
 		super(container, identifier);
+		init();
 	}
 	public QButton(IQContainer container) {
 		super(container);
+		init();
 	}
 	
+	public QButton() {
+		super();
+		init();
+	}
 	public void generateHtmlObject() {
 		write("<button id=\"");
 		writeObject(id);
 		write("\">BUTTON</button>\n");
 	}
 
-	public void handle(HtmlTemplate parent, JSONObject post) throws IOException {
-		int button=post.getInt("button");
-		switch (button) {
+	public void handle(JSONObject post) throws IOException {
+		QButtonEvent ev=new QButtonEvent(this, post);
+		switch (ev.button) {
 		case 0:
-			clicked.eventHappened(this);
+			clicked.eventHappened(ev);
 			break;
 		case 3:
-			rightClicked.eventHappened(this);
+			rightClicked.eventHappened(ev);
 			break;
 		case 4:
-			mouseDown.eventHappened(this);
+			mouseDown.eventHappened(ev);
 			break;
 		default:
 			break;
@@ -95,41 +106,39 @@ public class QButton extends QComponent
 
 	@Override
 	public void doInitJSObject() {
-		setParent(page.getCurrentTemplate());
-		write("\tnew QButton(page, \"");
-		writeObject(id);
-		write("\")");
-		initialDisabledState();
-		write(";\n");
-		if(rightClicked.getNListeners()>0)
+		try(NoExceptionAutoClosable c=activateJS())
 		{
-			write("\tpage.components[\"");
+			write("\tnew QButton(page, \"");
 			writeObject(id);
-			write("\"].addRightClickListener(true);\n");
-		}
-		if(mouseDown.getNListeners()>0)
-		{
-			write("\tpage.components[\"");
-			writeObject(id);
-			write("\"].addMouseDownListener(true);\n");
-		}
-		if(innerhtml.getProperty()!=null)
-		{
-			innerHtmlChanged(innerhtml.getProperty());
-		}
-		innerhtml.serverChangedEvent.addListener(new UtilEventListener<String>() {
-			@Override
-			public void eventHappened(String msg) {
-				try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
-				{
+			write("\")");
+			initialDisabledState();
+			write(";\n");
+			if(rightClicked.getNListeners()>0)
+			{
+				write("\tpage.components[\"");
+				writeObject(id);
+				write("\"].addRightClickListener(true);\n");
+			}
+			if(mouseDown.getNListeners()>0)
+			{
+				write("\tpage.components[\"");
+				writeObject(id);
+				write("\"].addMouseDownListener(true);\n");
+			}
+			if(innerhtml.getProperty()!=null)
+			{
+				innerHtmlChanged(innerhtml.getProperty());
+			}
+			innerhtml.serverChangedEvent.addListener(new UtilEventListener<String>() {
+				@Override
+				public void eventHappened(String msg) {
 					innerHtmlChanged(msg);
 				}
-			}
-		});
-		setParent(null);
+			});
+		}
 	}
 	protected void innerHtmlChanged(final String msg) {
-		try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("page.components['");
 			writeJSValue(id);
@@ -137,5 +146,9 @@ public class QButton extends QComponent
 			writeJSValue(msg);
 			write("\");\n");
 		}
+	}
+	@Override
+	protected boolean isSelfInitialized() {
+		return true;
 	}
 }

@@ -2,9 +2,10 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Quickjs
 Bundle-SymbolicName: hu.qgears.quickjs
-Bundle-Version: 3.0.0.qualifier
+Bundle-Version: 4.0.0.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Require-Bundle: hu.qgears.commons;bundle-version="6.10.1";visibility:=reexport,
  org.apache.log4j;bundle-version="1.2.15",
- org.json;bundle-version="1.0.0";visibility:=reexport
+ org.json;bundle-version="1.0.0";visibility:=reexport,
+ com.jspatech.slf4.consoleimpl;bundle-version="1.0.0"
 Export-Package: hu.qgears.quickjs.qpage

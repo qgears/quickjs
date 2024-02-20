@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEventListener;
 
 public class QImage extends QComponent
@@ -12,9 +13,11 @@ public class QImage extends QComponent
 	private UtilEventWithListenerTrack<QImage> onload;
 	public QImage(IQContainer parent, String identifier) {
 		super(parent, identifier);
+		init();
 	}
 	public QImage(IQContainer parent) {
 		super(parent);
+		init();
 	}
 	@Override
 	public void generateHtmlObject() {
@@ -23,7 +26,7 @@ public class QImage extends QComponent
 		write("\"></img>\n");
 	}
 
-	public void handle(HtmlTemplate parent, JSONObject post) throws IOException {
+	public void handle(JSONObject post) throws IOException {
 		if(post.has("type"))
 		{
 			switch (post.getString("type")) {
@@ -62,7 +65,7 @@ public class QImage extends QComponent
 		});
 	}
 	protected void srcChanged(final String msg) {
-		try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("page.components['");
 			writeJSValue(id);
@@ -77,20 +80,24 @@ public class QImage extends QComponent
 			onload=new UtilEventWithListenerTrack<>(e->{
 				if(inited)
 				{
-					try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
-					{
-						updateOnloadListeners();
-					}
+					updateOnloadListeners();
 				}
 			});
 		}
 		return onload;
 	}
 	private void updateOnloadListeners() {
-		write("page.components['");
-		writeJSValue(id);
-		write("'].setHasOnloadListener(");
-		writeObject(onload.getNListeners()>0);
-		write(");\n");
+		try(NoExceptionAutoClosable c=activateJS())
+		{	
+			write("page.components['");
+			writeJSValue(id);
+			write("'].setHasOnloadListener(");
+			writeObject(onload.getNListeners()>0);
+			write(");\n");
+		}
+	}
+	@Override
+	protected boolean isSelfInitialized() {
+		return true;
 	}
 }

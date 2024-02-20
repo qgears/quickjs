@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.MultiMapHashImpl;
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilString;
 import hu.qgears.quickjs.qpage.example.QPageContext;
 

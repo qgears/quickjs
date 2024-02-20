@@ -3,6 +3,7 @@ package hu.qgears.quickjs.qpage;
 public interface IQContainer {
 	QPage getPage();
 	IQContainer getParent();
+	String getId();
 	void addChild(QComponent child);
 	/**
 	 * Add a closeable object to this component: when this component is disposed then this closeable will also be closed.

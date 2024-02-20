@@ -7,6 +7,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilComma;
 import hu.qgears.commons.UtilEventListener;
 
@@ -29,16 +30,18 @@ public class QSelectCombo2 extends QComponent {
 	public final QProperty<Integer> selected=new QProperty<>();
 	public QSelectCombo2(IQContainer parent, String id) {
 		super(parent, id);
+		init();
 	}
 	public QSelectCombo2(IQContainer parent) {
 		super(parent);
+		init();
 	}
 	
 	protected void serverOptionsChanged(final List<OptionCreator> msg)
 	{
 		if(page.inited)
 		{
-			try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+			try(NoExceptionAutoClosable c=activateJS())
 			{
 				sendOptions(msg);
 			}
@@ -64,48 +67,55 @@ public class QSelectCombo2 extends QComponent {
 	}
 	
 	private void sendSelected() {
-		write("\tpage.components['");
-		writeJSValue(id);
-		write("'].setSelected(\"");
-		writeObject(selected.getProperty());
-		write("\");\n");
+		try(NoExceptionAutoClosable c=activateJS())
+		{
+			write("\tpage.components['");
+			writeJSValue(id);
+			write("'].setSelected(\"");
+			writeObject(selected.getProperty());
+			write("\");\n");
+		}
 	}
 
 
 	@Override
 	final public void doInitJSObject() {
-		write("\tnew ");
-		writeObject(getClass().getSimpleName());
-		write("(page, \"");
-		writeObject(id);
-		write("\");\n");
-		sendOptions(options.getProperty());
-		if(selected.getProperty()!=null)
+		try(NoExceptionAutoClosable c=activateJS())
 		{
-			sendSelected();
-		}
-		options.serverChangedEvent.addListener(new UtilEventListener<List<OptionCreator>>() {
-			@Override
-			public void eventHappened(List<OptionCreator> msg) {
-				serverOptionsChanged(msg);
+			write("\tnew ");
+			writeObject(getClass().getSimpleName());
+			write("(page, \"");
+			writeObject(id);
+			write("\");\n");
+			sendOptions(options.getProperty());
+			if(selected.getProperty()!=null)
+			{
+				sendSelected();
 			}
-		});
-		selected.serverChangedEvent.addListener(new UtilEventListener<Integer>() {
-			@Override
-			public void eventHappened(Integer msg) {
-				if(page.inited)
-				{
-					setWriter(page.getCurrentTemplate().getWriter());
-					sendSelected();
-					setWriter(null);
+			options.serverChangedEvent.addListener(new UtilEventListener<List<OptionCreator>>() {
+				@Override
+				public void eventHappened(List<OptionCreator> msg) {
+					serverOptionsChanged(msg);
 				}
-			}
-		});
+			});
+			selected.serverChangedEvent.addListener(new UtilEventListener<Integer>() {
+				@Override
+				public void eventHappened(Integer msg) {
+					if(page.inited)
+					{
+						try(NoExceptionAutoClosable c=activateJS())
+						{
+							sendSelected();
+						}
+					}
+				}
+			});
+		}
 	}
 
 	@Override
-	final public void handle(HtmlTemplate parent, JSONObject post) throws IOException {
-		try(ResetOutputObject roo=setParent(parent))
+	final public void handle(JSONObject post) throws IOException {
+		try
 		{
 			if(post.has("selected"))
 			{
@@ -120,5 +130,9 @@ public class QSelectCombo2 extends QComponent {
 		write("<div id=\"");
 		writeObject(getId());
 		write("\"></div>\n");
+	}
+	@Override
+	protected boolean isSelfInitialized() {
+		return true;
 	}
 }

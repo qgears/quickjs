@@ -23,6 +23,7 @@ import org.eclipse.jetty.util.thread.ThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QPageManager;
@@ -143,9 +144,12 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 							QPage newPage=new QPage(qpm);
 							QPageContext qpc=QPageContext.getCurrent();
 							newPage.setSessionId(baseRequest.getSession().getId());
-							AbstractQPage inst=pageFactory.createPage(userData);
-							inst.setRequest(baseRequest, request);
-							inst.initApplication(this, newPage);
+							try(NoExceptionAutoClosable c=newPage.setThreadCurrentPage())
+							{
+								AbstractQPage inst=pageFactory.createPage(userData);
+								inst.setRequest(baseRequest, request);
+								inst.initApplication(this, newPage);
+							}
 							newPage.setExecutor(r->{
 								try
 								{

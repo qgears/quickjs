@@ -1,5 +1,7 @@
 package hu.qgears.quickjs.qpage.example;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
+import hu.qgears.quickjs.qpage.AppendTarget;
 import hu.qgears.quickjs.qpage.QButton;
 import hu.qgears.quickjs.qpage.QDiv;
 import hu.qgears.quickjs.qpage.QPage;
@@ -16,31 +18,28 @@ public class QExample04DynamicDivs extends AbstractQPage
 		super.writeHeaders();
 	}
 	private QDiv dynamicContainer;
-	private int index;
+	int index=0;
 	@Override
 	protected void initQPage(QPage page) {
 		dynamicContainer=new QDiv(page, "dynamicContainer");
 		new QButton(page, "create").clicked.addListener(e->{
-			System.out.println("Pressed!");
-			String childId="Dynamic-"+index++;
-			QDiv child=new QDiv(dynamicContainer, childId)
+			System.out.println("Create pressed!");
+			String childId="child"+index++;
+			try(NoExceptionAutoClosable c=activateCreateDom(AppendTarget.QContainer(dynamicContainer)))
 			{
-				@Override
-				public void generateHtmlObject() {
-					write("<div id=\"");
-					writeValue(childId);
-					write("\">Cicuka ");
-					writeObject(childId);
-					write("<button id=\"");
-					writeValue(childId+".delete");
-					write("\">Delete this node</button></div>\n");
-				}
+				QDiv child=new QDiv(dynamicContainer, childId);
+				QButton buttonDelete=new QButton(child);
+				buttonDelete.clicked.addListener(ev->{System.out.println("delete clicked!");
+					child.dispose();
+				});
+				write("<div id=\"");
+				writeValue(child.getId());
+				write("\">Cicuka ");
+				writeObject(childId);
+				write("<button id=\"");
+				writeValue(buttonDelete.getId());
+				write("\">Delete this node</button></div>\n");
 			};
-			QButton buttonDelete=new QButton(child, childId+".delete");
-			buttonDelete.clicked.addListener(ev->{System.out.println("delete clicked!");
-				child.dispose();
-			});
-			child.setCreator(page.defaultCreator);
 		});
 	}
 

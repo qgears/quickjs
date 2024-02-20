@@ -27,7 +27,10 @@ public class HelloWorld extends AbstractHandler {
 			break;
 		case "/query":
 			new Query().serve(target, baseRequest, request, response);
+			break;
+		case "/sample":
+			new IndexHtml().serve(target, baseRequest, request, response);
+			break;
 		}
-		new IndexHtml().serve(target, baseRequest, request, response);
 	}
 }

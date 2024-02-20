@@ -20,6 +20,7 @@ import hu.qgears.quickjs.qpage.QPage;
 /**
  * Execute an automaton script in a page.
  */
+@Deprecated
 abstract public class AutomatExecutor extends HtmlTemplate implements UtilEventListener<JSONObject>
 {
 	protected QPage page;
@@ -75,7 +76,7 @@ abstract public class AutomatExecutor extends HtmlTemplate implements UtilEventL
 			jsWriter=new StringWriter();
 			setWriter(jsWriter);
 			page.submitToUI(()->{
-				new HtmlTemplate(page.getCurrentTemplate())
+				new HtmlTemplate(page.getJsTemplate())
 				{
 					public void a() {
 						writeObject(s);

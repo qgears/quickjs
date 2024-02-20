@@ -96,6 +96,7 @@ class QPage
 		const url=window.location.origin.replace('http', 'ws')+window.location.pathname+'?websocket='+websocketName+'&QPage='+this.identifier+this.sessionIdParameterAdditional;
 		return url;
 	}
+	/// Start communication with server and set up global listeners
 	start()
 	{
 		const url=this.createWebSocketUrl();
@@ -245,5 +246,48 @@ class QPage
 	setSessionIdParameterAdditional(sessionIdParameterAdditional)
 	{
 		this.sessionIdParameterAdditional=sessionIdParameterAdditional;
+	}
+	/**
+	 * Create DOM into the tree. See HtmlTemplate.activateCreateDom() 
+	 */
+	createDom(htmlContent, nameSpaceUri, rootObjectType, methodName, selector, arg1, arg2)
+	{
+		var div = document.createElementNS(nameSpaceUri, rootObjectType);
+		div.innerHTML=htmlContent;
+		var nInserted=0;
+		for (let i = 0; i < div.childNodes.length; i++) {
+			let item = div.childNodes[i];
+			if(item instanceof Element || item instanceof HTMLDocument)
+			{
+				if(nInserted>0)
+				{
+					console.error(new Error().stack);
+					console.error(div.childNodes);
+					console.error({error: "Multiple child nodes are created instead of a single one!", dom:htmlContent});
+				}
+				this.insertDom(item, methodName, selector, arg1, arg2);
+				nInserted++;
+			}
+		}
+	}
+	insertDom(item, methodName, selector, arg1, arg2)
+	{
+		switch(methodName) {
+			case "QContainer":
+				var component=this.components[selector];
+				var index=arg1;
+				var parentDOM=component.childContainer;
+				const next=component.findNextNode(parentDOM, index);
+				parentDOM.insertBefore(item, next);
+				break;
+			case "replaceWith":
+				var oldDom=document.querySelector(selector);
+				oldDom.replaceWith(item);
+				break;
+			default:
+					console.error(new Error().stack);
+					console.error({error: "methodName unknown", methodName: methodName});
+					break;
+		} 
 	}
 }

@@ -5,6 +5,7 @@ import java.io.StringWriter;
 
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEventListener;
 
 public class QLabel extends QComponent
@@ -12,9 +13,18 @@ public class QLabel extends QComponent
 	public final QProperty<String> innerhtml=new QProperty<>();
 	public QLabel(IQContainer container, String identifier) {
 		super(container, identifier);
+		init();
+	}
+	public QLabel(String identifier) {
+		super(identifier);
+		init();
 	}
 	public QLabel(IQContainer container) {
 		super(container);
+		init();
+	}
+	public QLabel() {
+		init();
 	}
 	@Override
 	public void generateHtmlObject() {
@@ -23,7 +33,7 @@ public class QLabel extends QComponent
 		write("\"></div>\n");
 	}
 
-	public void handle(HtmlTemplate parent, JSONObject post) throws IOException {
+	public void handle(JSONObject post) throws IOException {
 	}
 
 	@Override
@@ -41,7 +51,7 @@ public class QLabel extends QComponent
 		});
 	}
 	protected void textChanged(final String msg) {
-		try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
+		try(NoExceptionAutoClosable c=activateJS())
 		{
 			write("page.components['");
 			writeJSValue(id);
@@ -60,5 +70,9 @@ public class QLabel extends QComponent
 			write("</pre>");
 		}
 		innerhtml.setPropertyFromServer(sw.toString());
+	}
+	@Override
+	protected boolean isSelfInitialized() {
+		return true;
 	}
 }

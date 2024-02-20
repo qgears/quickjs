@@ -19,6 +19,7 @@ class QButton extends QComponent
 		}
 		var fd=this.page.createFormData(this);
 		fd.button=0;
+		this.setParameters(fd, ev);
 		this.page.send(fd);
 	}
 	onrightclick(ev)
@@ -31,6 +32,7 @@ class QButton extends QComponent
 				ev.cancelBubble = true;
 				var fd=this.page.createFormData(this);
 				fd.button=3;
+				this.setParameters(fd, ev);
 				this.page.send(fd);
 				return false;
 		  }
@@ -51,7 +53,13 @@ class QButton extends QComponent
 	{
 		var fd=this.page.createFormData(this);
 		fd.button=4;
+		this.setParameters(fd, ev);
 		this.page.send(fd);
+	}
+	setParameters(fd, ev)
+	{
+		fd.offsetX=ev.offsetX;
+		fd.offsetY=ev.offsetY;
 	}
 	addMouseDownListener(activate)
 	{

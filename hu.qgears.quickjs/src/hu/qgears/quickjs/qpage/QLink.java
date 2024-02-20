@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.json.JSONObject;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
 import hu.qgears.commons.UtilEventListener;
 
@@ -26,10 +27,12 @@ public class QLink extends QComponent
 	public QLink(IQContainer container, String identifier, String href) {
 		super(container, identifier);
 		this.href=new QProperty<>(href);
+		init();
 	}
 	public QLink(IQContainer container, String href) {
 		super(container);
 		this.href=new QProperty<>(href);
+		init();
 	}
 	/**
 	 * Chainable shorthand for .clicked.addListener();
@@ -47,43 +50,43 @@ public class QLink extends QComponent
 		writeObject(id);
 		write("\"></a>\n");
 	}
-
-	public void handle(HtmlTemplate parent, JSONObject post) throws IOException {
+	@Override
+	public void handle(JSONObject post) throws IOException {
 		clicked.eventHappened(this);
 	}
-
 	@Override
 	public void doInitJSObject() {
 		String currentHref=href.getProperty();
-		setParent(page.getCurrentTemplate());
-		write("\tnew QLink(page, \"");
-		writeObject(id);
-		write("\")");
-		writeSetHref(currentHref);
-		write(".setServerHandled(");
-		writeObject(serverHandled.getProperty());
-		write(");\n");
-		setParent(null);
-		href.serverChangedEvent.addListener(e->{
-			try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
-			{
-				write("page.components['");
-				writeJSValue(id);
-				write("']");
-				writeSetHref(href.getProperty());
-				write(";\n");
-			}
-		});
-		serverHandled.serverChangedEvent.addListener(e->{
-			try(ResetOutputObject roo=setParent(page.getCurrentTemplate()))
-			{
-				write("page.components['");
-				writeJSValue(id);
-				write("'].setServerHandled(\"");
-				writeObject(serverHandled.getProperty());
-				write("\");\n");
-			}
-		});
+		try(NoExceptionAutoClosable c=activateJS())
+		{
+			write("\tnew QLink(page, \"");
+			writeObject(id);
+			write("\")");
+			writeSetHref(currentHref);
+			write(".setServerHandled(");
+			writeObject(serverHandled.getProperty());
+			write(");\n");
+			href.serverChangedEvent.addListener(e->{
+				try(NoExceptionAutoClosable c1=activateJS())
+				{
+					write("page.components['");
+					writeJSValue(id);
+					write("']");
+					writeSetHref(href.getProperty());
+					write(";\n");
+				}
+			});
+			serverHandled.serverChangedEvent.addListener(e->{
+				try(NoExceptionAutoClosable c1=activateJS())
+				{
+					write("page.components['");
+					writeJSValue(id);
+					write("'].setServerHandled(\"");
+					writeObject(serverHandled.getProperty());
+					write("\");\n");
+				}
+			});
+		}
 	}
 	private void writeSetHref(String currentHref) {
 		if(currentHref!=null){
@@ -97,5 +100,9 @@ public class QLink extends QComponent
 	public void setDisabled(boolean b) {
 		// TODO Auto-generated method stub
 		
+	}
+	@Override
+	protected boolean isSelfInitialized() {
+		return true;
 	}
 }

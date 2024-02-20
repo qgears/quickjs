@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import hu.qgears.commons.EscapeString;
+import hu.qgears.commons.NoExceptionAutoClosable;
 
 /**
  * Template to output HTML content
@@ -20,7 +21,7 @@ public class HtmlTemplate {
 	private boolean isTextFirstArgument=false;
 	private volatile ILocalizationInterface locIf;
 	private static Supplier<ILocalizationInterface> localizeFinder=()->new ILocalizationInterface() {};
-	public class ResetOutputObject implements AutoCloseable
+	public class ResetOutputObject implements NoExceptionAutoClosable
 	{
 		private Writer resetTo;
 		private List<Object> resetToWebSocketArguments;
@@ -246,7 +247,9 @@ public class HtmlTemplate {
 	 * @param host the created DOM is added to this component
 	 * @param index the created DOM is added to the host component's children DOM at this index. (null is allowed and means appendChild)
 	 * @return closeable object that has to be closed to finish DOM generation and let it be executed on the client.
+	 * @deprecated  activateCreateDom instead
 	 */
+	@Deprecated
 	protected ResetOutputObject createDom(HtmlTemplate parent, QComponent host, Integer index) {
 		ResetOutputObject roo=setParent(parent);
 		roo.chained=createDom(host, index);
@@ -258,7 +261,9 @@ public class HtmlTemplate {
 	 * @param host
 	 * @param afterSelector selector to find element within the host node. Example: ":scope > .foo" first level child with given class
 	 * @return
+	 * @deprecated  activateCreateDom instead
 	 */
+	@Deprecated
 	protected ResetOutputObject createDomAfter(HtmlTemplate parent, QComponent host, String afterSelector) {
 		ResetOutputObject roo=setParent(parent);
 		if(!host.inited)
@@ -287,11 +292,19 @@ public class HtmlTemplate {
 		roo.chained=ret;
 		return roo;
 	}
+	/**
+	 * @deprecated  activateCreateDom instead
+	 */
+	@Deprecated
 	protected ResetOutputObject createDom(HtmlTemplate parent, QComponent host, String parentSelector, Integer index) {
 		ResetOutputObject roo=setParent(parent);
 		roo.chained=createDom(host, parentSelector, index);
 		return roo;
 	}
+	/**
+	 * @deprecated  activateCreateDom instead
+	 */
+	@Deprecated
 	protected ResetOutputObject createDom(QComponent host, String parentSelector, Integer index) {
 		if(!host.inited)
 		{
@@ -356,5 +369,62 @@ public class HtmlTemplate {
 	}
 	protected String escapeUrlPart(String expressionString, char limitchar) {
 		return expressionString;
+	}
+	protected NoExceptionAutoClosable activateJS() {
+		ResetOutputObject roo=setParent(QPage.getCurrent().getJsTemplate());
+		return new NoExceptionAutoClosable() {
+			@Override
+			public void close() {
+				roo.close();
+			}
+		};
+	}
+	/**
+	 * Template output will be treated as HTML and the resulting HTML will be
+	 * inserted into the DOM tree at the appendTarget value.
+	 * All JS that is emitted inside the activateCreateDom block will be executed _after_ the DOM node was created.
+	 * @param appendTarget specification where to append the created HTML.
+	 * @return has to be closed to deactivate create DOM mode and actually create the HTML node into DOM
+	 */
+	protected NoExceptionAutoClosable activateCreateDom(AppendTarget appendTarget) {
+		HtmlTemplate template=new HtmlTemplate(new StringWriter());
+		HtmlTemplate subJs=new HtmlTemplate(new StringWriter());
+		QPage page=QPage.getCurrent();
+		HtmlTemplate originalJsTemplate=page.getJsTemplate();
+		subJs.webSocketArguments=originalJsTemplate.webSocketArguments;
+		page.setJsTemplate(subJs);
+		ResetOutputObject roo=setParent(template);
+		return new NoExceptionAutoClosable() {
+			 @Override
+			public void close() {
+				page.setJsTemplate(originalJsTemplate);
+				roo.close();
+				String html=template.getWriter().toString();
+				try(NoExceptionAutoClosable c=activateJS())
+				{
+						int index=additionalObject(html);
+						write("page.createDom(args[");
+						writeObject(index);
+						write("], '");
+						writeJSValue(appendTarget.nameSpaceUri);
+						write("', '");
+						writeJSValue(appendTarget.rootObjectType);
+						write("', '");
+						writeJSValue(appendTarget.method.name());
+						write("', '");
+						writeJSValue(appendTarget.domSelector);
+						write("', '");
+						writeJSValue(appendTarget.arg1);
+						write("', '");
+						writeJSValue(appendTarget.arg2);
+						write("');\n");
+						StringWriter sw=(StringWriter)subJs.getWriter();
+						if(sw.getBuffer().length()>0)
+						{
+							writeObject(sw.toString());
+						}
+				 }
+			}
+		};
 	}
 }

@@ -45,11 +45,15 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	}
 	/**
 	 * Initialize the QPage object by adding all the initial QComponents to it. Also add business logic as listeners.
-	 * This is called first before writeBody();
+	 * This is called first before generateHtmlContent() and writeBody();
 	 * @return
 	 */
 	abstract protected void initQPage(QPage page);
 
+	/**
+	 * Generate initial HTML content of the page that is downloaded from the web server by the client.
+	 * Override is possible but not recommended.
+	 */
 	protected void generateHtmlContent() {
 		write("<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n");
 		writeFaviconHeaders();
@@ -57,15 +61,15 @@ abstract public class AbstractQPage extends HtmlTemplate {
 		page.writeHeaders(this);
 		write("</head>\n<body>\n");
 		setupWebSocketArguments(false);
-		page.setCurrentTemplate(this);
+		page.setInitialHtmlTemplate(this);
 		writeBody();
-		page.setCurrentTemplate(null);
-		page.generateInitialization(this);
+		page.generateInitialization();
 		bodyAfterQPageInitialization();
 		write("</body>\n</html>\n");
 	}
 
 	/**
+	 * Generate the favicons part of the HTML page (content generated here is put into the header)
 	 * Subclasses may override. Default implementation disables favicons.
 	 */
 	protected void writeFaviconHeaders() {
@@ -76,10 +80,11 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	 * We are still within the body so HTML elements are valid.
 	 */
 	protected void bodyAfterQPageInitialization() {
-		
 	}
 	/**
-	 * Write headers into the head section of the HTML page.
+	 * Write additional headers into the head section of the HTML page.
+	 * Called after favicon but before QPage related JS initialization.
+	 * Default implementation does nothing, can be overridden to add functionality.
 	 */
 	protected void writeHeaders() {
 	}

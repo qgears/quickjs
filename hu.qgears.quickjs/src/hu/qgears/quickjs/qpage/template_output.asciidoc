@@ -12,11 +12,46 @@
 == Initial HTML output mode.
 
 While the first query is served it is possible to implement direct HTML output.
-This is useful because these HTML objects are initialized at once and thus there is no lickering when the page is loaded.
+This is useful because these HTML objects are initialized at once and thus there is no flickering when the page is loaded.
 
 == HTML node output mode
 
 HTML is generated in memory. Then converted to javascript that creates the DOM tree and inserts it into a node within the DOM tree.
+
+This mode is activated by: HtmlTemplate.activateCreateDom();
+What it does is:
+
+ * open new in-memory template object to gather HTML code
+ * open new in-memory JS template object and activate it on QPage
+ * on close of object:
+ ** The DOM creation JS is appended to the current JS output of the QPage (QPage.getCurrent().getJsTemplate()). HTML is sent as a separate WebSocket object so it need not be escaped into JS.
+ ** The DOM creation JS is always sent to the browser client _before_ the normal js (activateJS) is sent! This is because object has to be created after the DOM was created.
+ ** Any JS created within the DOM creation template is appended to the original JS gathering template. This is all executed _after_ the DOM was created.
+    (This is useful so that it is possible to create the QComponent objects first with generated ids and then emit their HTML and they will only be initialized on the client when the DOM is already insetred) 
+
+== Javascript output mode
+
+This is always accessible (from any valid QPage context: initial query or event handler).
+All generated Javascript is collected in memory and sent to client on the next occasion:
+
+ * On First initialization the javascript is sent embedded into the first page
+ * After that all JS is sent through the communication channel (WebSocket)
+
+In QComponent (and subclasses) we write to the JS stream using: try(NoExceptionAutoClosable c=activateJS())
+
+== Order of COM creation and component initialization
+
+ * When we create a QComponent in Java then the component initialization code is put into the current QPage.getCurrent().getJsTemplate() immediately
+ * When the component initialization code is executing in the browser then the component must already be in the DOM (because the QComponent.js code searches for the DOM object by id)
+ * How does the DOM get there before the QComponent?
+ ** When page is initialized then the original HTML is parsed first and all JS is executed after.
+ ** When creating object dynamically then within the HtmlTemplate.activateCreateDom() block all JS is deferred until the DOM was created (by setting up a separate JS template instance to gather JS code until all DOM was created and then put its content into the original JS output)
+ 
+== Life cycle of QComponent objects
+
+ * Component is created in JS
+ * Initialization code is sent at once through the current QPage.getCurrent().getJsTemplate() to browser
+ * Component dispose in Java calls dispose in browser as well.
 
 == QuickJS object initialization mode
 
