@@ -17,11 +17,14 @@ import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.MultiMapTreeImpl;
 import hu.qgears.commons.UtilString;
+import hu.qgears.quickjs.qpage.QPage;
 
 public class GdprSessionIdManager
 {
-	/// 30 seconds: in case cookies are not accepted then session is restricted to opening a qpage websocket which is almost instantenous.
-	private int maxInactiveIntervalCookiesNotAccepted=30;
+	/// In case cookies are not accepted then session is restricted to opening a qpage websocket which is almost instantenous.
+	/// And the session is timed out once the qpage is timed out.
+	/// When the QPage maintains its own active state by ping-pong then the session also has to be reinitialized
+	private int maxInactiveIntervalCookiesNotAccepted=QPage.getMinimalSessionTimeoutMs();
 	/// ~1 year
 	private int maxInactiveIntervalCookiesAccepted=365*24*60*60;
 	private Random random;
@@ -40,16 +43,16 @@ public class GdprSessionIdManager
 		}, 10000, 10000);
 	}
 	private Map<String, GdprSession> sessionsBySecureIdentifier=new HashMap<>();
-	public GdprSession getSession(String sessionCookieId, boolean cookiesAccepted) {
+	public GdprSession getSession(String sessionIdFromRequest, boolean cookiesAccepted) {
 		long t=System.currentTimeMillis();
 		GdprSession session;
 		synchronized (sessionsBySecureIdentifier) {
-			session=sessionsBySecureIdentifier.get(sessionCookieId);
+			session=sessionsBySecureIdentifier.get(sessionIdFromRequest);
 			if(session!=null)
 			{
 				// Update last access time at once to avoid race condition dispose of the session once we got it out of the storage.
 				session.updateLastAccessedTime(t);
-				if(session.getMaxInactiveInterval()!=maxInactiveIntervalCookiesAccepted)
+				if(cookiesAccepted && session.getMaxInactiveInterval()!=maxInactiveIntervalCookiesAccepted)
 				{
 					session.setMaxInactiveInterval(maxInactiveIntervalCookiesAccepted);
 				}
@@ -106,7 +109,7 @@ public class GdprSessionIdManager
 			return readOnlyCopy;
 		}
 	}
-	private void updateTimeout(GdprSession simpleSession)
+	protected void updateTimeout(GdprSession simpleSession)
 	{
 		long timeoutAtMilli=simpleSession.getMaxInactiveInterval()*1000+simpleSession.getLastAccessedTime();
 		synchronized (sessionTimeouts) {

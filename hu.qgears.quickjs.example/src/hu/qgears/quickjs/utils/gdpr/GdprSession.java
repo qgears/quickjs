@@ -11,13 +11,14 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpSessionContext;
 
+import hu.qgears.quickjs.qpage.ISessionUpdateLastAccessedTime;
 import hu.qgears.quickjs.qpage.jetty.QPageHandler;
 
 /**
  * GDPR compatible session object: only saved to Cookie once user accepts the cookie.
  */
 @SuppressWarnings("deprecation")
-public class GdprSession implements HttpSession {
+public class GdprSession implements HttpSession, ISessionUpdateLastAccessedTime {
 
 	private Map<String, Object> attributes=new HashMap<>();
 	private long creationTime;
@@ -164,5 +165,10 @@ public class GdprSession implements HttpSession {
 	public String getSessionIdCookieName()
 	{
 		return host.getSessionIdCookieName();
+	}
+	@Override
+	public void setLastAccessedTime(long t) {
+		lastAccessedTime=t;
+		host.updateTimeout(this);
 	}
 }

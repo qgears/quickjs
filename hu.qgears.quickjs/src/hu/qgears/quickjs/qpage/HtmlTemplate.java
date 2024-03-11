@@ -230,6 +230,20 @@ public class HtmlTemplate {
 			return new Object[] {};
 		}
 	}
+	/**
+	 * Set up the web socket arguments collection feature.
+	 * This feature allows generated JS code to send websocket blob and string messages separately
+	 * of the JS itself.
+	 * This is useful because blob data need not be encoded into a string but it is sent as
+	 * binary data efficiently (PNG data can be an example).
+	 * Usage of the feature:
+	 *  int index=additionalData(pngAsByteArray);
+	 *  And in the JS the argument can be accessed by this array and the index returned from additionalData: 
+	 *  setImageAsBlob(args[index]);
+	 * @param isTextFirstArgument arguments are indexed from 1 (otherwise from 0).
+	 *                    if true then toWebSocketArguments will add the writer content to the object array
+	 * @return
+	 */
 	public HtmlTemplate setupWebSocketArguments(boolean isTextFirstArgument) {
 		webSocketArguments=new ArrayList<>();
 		if(isTextFirstArgument)
@@ -240,125 +254,9 @@ public class HtmlTemplate {
 		return this;
 	}
 	/**
-	 * Set the current output template into DOM creation mode:
-	 *  * Output is collected into a separate string that holds the DOM
-	 *  * When {@link ResetOutputObject} is closed then the DOM is added as an argument to the current message
-	 * @param parent this template is set up as parent template first.
-	 * @param host the created DOM is added to this component
-	 * @param index the created DOM is added to the host component's children DOM at this index. (null is allowed and means appendChild)
-	 * @return closeable object that has to be closed to finish DOM generation and let it be executed on the client.
-	 * @deprecated  activateCreateDom instead
-	 */
-	@Deprecated
-	protected ResetOutputObject createDom(HtmlTemplate parent, QComponent host, Integer index) {
-		ResetOutputObject roo=setParent(parent);
-		roo.chained=createDom(host, index);
-		return roo;
-	}
-	/**
-	 * Create DOM content and add after the seleced DOM node.
-	 * @param parent html template to write onto
-	 * @param host
-	 * @param afterSelector selector to find element within the host node. Example: ":scope > .foo" first level child with given class
-	 * @return
-	 * @deprecated  activateCreateDom instead
-	 */
-	@Deprecated
-	protected ResetOutputObject createDomAfter(HtmlTemplate parent, QComponent host, String afterSelector) {
-		ResetOutputObject roo=setParent(parent);
-		if(!host.inited)
-		{
-			throw new RuntimeException("Host object must be initialized when dynamically creating children.");
-		}
-		Writer prev=this.out;
-		this.out=new StringWriter();
-		@SuppressWarnings("resource")
-		ResetOutputObject ret=new ResetOutputObject(prev, webSocketArguments)
-		{
-			@Override
-			public void close() {
-				String dom=out.toString();
-				super.close();
-				int argIndex=additionalObject(dom);
-				write("page.components[\"");
-				writeJSValue(host.getId());
-				write("\"].createHTMLAfterSelector(\"");
-				writeJSValue(afterSelector);
-				write("\", args[");
-				writeObject(argIndex);
-				write("]);\n");
-			}
-		};
-		roo.chained=ret;
-		return roo;
-	}
-	/**
-	 * @deprecated  activateCreateDom instead
-	 */
-	@Deprecated
-	protected ResetOutputObject createDom(HtmlTemplate parent, QComponent host, String parentSelector, Integer index) {
-		ResetOutputObject roo=setParent(parent);
-		roo.chained=createDom(host, parentSelector, index);
-		return roo;
-	}
-	/**
-	 * @deprecated  activateCreateDom instead
-	 */
-	@Deprecated
-	protected ResetOutputObject createDom(QComponent host, String parentSelector, Integer index) {
-		if(!host.inited)
-		{
-			throw new RuntimeException("Host object must be initialized when dynamically creating children.");
-		}
-		Writer prev=this.out;
-		this.out=new StringWriter();
-		ResetOutputObject ret=new ResetOutputObject(prev, webSocketArguments)
-		{
-			@Override
-			public void close() {
-				String dom=out.toString();
-				super.close();
-				int argIndex=additionalObject(dom);
-				if(parentSelector!=null)
-				{
-					write("page.components[\"");
-					writeJSValue(host.getId());
-					write("\"].createHTMLIntoSelector(\"");
-					writeJSValue(parentSelector);
-					write("\", ");
-					writeObject(index);
-					write(", args[");
-					writeObject(argIndex);
-					write("]);\n");
-				}else
-				{
-					write("page.components[\"");
-					writeJSValue(host.getId());
-					write("\"].createHTMLIntoIndex(");
-					writeObject(index);
-					write(", args[");
-					writeObject(argIndex);
-					write("]);\n");
-				}
-			}
-		};
-		return ret;
-	}
-	/**
-	 * Set the current output template into DOM creation mode:
-	 *  * Output is collected into a separate string that holds the DOM
-	 *  * When {@link ResetOutputObject} is closed then the DOM is added as an argument to the current message
-	 * @param host the created DOM is added to this component
-	 * @param index the created DOM is added to the host component's children DOM at this index. (null is allowed and means appendChild)
-	 * @return closeable object that has to be closed to finish DOM generation and let it be executed on the client.
-	 */
-	@Deprecated
-	protected ResetOutputObject createDom(QComponent host, Integer index) {
-		return createDom(host, (String)null, index);
-	}
-	/**
 	 * Write a localized string to the output through HTML encoding
 	 * @param id
+	 * @param args parameters of a parametrized string output
 	 */
 	final protected void writeLocalized(String id, Object... args)
 	{
@@ -371,6 +269,14 @@ public class HtmlTemplate {
 	protected String escapeUrlPart(String expressionString, char limitchar) {
 		return expressionString;
 	}
+	/**
+	 * Template output will be treated as JS and will be executed in order of appearance on the
+	 * server.
+	 * If the JS block is opened inside an activateCreateDom block then the JS
+	 * will be executed in the browser _after_ the DOM objects are already inserted into
+	 * the DOM tree of the browser.
+	 * @return
+	 */
 	protected NoExceptionAutoClosable activateJS() {
 		ResetOutputObject roo=setParent(QPage.getCurrent().getJsTemplate());
 		return new NoExceptionAutoClosable() {

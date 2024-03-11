@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.quickjs.qpage.HtmlTemplate;
+import hu.qgears.quickjs.qpage.ISessionUpdateLastAccessedTime;
 import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QPageManager;
 import hu.qgears.quickjs.qpage.example.IQPageFactory;
@@ -138,6 +139,11 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 								}
 							}
 							newPage.setSessionId(baseRequest.getSession().getId());
+							HttpSession session=request.getSession();
+							if(session instanceof ISessionUpdateLastAccessedTime)
+							{
+								newPage.setSessionToUpdateLastAccessedTime((ISessionUpdateLastAccessedTime) session);
+							}
 							try(NoExceptionAutoClosable c=newPage.setThreadCurrentPage())
 							{
 								AbstractQPage inst=pageFactory.createPage(userData);

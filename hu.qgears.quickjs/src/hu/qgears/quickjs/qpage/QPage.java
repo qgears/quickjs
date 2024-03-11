@@ -58,6 +58,8 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 	private Map<String, IndexedComm> customWebSocketImplementations=Collections.synchronizedMap(new HashMap<>());
 	private String sessionIdParameterName;
 	private String sessionId;
+	private ISessionUpdateLastAccessedTime sessionToUpdateLastAccessedTime;
+	private SafeTimerTask disposeTimer;
 	private List<AutoCloseable> closeables;
 	/**
 	 * The current page handled on this thread.
@@ -114,7 +116,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 		{
 			if(!active)
 			{
-				jsTemplate.write("page.dispose(\"Server side compontent is already disposed.\");\n");
+				jsTemplate.write("page.dispose(\"Server side component is already disposed.\");\n");
 				return;
 			}
 			try(NoExceptionAutoClosable c=setThreadCurrentPage())
@@ -190,7 +192,6 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 			log.error("Unhandled post type: "+post);
 		}
 	}
-	private SafeTimerTask disposeTimer;
 	public QPage(QPageManager qpm) {
 		this.qpm=qpm;
 		thread=Thread.currentThread();
@@ -216,6 +217,14 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 					log.error(e);
 				}
 			}
+			if(sessionToUpdateLastAccessedTime!=null)
+			{
+				try {
+					sessionToUpdateLastAccessedTime.setLastAccessedTime(System.currentTimeMillis());
+				} catch (Exception e) {
+					log.error("sessionToUpdateLastAccessedTime", e);
+				}
+			}
 		});
 		indexedComm.receivedPing.addListener(msg->{
 			reinitDisposeTimer();
@@ -228,7 +237,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 	/**
 	 * Internal API. 
 	 * Can be used in the very rare case when for some reason the page is blocked for a time.
-	 * Callint this periodically will disable page disposal.
+	 * Calling this periodically will disable page disposal by timer.
 	 */
 	public void reinitDisposeTimer() {
 		if(disposeTimer!=null)
@@ -237,7 +246,6 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 			disposeTimer=null;
 		}
 		disposeTimer=new SafeTimerTask() {
-			
 			@Override
 			public void doRun() {
 				dispose();
@@ -856,5 +864,24 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 	 */
 	protected void setJsTemplate(HtmlTemplate subJs) {
 		this.jsTemplate=subJs;
+	}
+	/**
+	 * Set the session object callback to extend the timeout of the session.
+	 * @param sessionToUpdateLastAccessedTime
+	 * @return
+	 */
+	public QPage setSessionToUpdateLastAccessedTime(ISessionUpdateLastAccessedTime sessionToUpdateLastAccessedTime)
+	{
+		this.sessionToUpdateLastAccessedTime=sessionToUpdateLastAccessedTime;
+		return this;
+	}
+	/**
+	 * The minimal session timeout required to work on case of short times session objects are used.
+	 * In case of short lived sessions setSessionToUpdateLastAccessedTime has to be used to register a listener that
+	 * keeps the session object alive while the page is alive.
+	 * @return
+	 */
+	public static int getMinimalSessionTimeoutMs() {
+		return (int) (IndexedComm.timeoutPingMillis*3);
 	}
 }
