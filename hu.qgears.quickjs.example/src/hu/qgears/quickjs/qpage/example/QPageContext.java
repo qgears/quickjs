@@ -9,12 +9,11 @@ import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.quickjs.utils.IQTestEnvironment;
 
 /**
- * Object required to instantiate a QPageHandler.
+ * Object to pass paramters to QPageHandler.
  */
 public class QPageContext {
 	public final Server server;
 	private IQTestEnvironment testEnvironment;
-	private String sessionIdParameter;
 	private Map<String, Object> userObjects=new HashMap<>();
 	private static ThreadLocal<QPageContext> current=new ThreadLocal<>();
 
@@ -25,12 +24,6 @@ public class QPageContext {
 		{
 			throw new NullPointerException();
 		}
-	}
-	public void setSessionIdParameter(String sessionIdParameter) {
-		this.sessionIdParameter = sessionIdParameter;
-	}
-	public String getSessionIdParameter() {
-		return sessionIdParameter;
 	}
 	public static QPageContext getCurrent() {
 		return current.get();

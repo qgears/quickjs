@@ -2,6 +2,8 @@
 
 Example minimal Java Web server+HTML+JS framework that allows server side web application logic to be implemented just like in a component based GUI framework.
 
+Nextgen branch (feature/nextgen) is a redesign based on experience with the first version. It's API is incompatible so some manual work is necessary to upgrade.
+
 The framework has the unique feature that pages are designed as plain HTML and server side objects are attached to them by identifiers.
 
 It is possible to adapt the framework to any Java web server because it has no dependencies to the server implementation.

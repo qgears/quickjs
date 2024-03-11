@@ -1,4 +1,4 @@
-package hu.qgears.quickjs.qpage.example;
+package hu.qgears.quickjs.qpage.jetty;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -27,11 +27,14 @@ import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QPageManager;
+import hu.qgears.quickjs.qpage.example.IQPageFactory;
+import hu.qgears.quickjs.qpage.example.QPageContext;
 import hu.qgears.quickjs.qpage.example.websocket.QWSMessagingServlet;
 import hu.qgears.quickjs.utils.AbstractQPage;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
 import hu.qgears.quickjs.utils.IQTestEnvironment;
 import hu.qgears.quickjs.utils.UtilJetty;
+import hu.qgears.quickjs.utils.gdpr.GdprSession;
 
 /**
  * Jetty compatible http query handler that includes an {@link AbstractQPage}.
@@ -48,26 +51,6 @@ public class QPageHandler extends HandlerCollection {
 	public static void setUserParameter(ServletRequest request, Object userParameter)
 	{
 		request.setAttribute(key, userParameter);
-	}
-	/**
-	 * @Deprecated ctx parameter is not necessary"
-	 * @param ctx
-	 * @param pageFactory
-	 */
-	@Deprecated
-	public QPageHandler(QPageContext ctx, IQPageFactory pageFactory) {
-		this.pageFactory=pageFactory;
-		createWebSocketEntry();
-	}
-	/**
-	 * @Deprecated ctx parameter is not necessary"
-	 * @param ctx
-	 * @param pageClass
-	 */
-	@Deprecated
-	public QPageHandler(QPageContext ctx, Class<? extends AbstractQPage> pageClass) {
-		this.pageFactory=req->{AbstractQPage ret=pageClass.getConstructor().newInstance(); ret.setUserData(req); return ret;};
-		createWebSocketEntry();
 	}
 	public QPageHandler(IQPageFactory pageFactory) {
 		this.pageFactory=pageFactory;
@@ -107,9 +90,9 @@ public class QPageHandler extends HandlerCollection {
 		{
 			try {
 				// Fix issue with nginx passthrough:
-				// Ngninx unencodes the path which causes exception in SErvletupgradeRequest
+				// Ngninx unencodes the path which causes exception in ServletupgradeRequest
 				// For some reason all non-websocket queries work fine.
-				// We do not use the path information is websocket factory so we just
+				// We do not use the path information in websocket factory so we just
 				// remove the path as a workaround.
 				/**
 				 * Caused by: java.net.URISyntaxException: Illegal character in path at index 36: ws://localhost:9092/queryresult/VIN="qwerty"?websocket=true&QPage=1602001882489_4
@@ -143,6 +126,17 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 						public void generate() throws Exception {
 							QPage newPage=new QPage(qpm);
 							QPageContext qpc=QPageContext.getCurrent();
+							{
+								Object attrib=sess.getAttribute(GdprSession.keyUseNoCookieSession);
+								if(attrib instanceof Boolean)
+								{
+									boolean useNoCookieSession=(Boolean)attrib;
+									if(useNoCookieSession)
+									{
+										newPage.setSessionIdParameterName(GdprSession.keySessionIdParameterName);
+									}
+								}
+							}
 							newPage.setSessionId(baseRequest.getSession().getId());
 							try(NoExceptionAutoClosable c=newPage.setThreadCurrentPage())
 							{
@@ -174,7 +168,6 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 								{
 									testEnvironment.qPageCreated(baseRequest, newPage);
 								}
-								newPage.setSessionIdParameterName(qpc.getSessionIdParameter());
 							}
 						}
 					}.generate();

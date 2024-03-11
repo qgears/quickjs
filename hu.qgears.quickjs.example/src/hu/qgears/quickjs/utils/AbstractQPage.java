@@ -8,7 +8,7 @@ import org.eclipse.jetty.server.Request;
 
 import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.QPage;
-import hu.qgears.quickjs.qpage.example.QPageHandler;
+import hu.qgears.quickjs.qpage.jetty.QPageHandler;
 
 /**
  * Base class of a QPage based Web application.

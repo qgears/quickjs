@@ -10,8 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
@@ -48,7 +46,6 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	private String controlledNodeSelector;
 	private String childContainerSelector;
 	private List<AutoCloseable> closeables;
-	private Set<String> styleToAdd, styleToRemove;
 	protected boolean disabled;
 	private UtilListenableProperty<Point> size;
 	/**
@@ -152,37 +149,6 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 				{
 					syncChildContainerSelector();
 				}
-			}
-			inited=true;
-			if(styleToAdd!=null)
-			{
-				try(NoExceptionAutoClosable c=activateJS())
-				{
-					for(String s: styleToAdd)
-					{
-						write("\tpage.components[\"");
-						writeObject(id);
-						write("\"].styleAddClass(\"");
-						writeJSValue(s);
-						write("\");\n");
-					}
-				}
-				styleToAdd=null;
-			}
-			if(styleToRemove!=null)
-			{
-				try(NoExceptionAutoClosable c=activateJS())
-				{
-					for(String s: styleToRemove)
-					{
-						write("\tpage.components[\"");
-						writeObject(id);
-						write("\"].styleRemoveClass(\"");
-						writeJSValue(s);
-						write("\");\n");
-					}
-				}
-				styleToRemove=null;
 			}
 			if(focused.getNListeners()>0)
 			{
@@ -424,27 +390,13 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	}
 	
 	public void styleAddClass(final String msg) {
-		if(inited)
+		try(NoExceptionAutoClosable c=activateJS())
 		{
-			try(NoExceptionAutoClosable c=activateJS())
-			{
-				write("page.components['");
-				writeJSValue(id);
-				write("'].styleAddClass(\"");
-				writeJSValue(msg);
-				write("\");\n");
-			}
-		}else
-		{
-			if(styleToAdd==null)
-			{
-				styleToAdd=new TreeSet<>();
-			}
-			styleToAdd.add(msg);
-			if(styleToRemove!=null)
-			{
-				styleToRemove.remove(msg);
-			}
+			write("page.components['");
+			writeJSValue(id);
+			write("'].styleAddClass(\"");
+			writeJSValue(msg);
+			write("\");\n");
 		}
 	}
 	public void setStyle(final String style, boolean value)
@@ -471,27 +423,13 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		}
 	}
 	public void styleRemoveClass(final String msg) {
-		if(inited)
+		try(NoExceptionAutoClosable c=activateJS())
 		{
-			try(NoExceptionAutoClosable c=activateJS())
-			{
-				write("page.components['");
-				writeJSValue(id);
-				write("'].styleRemoveClass(\"");
-				writeJSValue(msg);
-				write("\");\n");
-			}
-		}else
-		{
-			if(styleToRemove==null)
-			{
-				styleToRemove=new TreeSet<>();
-			}
-			styleToRemove.add(msg);
-			if(styleToAdd!=null)
-			{
-				styleToAdd.remove(msg);
-			}
+			write("page.components['");
+			writeJSValue(id);
+			write("'].styleRemoveClass(\"");
+			writeJSValue(msg);
+			write("\");\n");
 		}
 	}
 	/**

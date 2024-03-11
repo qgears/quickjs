@@ -352,6 +352,7 @@ public class HtmlTemplate {
 	 * @param index the created DOM is added to the host component's children DOM at this index. (null is allowed and means appendChild)
 	 * @return closeable object that has to be closed to finish DOM generation and let it be executed on the client.
 	 */
+	@Deprecated
 	protected ResetOutputObject createDom(QComponent host, Integer index) {
 		return createDom(host, (String)null, index);
 	}

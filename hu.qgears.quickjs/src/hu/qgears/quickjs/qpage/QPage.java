@@ -308,11 +308,9 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 				write("window.addEventListener(\"load\", function(){\n\tvar page=this;\n\tvar args=staticArgs();\n");
 				writeObject(jsTemplate.getWriter().toString());
 				write("\tpage.start();\n");
-				jsTemplate=createJsTemplate();
-				inited=true;
 				write("}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
 				UtilComma c=new UtilComma(", ");
-				for(Object o: toWebSocketArguments())
+				for(Object o: jsTemplate.toWebSocketArguments())
 				{
 					// TODO handle blob!
 					writeObject(c.getSeparator());
@@ -321,6 +319,8 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 					write("\"");
 				}
 				write("];\n};\n</script>\n");
+				jsTemplate=createJsTemplate();
+				inited=true;
 			}
 		}.generate();
 		initialHtmlTemplate=null;
@@ -582,7 +582,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 				disposedEvent.ready(QPage.this, null);
 			}
 		};
-		if(jsTemplate!=null)
+		if(currentPage.get()==this)
 		{
 			onThread.run();
 		}else

@@ -18,6 +18,10 @@ public class QCheckbox extends QComponent
 		super(container);
 		init();
 	}
+	public QCheckbox() {
+		super();
+		init();
+	}
 	protected void serverCheckedChanged(final boolean checked) {
 		try(NoExceptionAutoClosable c=activateJS())
 		{

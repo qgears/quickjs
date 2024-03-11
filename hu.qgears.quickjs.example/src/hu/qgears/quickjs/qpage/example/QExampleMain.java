@@ -13,6 +13,7 @@ import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 
 import hu.qgears.quickjs.qpage.example.websocket.QWSMessagingServlet;
+import hu.qgears.quickjs.qpage.jetty.QPageHandler;
 import hu.qgears.quickjs.utils.DispatchHandler;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
 import joptsimple.annot.AnnotatedClass;

@@ -24,7 +24,9 @@ Require-Bundle: hu.qgears.quickjs;bundle-version="1.0.0";visibility:=reexport,
  org.eclipse.jetty.client;bundle-version="9.4.31"
 Export-Package: hu.qgears.quickjs.qpage.example,
  hu.qgears.quickjs.qpage.example.websocket,
+ hu.qgears.quickjs.qpage.jetty,
  hu.qgears.quickjs.tcpwebsocketproxy,
  hu.qgears.quickjs.upload,
- hu.qgears.quickjs.utils
+ hu.qgears.quickjs.utils,
+ hu.qgears.quickjs.utils.gdpr
 Automatic-Module-Name: hu.qgears.quickjs.example
