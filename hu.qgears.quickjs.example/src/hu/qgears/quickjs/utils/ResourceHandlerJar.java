@@ -3,7 +3,9 @@ package hu.qgears.quickjs.utils;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -20,6 +22,7 @@ import hu.qgears.commons.UtilFile;
 public class ResourceHandlerJar extends AbstractHandler {
 	protected Class<?> clazz;
 	protected Map<String, String> mimetypes=new HashMap<>();
+	protected Set<String> disallowedFileTypes=new HashSet<>();
 	public ResourceHandlerJar(Class<?> clazz) {
 		this.clazz=clazz;
 		registerKnownMimeTypes();
@@ -32,6 +35,9 @@ public class ResourceHandlerJar extends AbstractHandler {
 		registerMimeType("js", "text/javascript");
 		registerMimeType("css", "text/css");
 		registerMimeType("svg", "image/svg+xml");
+		registerMimeType("png", "image/png");
+		disallowedFileTypes.add("class");
+		disallowedFileTypes.add("gitignore");
 	}
 	/**
 	 * Register additional known mime type.
@@ -50,6 +56,7 @@ public class ResourceHandlerJar extends AbstractHandler {
 	protected void handle(HttpPath path, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
 		validatepieces(path);
 		String extension=path.getExtension();
+		validateExtension(extension);
 		String resname=path.toStringPath();
 		URL url=clazz.getResource(resname);
 		if(url!=null)
@@ -67,8 +74,19 @@ public class ResourceHandlerJar extends AbstractHandler {
 			response.getOutputStream().write(data);
 		}
 	}
+	private void validateExtension(String ext)
+	{
+		if(disallowedFileTypes.contains(ext))
+		{
+			throw new IllegalArgumentException("No such file");
+		}
+	}
 
 	public static void validatepieces(HttpPath pieces) {
+		if(pieces.getPieces().size()==0)
+		{
+			throw new IllegalArgumentException("folder listing not available");
+		}
 		for(String s: pieces.getPieces())
 		{
 			if(s.equals(".") || s.equals(".."))
