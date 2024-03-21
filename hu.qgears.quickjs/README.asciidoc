@@ -1,0 +1,53 @@
+= QuickJS threading
+
+The new QuickJS is designed to be executable on the client side using cross compilation technique.
+(Java to JS using the bytecoder project by Mirko Sertic)
+
+To achieve this goal:
+
+ * GUI implementation code must not depend on Jetty code (or any other server side http tech).
+ * GUI implementation must be single threaded with a callback design such as JavaScript
+ ** Promise design is used
+ * Server objects (which are local objects in case of server side execution of the code) have to be accessed through Promise objects
+
+== Server autowrapper
+
+Based on an interface (Java interface) generate a wrapper that makes it possible to call each methods as a promise.
+
+The implementation on the client is remoting.
+The implementation on the server is direct execution on the http thread. (with possible added latency to test its effect)
+
+== Listeners to server side objects
+
+Event listeners are auto-wrapped so that the callback is executed on the GUI thread.
+
+== Callbacks
+
+May the server call into GUI code? No. The server can only send events but can not get a return value or
+an exception.
+
+== Server connection
+
+ * During initialization the connection is always present
+ * client starts a connection to the server:
+ ** Single query
+ ** Short live with timeout
+ ** Always
+
+== Page life cycle
+
+ * Page is created when the GET query arrives from the Web server.
+ * Page is in initial query state
+ ** Initial page response is created. This is executed both on server and client.
+ ** server connection is always active in this phase
+ ** Promise API is used to access server. But in real promise calls are blocking calls into the Java code.
+ ** The page signals the initial page is ready when it is ready
+ ** After this state the initial page output is not accessible.
+ ** On client side the same API queries are replayed. The data is serialized into the client so it is possible.
+ * Page is in running state
+ ** the code can run either server side or client side
+
+ ** the page accesses the server through promise API
+
+
+

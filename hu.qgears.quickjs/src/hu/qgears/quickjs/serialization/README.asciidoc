@@ -1,0 +1,18 @@
+= Serialization
+
+Supported types:
+
+ List -> ArrayList
+ Set -> HashSet or TreeSet is known
+ Map -> HashMap or TreeMap is known
+ String, int, long, etc
+ Named types on the interface are iterated for public fields and public getter/setter pairs.
+
+== Autogen
+
+Parse a jar file, find interfaces and autogen serialization and remoting code
+
+=== Incremental autogen
+
+Listen to a project's bin folder and rebuild classes when necessary.
+

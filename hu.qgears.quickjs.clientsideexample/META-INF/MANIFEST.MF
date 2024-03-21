@@ -1,0 +1,8 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Clientsideexample
+Bundle-SymbolicName: hu.qgears.quickjs.clientsideexample
+Bundle-Version: 1.0.0.qualifier
+Automatic-Module-Name: hu.quickjs.clientsideexample
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Require-Bundle: org.teavm.jso.apis;bundle-version="1.0.0"

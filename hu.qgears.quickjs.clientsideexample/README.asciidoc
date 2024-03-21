@@ -1,0 +1,5 @@
+= QuickJS client side example
+
+Aim is to execute a QuickJS QPage on the client side. Compiled by TeaVM the GUI application is executed in the browser.
+
+This is a experimental branch of QuickJS

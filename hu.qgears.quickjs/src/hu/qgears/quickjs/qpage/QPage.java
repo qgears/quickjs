@@ -72,11 +72,6 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 	 * Counter for component unique id creator.
 	 */
 	private int idCtr=0;
-	/**
-	 * Singleton to be used as a default component creator.
-	 */
-	@Deprecated
-	public final ComponentCreator defaultCreator=new ComponentCreator();
 	private Map<String, UtilEvent<JSONObject>> customQueryListeners=new HashMap<>();
 	private Map<String, UtilEvent<IndexedComm.Msg>> customQueryListeners2=new HashMap<>();
 	@Deprecated

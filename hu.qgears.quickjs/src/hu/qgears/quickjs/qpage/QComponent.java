@@ -38,7 +38,6 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	private List<QComponent> children=new ArrayList<>();
 	private boolean disposed;
 	private IQContainer container;
-	private ComponentCreator creator;
 	public final UtilListenableProperty<Object> userObject=new UtilListenableProperty<>();
 	private Map<String, Object> userObjectStorage;
 	private UtilEvent<QComponent> initEvent;
@@ -143,7 +142,6 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		{
 			try(NoExceptionAutoClosable c=activateJS())
 			{
-				doCreateHTMLObject();
 				doInitJSObject();
 				if(this.childContainerSelector!=null)
 				{
@@ -170,22 +168,6 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		}
 		initChildren();
 	}
-	/**
-	 * Create HTML object into the HTML tree.
-	 * This is called in the init phase of the component.
-	 * In case of pre-created HTML objects
-	 * (when the HTML tree of the object is already in the DOM tree and we only
-	 *  create and connect the JS object to the existing DOM in the init phase)
-	 * this step is a no-op.
-	 */
-	protected void doCreateHTMLObject()
-	{
-		if(creator!=null)
-		{
-			creator.createHtmlFor(this);
-		}
-	}
-
 	abstract protected void doInitJSObject();
 	/**
 	 * Handle incoming message. This version can contain (binary) attachments not only the 
@@ -355,33 +337,6 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public IQContainer getParent() {
 		return container;
 	}
-	/**
-	 * Set the creator that creates the HTML node for this object.
-	 * @param creator
-	 */
-	public void setCreator(ComponentCreator creator) {
-		this.creator = creator;
-	}
-	/**
-	 * Set up whether the HTML f this component already exists in the HTML tree or
-	 * it has to be created when the object is created.
-	 * @param existing true means already existing HTML DOM objects and sets creator to null
-	 *        false means HTML DOM must be created and sets up the default creator that will 
-	 *        call the doCreateHTMLObject() function before initializing the JS object.
-	 * @return this same object - for possible command chaining
-	 */
-	public QComponent setHtmlExisting(boolean existing)
-	{
-		if(!existing)
-		{
-			setCreator(page.defaultCreator);
-		}else
-		{
-			setCreator(null);
-		}
-		return this;
-	}
-
 	public void registerResources(Map<String, URL> jsResources) {
 		for(String s: getScriptReferences())
 		{
