@@ -1,5 +1,6 @@
 package example;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -13,7 +14,7 @@ public class MainClass {
         document.getBody().appendChild(div);
         */
         System.out.println("Sysout in TeaVM "+bbwrap());
-        refleksuen();
+        refleksuen2();
         /*
         WebSocket ws=WebSocket.create("alma", "korte");
         JSObject jso=null;
@@ -52,6 +53,17 @@ public class MainClass {
         ws.onOpen(openEv);
         */
     }
+	private static void refleksuen2() {
+		Class<?> cla=String.class;
+		cla=Array.newInstance(cla, 0).getClass();
+		Object o=Array.newInstance(cla, 12);
+		System.out.println("Arr: "+o);
+		System.out.println("Is array: "+o.getClass().isArray());
+		System.out.println("Length: "+Array.getLength(o));
+		System.out.println("Is array: "+o.getClass().getComponentType().getName());
+		// TODO Auto-generated method stub
+		
+	}
 	public static int bbwrap()
 	{
 		byte[] data=new byte[] {1,2,3,4};
@@ -60,6 +72,7 @@ public class MainClass {
 		int v=bb.getInt();
 		return v;
 	}
+	/*
 	public static void refleksuen() throws Exception
 	{
 		for(Method m: MyIface.class.getMethods())
@@ -74,4 +87,5 @@ public class MainClass {
 			System.out.println("Declared field value:"+ v);
 		}
 	}
+	*/
 }

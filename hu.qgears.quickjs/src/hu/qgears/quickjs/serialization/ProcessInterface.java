@@ -10,17 +10,13 @@ public class ProcessInterface {
 	public ProcessInterface(Class<?> cla) {
 		this.cla=cla;
 	}
-
-	public static void main(String[] args) throws Exception {
-		new ProcessInterface(ExampleRemoteIf.class).process(ExampleRemoteIf.class);
-	}
 	private CommunicationModel model=new CommunicationModel();
+	private CmdArgs args=new CmdArgs();
 
-	private void process(Class<?> cla) throws Exception {
+	public void process(Class<?> cla) throws Exception {
 		model.serverInterfaces.add(cla);
 		for(Method m: cla.getMethods())
 		{
-			System.out.println(m.getName());
 			processType(m.getGenericReturnType());
 			for(Type t: m.getGenericParameterTypes())
 			{
@@ -31,10 +27,18 @@ public class ProcessInterface {
 	}
 	
 	private void generateImpl() throws Exception {
-		String s=new RemotingTemplate(model, cla).generate();
-		System.out.println(""+s);
-		s=new SerializationTemplate(model).generate();
-		System.out.println(""+s);
+		ClassFullName iremoting=new ClassFullName(args.packageName+".IRemoting");
+		new RemotingTemplate(new ClassFullName(args.packageName+".Remoting"), model, cla)
+			.setImplements(iremoting)
+			.generateTo(args.outputFolder);
+		new RemotingTemplate(iremoting, model, cla)
+		.setIsinterface(true)
+		.generateTo(args.outputFolder);
+		new RemotingServerTemplate(new ClassFullName(args.packageName+".RemotingServer"), model, cla)
+			.setImplements(cla)
+			.generateTo(args.outputFolder);
+		ClassFullName cfn=new ClassFullName(args.packageName+".Serialize");
+		new SerializationTemplate(model, cfn).generateTo(args.outputFolder);
 	}
 
 	private void processType(Type t) {
@@ -47,7 +51,7 @@ public class ProcessInterface {
 		{
 			c=(Class<?>) t;
 		}
-		System.out.println("Type to process: "+c+" "+getWrapperClass(c));
+		// System.out.println("Type to process: "+c+" "+getWrapperClass(c));
 		model.dtos.add((Class<?>)getWrapperClass(c));
 	}
 	public static Type getWrapperClass(Type primitive)

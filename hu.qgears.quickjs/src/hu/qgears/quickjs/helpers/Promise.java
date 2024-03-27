@@ -45,5 +45,10 @@ public interface Promise<T> {
 	 * @param handler
 	 * @return new promise with the error handler chained
 	 */
-	Promise<T> onError(Function<Exception, T> handler);
+	<Q> Promise<Q> onError(Function<Exception, Q> handler);
+	/**
+	 * Accept result (T object or throwable)
+	 * @param resultHandler
+	 */
+	void resultAccept(Consumer<Result<T>> resultHandler);
 }

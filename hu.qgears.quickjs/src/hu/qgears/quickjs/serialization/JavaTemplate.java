@@ -1,13 +1,17 @@
 package hu.qgears.quickjs.serialization;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
-public class JavaTemplate {
+import hu.qgears.commons.UtilFile;
+
+abstract public class JavaTemplate {
 	protected Writer writer=new StringWriter();
+	protected ClassFullName cfn;
 	protected Writer getWriter() {
 		return writer;
 	}
@@ -36,7 +40,17 @@ public class JavaTemplate {
 			write(">");
 		}
 	}
+	protected void writeClass(ClassFullName cfn) throws IOException {
+		writer.write(cfn.fqn);
+	}
 	protected void write(String string) throws IOException {
 		writer.write(string);
+	}
+	abstract public String generate() throws Exception;
+	public void generateTo(File outputFolder) throws Exception {
+		String s=generate();
+		File f=new File(outputFolder, cfn.getPath());
+		f.getParentFile().mkdirs();
+		UtilFile.saveAsFile(f, s);
 	}
 }

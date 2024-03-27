@@ -11,8 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.log4j.Logger;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
@@ -47,6 +48,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	private List<AutoCloseable> closeables;
 	protected boolean disabled;
 	private UtilListenableProperty<Point> size;
+	private static Logger log=LoggerFactory.getLogger(QComponent.class);
 	/**
 	 * Focused event. In case a listener is added then onfocus listening is activated.
 	 */
@@ -553,7 +555,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		try {
 			closeable.close();
 		} catch (Exception e) {
-			Logger.getLogger(getClass()).error("Closing attached closeable", e);
+			log.error("Closing attached closeable", e);
 		}
 	}
 	public void setDisabled(final boolean disabled) {

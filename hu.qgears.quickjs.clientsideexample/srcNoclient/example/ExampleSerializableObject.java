@@ -1,4 +1,4 @@
-package hu.qgears.quickjs.serialization;
+package example;
 
 public class ExampleSerializableObject {
 	public int a;

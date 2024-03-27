@@ -3,5 +3,8 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-11"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry kind="src" path="srcGen"/>
+	<classpathentry kind="src" path="test"/>
+	<classpathentry kind="src" path="srcNoclient"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

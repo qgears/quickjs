@@ -16,9 +16,10 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
-import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.SafeTimerTask;
@@ -34,8 +35,8 @@ import hu.qgears.quickjs.qpage.IndexedComm.Msg;
  * QuickJS web page instance.
  */
 public class QPage implements Closeable, IQContainer, IUserObjectStorage {
-	private static Logger log=Logger.getLogger(QPage.class);
 	public static String idAttribute = QPage.class.getSimpleName();
+	protected static final Logger log=LoggerFactory.getLogger(QPage.class);
 	private String identifier = "id";
 	private volatile boolean active = true;
 	private Map<String, QComponent> components = new HashMap<>();
@@ -209,7 +210,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 				try {
 					new Message(msg).executeOnThread();
 				} catch (Exception e) {
-					log.error(e);
+					log.error("Process browser message", e);
 				}
 			}
 			if(sessionToUpdateLastAccessedTime!=null)
@@ -340,7 +341,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 						write("\n</script>\n");
 					}
 				} catch (IOException e) {
-					log.error(e);
+					log.error("Include scripts statically", e);
 				}
 			}
 		}.generate();
@@ -494,8 +495,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 										}
 										indexedComm.sendMessage("js", jsTemplate.toWebSocketArguments());
 									} catch (Exception e) {
-										log.error(e);
-										e.printStackTrace(); // TODO log.error does not print the stack trace!
+										log.error("send JS to client", e);
 									} finally
 									{
 										jsTemplate=createJsTemplate();
@@ -811,7 +811,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 		try {
 			closeable.close();
 		} catch (Exception e) {
-			Logger.getLogger(getClass()).error("Closing attached closeable", e);
+			log.error("Closing attached closeable", e);
 		}
 	}
 	/**
