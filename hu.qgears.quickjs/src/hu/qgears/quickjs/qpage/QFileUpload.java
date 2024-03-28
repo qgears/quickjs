@@ -37,7 +37,6 @@ public class QFileUpload extends QComponent
 	private long size;
 	private long allReceived;
 	private long allEnqueued;
-	private String jsRef;
 	public final UtilEvent<QFileUpload> statusUpdated=new UtilEvent<>();
 	private IndexedComm comm=new IndexedComm();
 	private FolderCreator folderCreator;
@@ -169,11 +168,6 @@ public class QFileUpload extends QComponent
 			writeObject(commId);
 			write("\");\n");
 		}
-		if(jsRef!=null)
-		{
-			installDropListenerPrivate(jsRef);
-			jsRef=null;
-		}
 	}
 
 	@Override
@@ -224,13 +218,7 @@ public class QFileUpload extends QComponent
 	}
 
 	public void installDropListener(String string) {
-		if(this.inited)
-		{
-			installDropListenerPrivate(string);
-		}else
-		{
-			jsRef=string;
-		}
+		installDropListenerPrivate(string);
 	}
 	private void installDropListenerPrivate(String string) {
 		try(NoExceptionAutoClosable c=activateJS())

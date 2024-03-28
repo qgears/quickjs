@@ -10,12 +10,12 @@ import org.json.JSONObject;
 public class QPage extends QComponent {
 	@Override
 	protected void doInitJSObject() {
-		// TODO Auto-generated method stub
-		
+		write("\tnew QPage(page, \"");
+		writeObject(id);
+		write("\");\n");
 	}
 	@Override
 	public void handle(JSONObject post) throws IOException {
-		// TODO Auto-generated method stub
-		
+		// Nothing to do
 	}
 }

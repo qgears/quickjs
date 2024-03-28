@@ -5,7 +5,7 @@ class QComponent
 		this.page=page;
 		page.components[identifier]=this;
 		this.identifier=identifier;
-		this.dom=document.getElementById(identifier);
+		this.dom=this.findDomElement();
 		this.childContainer=this.dom;
 		this.controlledNode=this.dom;
 		if(!this.dom)
@@ -21,6 +21,10 @@ class QComponent
 			console.error(e);
 		}
 		this.focusListener=this.onfocus.bind(this);
+	}
+	findDomElement()
+	{
+		return document.getElementById(this.identifier);
 	}
 	onfocus()
 	{
@@ -186,6 +190,10 @@ class QComponent
 	dispose()
 	{
 		delete this.page.components[this.identifier];
+		disposeDom();
+	}
+	disposeDom()
+	{
 		var p=this.dom.parentNode;
 		if(p)
 		{

@@ -34,8 +34,6 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 {
 	protected QPageContainer page;
 	protected String id;
-	@Deprecated
-	protected boolean inited;
 	private List<QComponent> children=new ArrayList<>();
 	private boolean disposed;
 	private IQContainer container;
@@ -54,8 +52,6 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 */
 	@SuppressWarnings("resource")
 	public final UtilEventWithListenerTrack<QComponent> focused=new UtilEventWithListenerTrack<>(e->{
-		if(inited)
-		{
 			if(e.getNListeners()==1)
 			{
 				try(NoExceptionAutoClosable c=activateJS())
@@ -73,7 +69,6 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 					write("\"].addFocusListener(false);\n");
 				}
 			}
-		}
 	});
 
 	public QComponent(IQContainer container, String id) {
@@ -131,34 +126,6 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 */
 	final public void init()
 	{
-		if(!inited && page!=null)
-		{
-			try(NoExceptionAutoClosable c=activateJS())
-			{
-				doInitJSObject();
-				if(this.childContainerSelector!=null)
-				{
-					syncChildContainerSelector();
-				}
-			}
-			if(focused.getNListeners()>0)
-			{
-				try(NoExceptionAutoClosable c=activateJS())
-				{
-					write("\tpage.components[\"");
-					writeObject(id);
-					write("\"].addFocusListener(true);\n");
-				}
-			}
-			if(size!=null)
-			{
-				startSizeListener();
-			}
-			if(initEvent!=null)
-			{
-				initEvent.eventHappened(this);
-			}
-		}
 		initChildren();
 	}
 	abstract protected void doInitJSObject();
@@ -288,11 +255,11 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	}
 	private void removeFromParentList()
 	{
-		if(container instanceof QComponent)
-		{
-			QComponent p=(QComponent) container;
-			p.children.remove(this);
-		}
+		container.removeChild(this);
+	}
+	@Override
+	public void removeChild(QComponent child) {
+		children.remove(child);
 	}
 	/**
 	 * Called when the object is deleted from the server.
@@ -445,7 +412,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public QComponent setChildContainerSelector(String childContainerSelector)
 	{
 		this.childContainerSelector=childContainerSelector;
-		if(childContainerSelector!=null && this.inited)
+		if(childContainerSelector!=null)
 		{
 			syncChildContainerSelector();
 		}
@@ -461,7 +428,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public QComponent setControlledNodeSelector(String controlledNodeSelector)
 	{
 		this.controlledNodeSelector=controlledNodeSelector;
-		if(controlledNodeSelector!=null && this.inited)
+		if(controlledNodeSelector!=null)
 		{
 			syncControlledNodeSelector();
 		}
@@ -551,16 +518,13 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	}
 	public void setDisabled(final boolean disabled) {
 		this.disabled=disabled;
-		if(inited)
+		try(NoExceptionAutoClosable c=activateJS())
 		{
-			try(NoExceptionAutoClosable c=activateJS())
-			{
-				write("page.components['");
-				writeJSValue(id);
-				write("'].setDisabled(");
-				writeObject(disabled);
-				write(");\n");
-			}
+			write("page.components['");
+			writeJSValue(id);
+			write("'].setDisabled(");
+			writeObject(disabled);
+			write(");\n");
 		}
 	}
 	/**
@@ -585,10 +549,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		if(size==null)
 		{
 			size=new UtilListenableProperty<>();
-			if(inited)
-			{
-				startSizeListener();
-			}
+			startSizeListener();
 		}
 		return size;
 	}

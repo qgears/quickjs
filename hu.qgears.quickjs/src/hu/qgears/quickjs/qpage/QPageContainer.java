@@ -63,6 +63,10 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	private SafeTimerTask disposeTimer;
 	private List<AutoCloseable> closeables;
 	/**
+	 * The single current active QPage child.
+	 */
+	private QPage child;
+	/**
 	 * The current page handled on this thread.
 	 */
 	private static ThreadLocal<QPageContainer> currentPage=new ThreadLocal<>();
@@ -658,9 +662,27 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	public IQContainer getParent() {
 		return null;
 	}
-
 	@Override
 	public void addChild(QComponent child) {
+		if(!(child instanceof QPage) || this.child!=null)
+		{
+			throw new IllegalArgumentException("Only a single QPage child is allowed.");
+		}
+		else
+		{
+			this.child=(QPage) child;
+		}
+	}
+	@Override
+	public void removeChild(QComponent child)
+	{
+		if(this.child==child)
+		{
+			this.child=null;
+		}else
+		{
+			throw new IllegalArgumentException("removeChild: argument not child of QPageContainer");
+		}
 	}
 
 	public List<QComponent> getAdditionalComponentTypes() {

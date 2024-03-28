@@ -15,8 +15,9 @@ public class QPageTypesRegistry {
 	}
 	public QPageTypesRegistry() {
 		jsResources.put("indexedComm.js", QPageContainer.class.getResource("indexedComm.js"));
-		jsResources.put("QPage.js", QPageContainer.class.getResource("QPage.js"));
+		jsResources.put("QPageContainer.js", QPageContainer.class.getResource("QPageContainer.js"));
 		jsResources.put("QComponent.js", QPageContainer.class.getResource("QComponent.js"));
+		registerType(new QPage());
 		registerType(new QButton(null, null));
 		registerType(new QLabel(null, null));
 		registerType(new QTextEditor(null, null));

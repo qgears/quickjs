@@ -78,10 +78,7 @@ public class QImage extends QComponent
 		if(onload==null)
 		{
 			onload=new UtilEventWithListenerTrack<>(e->{
-				if(inited)
-				{
-					updateOnloadListeners();
-				}
+				updateOnloadListeners();
 			});
 		}
 		return onload;
