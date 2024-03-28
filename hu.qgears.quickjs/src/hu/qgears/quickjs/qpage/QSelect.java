@@ -24,12 +24,9 @@ abstract public class QSelect extends QComponent {
 	
 	protected void serverOptionsChanged(final List<String> msg)
 	{
-		if(page.inited)
+		try(NoExceptionAutoClosable c=activateJS())
 		{
-			try(NoExceptionAutoClosable c=activateJS())
-			{
-				sendOptions(msg);
-			}
+			sendOptions(msg);
 		}
 	}
 
@@ -81,13 +78,9 @@ abstract public class QSelect extends QComponent {
 			selected.serverChangedEvent.addListener(new UtilEventListener<Integer>() {
 				@Override
 				public void eventHappened(Integer msg) {
-					if(page.inited)
+					try(NoExceptionAutoClosable c=activateJS())
 					{
-						try(NoExceptionAutoClosable c=activateJS())
-						{
-							sendSelected();
-							setWriter(null);
-						}
+						sendSelected();
 					}
 				}
 			});

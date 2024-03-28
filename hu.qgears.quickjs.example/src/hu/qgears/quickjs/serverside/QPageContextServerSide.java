@@ -1,5 +1,7 @@
 package hu.qgears.quickjs.serverside;
 
+import hu.qgears.quickjs.helpers.Promise;
+import hu.qgears.quickjs.helpers.PromiseImpl;
 import hu.qgears.quickjs.qpage.IQPageContaierContext;
 import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.serialization.RemotingBase;
@@ -7,9 +9,11 @@ import hu.qgears.quickjs.serialization.RemotingBase;
 /** The server side implementation of the page context. */
 public class QPageContextServerSide implements IQPageContaierContext {
 	private QPage page;
-	public QPageContextServerSide(QPage page) {
+	private String pageContextPath;
+	public QPageContextServerSide(QPage page, String pageContextPath) {
 		super();
 		this.page = page;
+		this.pageContextPath = pageContextPath;
 	}
 	@Override
 	public Object getInitializeObject() {
@@ -23,11 +27,21 @@ public class QPageContextServerSide implements IQPageContaierContext {
 	}
 	@Override
 	public String getPageContextPath() {
-		// TODO Auto-generated method stub
-		return null;
+		return pageContextPath;
 	}
 	@Override
 	public QPage getPage() {
 		return page;
+	}
+	@Override
+	public Promise<String> getResourcePath(String resourceId) {
+		String retv=pageContextPath+"/"+resourceId;
+		PromiseImpl<String> ret=new PromiseImpl<>();
+		ret.ready(retv);
+		return ret;
+	}
+	@Override
+	public String getResourcePathSync(String resourceId) {
+		return getResourcePath(resourceId).getValueSync();
 	}
 }

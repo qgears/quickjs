@@ -111,4 +111,17 @@ public class PromiseImpl<T> implements Promise<T>
 	public void resultAccept(Consumer<Result<T>> resultHandler) {
 		addConsumer(resultHandler);
 	}
+	@Override
+	public T getValueSync() {
+		if(result==null)
+		{
+			throw new IllegalStateException("Promise result is not available yet");
+		}else if(result.getThrowable()!=null)
+		{
+			throw new PromiseException(result.getThrowable());
+		}else
+		{
+			return result.getResult();
+		}
+	}
 }

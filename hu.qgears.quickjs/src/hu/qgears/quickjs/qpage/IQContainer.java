@@ -3,7 +3,7 @@ package hu.qgears.quickjs.qpage;
 /** Interface of nodes that can contain other nodes. */
 public interface IQContainer {
 	/** Get reference to the hosting page container. */
-	QPageContainer getPage();
+	QPageContainer getPageContainer();
 	/** Get reference to the parent container. null in case of the QPageContainer or if the object was removed from the tree. */
 	IQContainer getParent();
 	/** Get the identifier of this object. */

@@ -57,9 +57,9 @@ public class QFileUpload extends QComponent
 		comm.received.addListener(msg->{
 			received(msg);
 		});
-		if(getPage()!=null)
+		if(getPageContainer()!=null)
 		{
-			commId=getPage().registerCustomWebsocketImplementation(comm);
+			commId=getPageContainer().registerCustomWebsocketImplementation(comm);
 		}
 	}
 	private Map<String, FileInfo> toUploads=new TreeMap<>();
@@ -106,7 +106,7 @@ public class QFileUpload extends QComponent
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			getPage().submitToUI(new Runnable() {
+			getPageContainer().submitToUI(new Runnable() {
 				@Override
 				public void run() {
 					statusUpdated.eventHappened(QFileUpload.this);
@@ -140,7 +140,7 @@ public class QFileUpload extends QComponent
 				bos=null;
 				System.out.println("File upload finsihed: "+currentFileName+" "+at+" "+fileLength);
 			}
-			getPage().submitToUI(new Runnable() {
+			getPageContainer().submitToUI(new Runnable() {
 				@Override
 				public void run() {
 					statusUpdated.eventHappened(QFileUpload.this);
@@ -200,9 +200,9 @@ public class QFileUpload extends QComponent
 	}
 	@Override
 	protected void onDispose() {
-		if(getPage()!=null)
+		if(getPageContainer()!=null)
 		{
-			getPage().unregisterCustomWebsocketImplementation(commId);
+			getPageContainer().unregisterCustomWebsocketImplementation(commId);
 		}
 		if(bos!=null)
 		{

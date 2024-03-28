@@ -74,13 +74,13 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		super();
 		if(id==null && container!=null)
 		{
-			id=container.getPage().createComponentId();
+			id=container.getPageContainer().createComponentId();
 		}
 		this.id = id;
 		this.container=container;
 		if(container!=null)
 		{
-			this.page = container.getPage();
+			this.page = container.getPageContainer();
 		}
 		if(page!=null)
 		{
@@ -102,7 +102,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 * @param container
 	 */
 	public QComponent(IQContainer container) {
-		this(container, container==null?null:container.getPage().createComponentId());
+		this(container, container==null?null:container.getPageContainer().createComponentId());
 	}
 	/**
 	 * Create a component object with given identifier
@@ -167,10 +167,9 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	final public String getId() {
 		return id;
 	}
-	public QPageContainer getPage() {
+	public QPageContainer getPageContainer() {
 		return page;
 	}
-
 	public void generateHeader(HtmlTemplate parent)
 	{
 		new HtmlTemplate(parent){
@@ -467,7 +466,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 * @return
 	 */
 	public String createChildContainerId() {
-		String id=getPage().createComponentId();
+		String id=getPageContainer().createComponentId();
 		setChildContainerSelector("#"+id);
 		return id;
 	}

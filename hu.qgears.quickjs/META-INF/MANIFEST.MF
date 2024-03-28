@@ -11,5 +11,4 @@ Require-Bundle: hu.qgears.commons;bundle-version="6.10.1";visibility:=reexport,
 Export-Package: hu.qgears.quickjs.helpers,
  hu.qgears.quickjs.qpage,
  hu.qgears.quickjs.serialization,
- hu.qgears.quickjs.serverside,
  hu.qgears.quickjs.spa

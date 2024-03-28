@@ -35,6 +35,7 @@ import hu.qgears.quickjs.serverside.QPageContextServerSide;
 import hu.qgears.quickjs.spa.QSpa;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
 import hu.qgears.quickjs.utils.IQTestEnvironment;
+import hu.qgears.quickjs.utils.UtilHttpContext;
 import hu.qgears.quickjs.utils.UtilJetty;
 import hu.qgears.quickjs.utils.gdpr.GdprSession;
 
@@ -126,6 +127,8 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 					new HtmlTemplate(wr){
 						public void generate() throws Exception {
 							QPageContainer newPage=new QPageContainer(qpm);
+							JettyPlatform platform=new JettyPlatform(newPage);
+							newPage.internalSetPlatform(platform);
 							QPageContext qpc=QPageContext.getCurrent();
 							{
 								Object attrib=sess.getAttribute(GdprSession.keyUseNoCookieSession);
@@ -148,7 +151,7 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 							try(NoExceptionAutoClosable c=page.setThreadCurrentPage())
 							{
 								AbstractQPage inst=pageFactory.createPage(new QueryWrapperJetty());
-								QPageContextServerSide context=new QPageContextServerSide(page);
+								QPageContextServerSide context=new QPageContextServerSide(page, UtilHttpContext.getContext(baseRequest));
 								inst.setPageContext(context);
 								inst.initPage();
 								try(NoExceptionAutoClosable close= inst.setInitialHtmlOutput(this))

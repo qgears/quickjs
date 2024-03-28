@@ -6,6 +6,7 @@ import hu.qgears.commons.SafeTimerTask;
  * TimerTask wrapper that can be initialized with a lambda expression. (Functional interface)
  * Also wraps exceptions and logs to slf4j logger.
  */
+@Deprecated
 public class QTimerTask extends SafeTimerTask
 {
 	private Runnable runnable;

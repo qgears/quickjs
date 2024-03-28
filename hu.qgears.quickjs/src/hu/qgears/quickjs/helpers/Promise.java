@@ -51,4 +51,11 @@ public interface Promise<T> {
 	 * @param resultHandler
 	 */
 	void resultAccept(Consumer<Result<T>> resultHandler);
+	/**
+	 * Get the return value of the promise right now.
+	 * @return
+	 * @throws IllegalStateException in case the promise is not resolved yet
+	 * @throws PromiseException in case the promise ended with an exception and the exception is wrapped into.
+	 */
+	T getValueSync();
 }

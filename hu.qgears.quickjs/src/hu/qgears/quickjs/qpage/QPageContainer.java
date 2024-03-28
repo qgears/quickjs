@@ -1,6 +1,7 @@
 package hu.qgears.quickjs.qpage;
 
 import java.awt.Point;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -30,20 +31,21 @@ import hu.qgears.commons.UtilListenableProperty;
 import hu.qgears.commons.UtilTimer;
 import hu.qgears.commons.signal.SignalFutureWrapper;
 import hu.qgears.quickjs.qpage.IndexedComm.Msg;
+import hu.qgears.quickjs.helpers.IPlatform;
 
-/**
- * QuickJS web page instance.
+/** QuickJS web page instance.
  */
 public class QPageContainer implements Closeable, IQContainer, IUserObjectStorage {
+	// TODO to be moved into IPlatform
+	private Object syncObject = new Object();
+
+	
 	public static String idAttribute = QPageContainer.class.getSimpleName();
 	protected static final Logger log=LoggerFactory.getLogger(QPageContainer.class);
 	private String identifier = "id";
 	private volatile boolean active = true;
 	private Map<String, QComponent> components = new HashMap<>();
-	private Object syncObject = new Object();
 	private HtmlTemplate jsTemplate=createJsTemplate();
-	@Deprecated
-	public boolean inited;
 	private final QPageManager qpm;
 	private long TIMEOUT_DISPOSE=IndexedComm.timeoutPingMillis*2;
 	public final SignalFutureWrapper<QPageContainer> disposedEvent=new SignalFutureWrapper<>();
@@ -61,6 +63,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	private ISessionUpdateLastAccessedTime sessionToUpdateLastAccessedTime;
 	private SafeTimerTask disposeTimer;
 	private List<AutoCloseable> closeables;
+	private IPlatform platform;
 	/**
 	 * The single current active QPage child.
 	 */
@@ -309,7 +312,6 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 				}
 				write("];\n};\n</script>\n");
 				jsTemplate=createJsTemplate();
-				inited=true;
 			}
 		}.generate();
 		initialHtmlTemplate=null;
@@ -632,7 +634,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	}
 
 	@Override
-	public QPageContainer getPage() {
+	public QPageContainer getPageContainer() {
 		return this;
 	}
 
@@ -857,5 +859,20 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	 */
 	public static int getMinimalSessionTimeoutMs() {
 		return (int) (IndexedComm.timeoutPingMillis*3);
+	}
+	/**
+	 * Get the platform specific functions accessor.
+	 * @return
+	 */
+	public IPlatform getPlatform() {
+		return platform;
+	}
+	/**
+	 * Set the platform specific funcitons accessor. Intended to be only used once after creation by the framework.
+	 * @param platform the server side or the client side platform implementation
+	 */
+	public void internalSetPlatform(IPlatform platform)
+	{
+		this.platform=platform;
 	}
 }

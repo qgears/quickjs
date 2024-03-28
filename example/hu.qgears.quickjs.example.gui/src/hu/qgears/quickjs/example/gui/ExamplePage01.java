@@ -1,4 +1,4 @@
-package hu.qgears.quickjs.qpage.example;
+package hu.qgears.quickjs.example.gui;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -9,11 +9,7 @@ import hu.qgears.quickjs.qpage.QButton;
 import hu.qgears.quickjs.qpage.QLabel;
 import hu.qgears.quickjs.qpage.QTextEditor;
 
-/**
- * A simple example of a QPage based web application. 
- */
-public class QExample01 extends AbstractQPage
-{
+public class ExamplePage01 extends AbstractQPage {
 	private SimpleDateFormat df=new SimpleDateFormat("yyyy. M dd. HH:mm:ss");
 	private QButton dispose=new QButton();
 	private QButton buttonClear=new QButton();
@@ -25,7 +21,6 @@ public class QExample01 extends AbstractQPage
 	@Override
 	public void createBody() {
 		// Create text editor object, initialize string content 
-		
 		textEd.text.setPropertyFromServer("Example text to edit");
 		
 		// Create clear text area button and add a listener that actually clears the text editor area.
@@ -42,7 +37,7 @@ public class QExample01 extends AbstractQPage
 		final QLabel counter=new QLabel(page, "counter");
 		counter.innerhtml.setPropertyFromServer("");
 		
-		// Timer task that passes execution to the UI executor to update the label to current time.
+		// Timer task that calls back on UI thread. We update the label to current time.
 		// The timer is stored on the page and auto-closed when the page is closed. The returned object can also be used to close it.
 		page.startTimer(()->counter.innerhtml.setPropertyFromServer(df.format(new Date())), 1000, 1000);
 		
