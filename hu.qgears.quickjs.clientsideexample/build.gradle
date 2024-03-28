@@ -6,6 +6,16 @@ plugins {
 repositories {
     mavenCentral()
 }
+sourceSets {
+    main {
+        java {
+            srcDirs 'src/main/java'
+        }
+        resources {
+            srcDirs 'src/main/java'
+        }
+    }
+}
 
 // This is optional, but for real-world applications you need to interact with browser.
 // This dependency provides useful wrappers.
@@ -20,4 +30,3 @@ teavm.js {
     // this is also optional, default value is <project name>.js
     targetFileName = "example.js"
 }
-

@@ -6,7 +6,7 @@ import java.util.List;
 import hu.qgears.commons.EscapeString;
 import hu.qgears.commons.UtilEventListener;
 import hu.qgears.quickjs.qpage.QLabel;
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QSelect;
 import hu.qgears.quickjs.qpage.QSelectCombo;
 import hu.qgears.quickjs.qpage.QTextEditor;
@@ -20,7 +20,7 @@ public class QExample02 extends AbstractQPage
 	private int n=1;
 	QSelect[] selarr=new QSelect[5];
 	@Override
-	protected void initQPage(final QPage page) {
+	protected void initQPage(final QPageContainer page) {
 		final QTextEditor number=new QTextEditor(page, "number");
 		number.text.setPropertyFromServer("1");
 		final QLabel result=new QLabel(page, "result");
@@ -77,7 +77,7 @@ public class QExample02 extends AbstractQPage
 			};
 		});
 	}
-	protected QSelect createQSelect(QPage page, String string) {
+	protected QSelect createQSelect(QPageContainer page, String string) {
 		return new QSelectCombo(page, string);
 	}
 	private void setOptions(int i, QSelect select, String prefix) {
@@ -103,7 +103,9 @@ public class QExample02 extends AbstractQPage
 		write("</h1>\n<a href=\"/\">Back to index</a><br/>\n\nEach selector initializes the possible values in the next selector. Each selector contains the entered number of entries.<br/>\n\nNumber of entries within the selectors:\n<input id=\"number\" size=\"100\"></input>\n<div id=\"result\"></div>\n");
 		for(int i=0; i<selarr.length; ++i)
 		{
-			selarr[i].generateHtmlObject(this);
+			write("<select id=\"");
+			writeObject(selarr[i].getId());
+			write("\" style=\"width: 250px;\" size=10></select>\n");
 		}
 	}
 	protected String getTypeName()

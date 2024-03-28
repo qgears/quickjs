@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.ISessionUpdateLastAccessedTime;
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QPageManager;
 import hu.qgears.quickjs.qpage.example.IQPageFactory;
 import hu.qgears.quickjs.qpage.example.QPageContext;
@@ -79,7 +79,7 @@ public class QPageHandler extends HandlerCollection {
 	public void handle(String target, final Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
 		HttpSession sess=baseRequest.getSession();
 		final QPageManager qpm=HttpSessionQPageManager.getManager(sess);
-		String id=baseRequest.getParameter(QPage.class.getSimpleName());
+		String id=baseRequest.getParameter(QPageContainer.class.getSimpleName());
 		if(!isStarted())
 		{
 			throw new RuntimeException("Handler is used but not started");
@@ -125,7 +125,7 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 					// handle initial get
 					new HtmlTemplate(wr){
 						public void generate() throws Exception {
-							QPage newPage=new QPage(qpm);
+							QPageContainer newPage=new QPageContainer(qpm);
 							QPageContext qpc=QPageContext.getCurrent();
 							{
 								Object attrib=sess.getAttribute(GdprSession.keyUseNoCookieSession);

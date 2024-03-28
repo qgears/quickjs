@@ -1,10 +1,15 @@
 package example;
 
+import java.io.StringWriter;
 import java.lang.reflect.Array;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+
+import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import hu.qgears.quickjs.qpage.HtmlTemplate;
+import hu.qgears.quickjs.qpage.QButton;
 
 public class MainClass {
     public static void main(String[] args) throws Exception {
@@ -15,6 +20,22 @@ public class MainClass {
         */
         System.out.println("Sysout in TeaVM "+bbwrap());
         refleksuen2();
+        Logger log=Logger.getLogger(MainClass.class);
+        log.error("Hello Kitten!");
+        org.slf4j.Logger l2=LoggerFactory.getLogger(MainClass.class);
+        l2.error("HAHAHA");
+        QButton b=new QButton();
+        System.out.println("Button: "+b);
+        new HtmlTemplate(new StringWriter()) {
+        	public void a() {
+        		write("Hello!");
+        		writeObject(6.1234);
+        		write("Kitten");
+        		System.out.println(getWriter().toString());
+        	}
+        }.a();
+        
+//        QPage p=new QPage(null);
         /*
         WebSocket ws=WebSocket.create("alma", "korte");
         JSObject jso=null;
@@ -66,10 +87,14 @@ public class MainClass {
 	}
 	public static int bbwrap()
 	{
-		byte[] data=new byte[] {1,2,3,4};
+		byte[] data=new byte[] {1,2,3,4,5,6,7,8,9,10};
 		ByteBuffer bb=ByteBuffer.wrap(data);
 		bb.order(ByteOrder.nativeOrder());
 		int v=bb.getInt();
+		float f=bb.getFloat();
+		short sv=bb.getShort();
+		System.out.println("float: "+f);
+		System.out.println("short: "+sv);
 		return v;
 	}
 	/*

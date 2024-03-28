@@ -81,11 +81,6 @@ public class QButton extends QComponent
 		super();
 		init();
 	}
-	public void generateHtmlObject() {
-		write("<button id=\"");
-		writeObject(id);
-		write("\">BUTTON</button>\n");
-	}
 
 	public void handle(JSONObject post) throws IOException {
 		QButtonEvent ev=new QButtonEvent(this, post);

@@ -26,12 +26,12 @@ public class QLabel extends QComponent
 	public QLabel() {
 		init();
 	}
-	@Override
-	public void generateHtmlObject() {
-		write("<div id=\"");
-		writeObject(id);
-		write("\"></div>\n");
-	}
+//	@Override
+//	public void generateHtmlObject() {
+//		write("<div id=\"");
+//		writeObject(id);
+//		write("\"></div>\n");
+//	}
 
 	public void handle(JSONObject post) throws IOException {
 	}

@@ -17,14 +17,14 @@ import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.MultiMapTreeImpl;
 import hu.qgears.commons.UtilString;
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 
 public class GdprSessionIdManager
 {
 	/// In case cookies are not accepted then session is restricted to opening a qpage websocket which is almost instantenous.
 	/// And the session is timed out once the qpage is timed out.
 	/// When the QPage maintains its own active state by ping-pong then the session also has to be reinitialized
-	private int maxInactiveIntervalCookiesNotAccepted=QPage.getMinimalSessionTimeoutMs();
+	private int maxInactiveIntervalCookiesNotAccepted=QPageContainer.getMinimalSessionTimeoutMs();
 	/// ~1 year
 	private int maxInactiveIntervalCookiesAccepted=365*24*60*60;
 	private Random random;

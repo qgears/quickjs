@@ -45,11 +45,11 @@ public class QLink extends QComponent
 		return this;
 	}
 	
-	public void generateHtmlObject() {
-		write("<a id=\"");
-		writeObject(id);
-		write("\"></a>\n");
-	}
+//	public void generateHtmlObject() {
+//		write("<a id=\"");
+//		writeObject(id);
+//		write("\"></a>\n");
+//	}
 	@Override
 	public void handle(JSONObject post) throws IOException {
 		clicked.eventHappened(this);

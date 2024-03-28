@@ -34,12 +34,12 @@ public class QTextEditor extends QComponent
 			write("\");\n");
 		}
 	}
-	@Override
-	public void generateHtmlObject() {
-		write("<textarea id=\"");
-		writeObject(id);
-		write("\" rows=\"4\" cols=\"50\"></textarea>\n");
-	}
+//	@Override
+//	public void generateHtmlObject() {
+//		write("<textarea id=\"");
+//		writeObject(id);
+//		write("\" rows=\"4\" cols=\"50\"></textarea>\n");
+//	}
 
 	public void handle(JSONObject post) throws IOException {
 		String ntext=JSONHelper.getStringSafe(post,"text");

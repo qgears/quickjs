@@ -20,12 +20,6 @@ public class QDiv extends QComponent
 		super();
 		init();
 	}
-	@Override
-	public void generateHtmlObject() {
-		write("<div id=\"");
-		writeObject(id);
-		write("\"></div>\n");
-	}
 	public void handle(JSONObject post) throws IOException {
 	}
 	@Override

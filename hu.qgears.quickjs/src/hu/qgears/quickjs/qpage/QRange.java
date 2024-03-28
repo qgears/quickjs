@@ -28,12 +28,12 @@ public class QRange extends QComponent
 			write(");\n");
 		}
 	}
-	@Override
-	public void generateHtmlObject() {
-		write("<input id=\"");
-		writeObject(id);
-		write("\" type=\"range\">\n");
-	}
+//	@Override
+//	public void generateHtmlObject() {
+//		write("<input id=\"");
+//		writeObject(id);
+//		write("\" type=\"range\">\n");
+//	}
 	@Override
 	public void handle(JSONObject post) throws IOException {
 		int value=post.getInt("value");

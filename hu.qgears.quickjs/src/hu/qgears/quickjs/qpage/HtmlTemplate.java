@@ -278,7 +278,7 @@ public class HtmlTemplate {
 	 * @return
 	 */
 	protected NoExceptionAutoClosable activateJS() {
-		ResetOutputObject roo=setParent(QPage.getCurrent().getJsTemplate());
+		ResetOutputObject roo=setParent(QPageContainer.getCurrent().getJsTemplate());
 		return new NoExceptionAutoClosable() {
 			@Override
 			public void close() {
@@ -296,7 +296,7 @@ public class HtmlTemplate {
 	protected NoExceptionAutoClosable activateCreateDom(AppendTarget appendTarget) {
 		HtmlTemplate template=new HtmlTemplate(new StringWriter());
 		HtmlTemplate subJs=new HtmlTemplate(new StringWriter());
-		QPage page=QPage.getCurrent();
+		QPageContainer page=QPageContainer.getCurrent();
 		HtmlTemplate originalJsTemplate=page.getJsTemplate();
 		subJs.webSocketArguments=originalJsTemplate.webSocketArguments;
 		page.setJsTemplate(subJs);

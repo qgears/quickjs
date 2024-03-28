@@ -28,12 +28,12 @@ public class QTimeEditor extends QComponent
 			write("\");\n");
 		}
 	}
-	@Override
-	public void generateHtmlObject() {
-		write("<input type=\"time\" id=\"");
-		writeObject(id);
-		write("\"></input>\n");
-	}
+//	@Override
+//	public void generateHtmlObject() {
+//		write("<input type=\"time\" id=\"");
+//		writeObject(id);
+//		write("\"></input>\n");
+//	}
 
 	public void handle(JSONObject post) throws IOException {
 		String ntext=JSONHelper.getStringSafe(post,"text");

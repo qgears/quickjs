@@ -14,7 +14,7 @@ import hu.qgears.commons.UtilTimer;
 public class QPageManager {
 	public QPageManager() {
 	}
-	private Map<String, QPage> pages=new HashMap<>();
+	private Map<String, QPageContainer> pages=new HashMap<>();
 	private Map<String, Object> userdata=new HashMap<>();
 	public static Timer disposeTimer=UtilTimer.javaTimer;
 	private int idCtr=0;
@@ -24,7 +24,7 @@ public class QPageManager {
 	 * It does not help from attacks like stealing of sessions. The session manager must do that task.
 	 */
 	private String salt=""+System.currentTimeMillis();
-	public QPage getPage(String id) {
+	public QPageContainer getPage(String id) {
 		synchronized (pages) {
 			return pages.get(id); 
 		}
@@ -34,23 +34,23 @@ public class QPageManager {
 			return salt+"_"+idCtr++;
 		}
 	}
-	public void register(String identifier, QPage qPage) {
+	public void register(String identifier, QPageContainer qPage) {
 		synchronized (pages) {
 			pages.put(identifier, qPage);
 		}
 	}
 	public void dispose() {
-		List<QPage> toDispose;
+		List<QPageContainer> toDispose;
 		synchronized (pages) {
 			toDispose=new ArrayList<>(pages.values());
 			pages.clear();
 		}
-		for(QPage p: toDispose)
+		for(QPageContainer p: toDispose)
 		{
 			p.dispose();
 		}
 	}
-	public void remove(QPage qPage) {
+	public void remove(QPageContainer qPage) {
 		synchronized (pages) {
 			pages.remove(qPage.getId());
 		}

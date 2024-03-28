@@ -1,6 +1,6 @@
 package hu.qgears.quickjs.qpage.example;
 
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QSelect;
 import hu.qgears.quickjs.qpage.QSelectFastScroll;
 
@@ -11,7 +11,7 @@ public class QExample03 extends QExample02
 {
 
 	@Override
-	protected QSelect createQSelect(QPage page, String string) {
+	protected QSelect createQSelect(QPageContainer page, String string) {
 		return new QSelectFastScroll(page, string);
 	}
 	@Override

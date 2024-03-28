@@ -32,13 +32,6 @@ public class QCheckbox extends QComponent
 			write(");\n");
 		}
 	}
-	@Override
-	public void generateHtmlObject() {
-		write("<input id=\"");
-		writeObject(id);
-		write("\" type=\"checkbox\">\n");
-	}
-
 	public void handle(JSONObject post) throws IOException {
 		boolean checked=post.getBoolean("checked");
 		this.checked.setPropertyFromClient(checked);

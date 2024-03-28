@@ -19,12 +19,12 @@ public class QImage extends QComponent
 		super(parent);
 		init();
 	}
-	@Override
-	public void generateHtmlObject() {
-		write("<img id=\"");
-		writeObject(id);
-		write("\"></img>\n");
-	}
+//	@Override
+//	public void generateHtmlObject() {
+//		write("<img id=\"");
+//		writeObject(id);
+//		write("\"></img>\n");
+//	}
 
 	public void handle(JSONObject post) throws IOException {
 		if(post.has("type"))

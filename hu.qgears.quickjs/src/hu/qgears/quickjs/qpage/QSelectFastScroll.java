@@ -19,12 +19,12 @@ public class QSelectFastScroll extends QSelect {
 		super(parent);
 	}
 	
-	@Override
-	public void generateHtmlObject() {
-		write("<div id=\"");
-		writeJSValue(id);
-		write("\" style=\"width:650px; height:150px;\"></div>\t\n");
-	}
+//	@Override
+//	public void generateHtmlObject() {
+//		write("<div id=\"");
+//		writeJSValue(id);
+//		write("\" style=\"width:650px; height:150px;\"></div>\t\n");
+//	}
 	@Override
 	public List<String> getScriptReferences() {
 		return scriptReferences;

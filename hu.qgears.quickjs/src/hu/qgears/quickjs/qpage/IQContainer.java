@@ -1,7 +1,7 @@
 package hu.qgears.quickjs.qpage;
 
 public interface IQContainer {
-	QPage getPage();
+	QPageContainer getPage();
 	IQContainer getParent();
 	String getId();
 	void addChild(QComponent child);

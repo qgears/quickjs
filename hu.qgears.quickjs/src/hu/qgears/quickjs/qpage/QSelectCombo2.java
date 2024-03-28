@@ -126,12 +126,12 @@ public class QSelectCombo2 extends QComponent {
 			log.error("Handle selected event", e);
 		}
 	}
-	@Override
-	public void generateHtmlObject() {
-		write("<div id=\"");
-		writeObject(getId());
-		write("\"></div>\n");
-	}
+//	@Override
+//	public void generateHtmlObject() {
+//		write("<div id=\"");
+//		writeObject(getId());
+//		write("\"></div>\n");
+//	}
 	@Override
 	protected boolean isSelfInitialized() {
 		return true;

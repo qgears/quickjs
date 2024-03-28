@@ -152,12 +152,12 @@ public class QFileUpload extends QComponent
 		}
 	}
 
-	@Override
-	public void generateHtmlObject() {
-		write("<input id=\"");
-		writeObject(id);
-		write("\" type=\"file\" name=\"attachment[]\" webkitdirectory directory multiple>\n");
-	}
+//	@Override
+//	public void generateHtmlObject() {
+//		write("<input id=\"");
+//		writeObject(id);
+//		write("\" type=\"file\" name=\"attachment[]\" webkitdirectory directory multiple>\n");
+//	}
 
 	@Override
 	protected void doInitJSObject() {

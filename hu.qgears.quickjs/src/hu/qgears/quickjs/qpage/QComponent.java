@@ -32,7 +32,7 @@ import hu.qgears.quickjs.qpage.IndexedComm.Msg;
  */
 public abstract class QComponent extends HtmlTemplate implements IQContainer, IUserObjectStorage
 {
-	protected QPage page;
+	protected QPageContainer page;
 	protected String id;
 	@Deprecated
 	protected boolean inited;
@@ -115,24 +115,15 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 * @param id
 	 */
 	public QComponent(String id) {
-		this(QPage.getCurrent(), id);
+		this(QPageContainer.getCurrent(), id);
 	}
 	/**
 	 * Create a component object with auto-generated unique identifier
 	 * and using QPage.getCurrent() as parent.
 	 */
 	public QComponent() {
-		this(QPage.getCurrent(), null);
+		this(QPageContainer.getCurrent(), null);
 	}
-
-	public void generateHtmlObject(HtmlTemplate templateTarget)
-	{
-		try(ResetOutputObject eoo=setParent(templateTarget))
-		{
-			generateHtmlObject();
-		}
-	}
-	abstract public void generateHtmlObject();
 
 	/**
 	 * Must set "inited" field to true!
@@ -203,7 +194,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	final public String getId() {
 		return id;
 	}
-	public QPage getPage() {
+	public QPageContainer getPage() {
 		return page;
 	}
 

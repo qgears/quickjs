@@ -1,13 +1,13 @@
 package hu.qgears.quickjs.qpage.example;
 
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.utils.AbstractQPage;
 
 public class Index extends AbstractQPage
 {
 
 	@Override
-	protected void initQPage(QPage page) {
+	protected void initQPage(QPageContainer page) {
 	}
 
 	@Override

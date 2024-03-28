@@ -7,7 +7,7 @@ import java.util.Timer;
 import hu.qgears.commons.EscapeString;
 import hu.qgears.quickjs.qpage.QButton;
 import hu.qgears.quickjs.qpage.QLabel;
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QTextEditor;
 import hu.qgears.quickjs.utils.AbstractQPage;
 import hu.qgears.quickjs.utils.QTimerTask;
@@ -25,7 +25,7 @@ public class QExample01 extends AbstractQPage
 	private QLabel l=new QLabel("mylabel");
 
 	@Override
-	protected void initQPage(final QPage page) {
+	protected void initQPage(final QPageContainer page) {
 		// Create text editor object, initialize string content 
 		
 		textEd.text.setPropertyFromServer("Example text to edit");

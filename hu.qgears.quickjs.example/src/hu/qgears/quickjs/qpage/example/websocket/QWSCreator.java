@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import hu.qgears.quickjs.qpage.IndexedComm;
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QPageManager;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
 
@@ -25,8 +25,8 @@ public class QWSCreator implements WebSocketCreator {
 			return creator.createWebSocket(req, arg1);
 		}
 		final QPageManager qpm=HttpSessionQPageManager.getManager(req.getSession());
-		String id=req.getHttpServletRequest().getParameter(QPage.class.getSimpleName());
-		final QPage page=qpm.getPage(id);
+		String id=req.getHttpServletRequest().getParameter(QPageContainer.class.getSimpleName());
+		final QPageContainer page=qpm.getPage(id);
 		List<String> customId=req.getParameterMap().get("customId");
 		if(page!=null && customId!=null && customId.size()==1)
 		{

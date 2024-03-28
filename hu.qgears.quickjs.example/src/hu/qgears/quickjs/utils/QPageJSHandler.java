@@ -6,7 +6,7 @@ import java.net.URL;
 
 import hu.qgears.commons.UtilFile;
 import hu.qgears.quickjs.qpage.QComponent;
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QPageTypesRegistry;
 
 public class QPageJSHandler extends JSHandler
@@ -14,11 +14,11 @@ public class QPageJSHandler extends JSHandler
 
 	@Override
 	protected void writeTo(OutputStream os, String pathinfo) throws IOException {
-		for(String s: QPage.scripts)
+		for(String s: QPageContainer.scripts)
 		{
 			if(pathinfo.equals("/"+s))
 			{
-				os.write(UtilFile.loadFile(QPage.class.getResource(s)));
+				os.write(UtilFile.loadFile(QPageContainer.class.getResource(s)));
 				return;
 			}
 		}
@@ -41,7 +41,7 @@ public class QPageJSHandler extends JSHandler
 	}
 	@Override
 	protected boolean handlesJs(String pathinfo) {
-		for(String s: QPage.scripts)
+		for(String s: QPageContainer.scripts)
 		{
 			if(pathinfo.equals("/"+s))
 			{
