@@ -103,10 +103,13 @@ public class QExample02 extends AbstractQPage
 		write("</h1>\n<a href=\"/\">Back to index</a><br/>\n\nEach selector initializes the possible values in the next selector. Each selector contains the entered number of entries.<br/>\n\nNumber of entries within the selectors:\n<input id=\"number\" size=\"100\"></input>\n<div id=\"result\"></div>\n");
 		for(int i=0; i<selarr.length; ++i)
 		{
-			write("<select id=\"");
-			writeObject(selarr[i].getId());
-			write("\" style=\"width: 250px;\" size=10></select>\n");
+			writeSelectHtml(i);
 		}
+	}
+	protected void writeSelectHtml(int i) {
+		write("<select id=\"");
+		writeObject(selarr[i].getId());
+		write("\" style=\"width: 250px;\" size=10></select>\n");
 	}
 	protected String getTypeName()
 	{

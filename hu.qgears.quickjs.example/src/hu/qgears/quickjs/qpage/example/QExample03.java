@@ -19,5 +19,9 @@ public class QExample03 extends QExample02
 	{
 		return "QSelectFastScroll";
 	}
-
+	protected void writeSelectHtml(int i) {
+		write("<div id=\"");
+		writeObject(selarr[i].getId());
+		write("\" style=\"width:650px; height:150px;\"></div>\n");
+	}
 }
