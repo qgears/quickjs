@@ -41,7 +41,6 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	private volatile boolean active = true;
 	private Map<String, QComponent> components = new HashMap<>();
 	private Object syncObject = new Object();
-	private HtmlTemplate initialHtmlTemplate;
 	private HtmlTemplate jsTemplate=createJsTemplate();
 	@Deprecated
 	public boolean inited;
@@ -280,7 +279,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		}
 	}
 
-	public void generateInitialization() {
+	public void generateInitialization(HtmlTemplate initialHtmlTemplate) {
 		new HtmlTemplate(initialHtmlTemplate) {
 			public void generate() {
 				write("<script language=\"javascript\" type=\"text/javascript\">\n// Script that starts the QuickJS communication loop and connects managed objects DOM and JS \nglobalQPage=new QPageContainer('");
@@ -826,9 +825,6 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 				write("location.reload();");
 			}
 		}.gen();
-	}
-	public void setInitialHtmlTemplate(HtmlTemplate htmlTemplate) {
-		this.initialHtmlTemplate=htmlTemplate;
 	}
 	private HtmlTemplate createJsTemplate() {
 		HtmlTemplate ret=new HtmlTemplate(new StringWriter());

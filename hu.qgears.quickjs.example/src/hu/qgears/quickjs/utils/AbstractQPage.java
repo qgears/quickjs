@@ -61,9 +61,8 @@ abstract public class AbstractQPage extends HtmlTemplate {
 		page.getParent().writeHeaders(this);
 		write("</head>\n<body>\n");
 		setupWebSocketArguments(false);
-		page.getParent().setInitialHtmlTemplate(this);
 		writeBody();
-		page.getParent().generateInitialization();
+		page.getParent().generateInitialization(this);
 		bodyAfterQPageInitialization();
 		write("</body>\n</html>\n");
 	}

@@ -29,4 +29,5 @@ public interface IQPageContaierContext {
 	 * @return never ends with / Will be '' if no reverse proxy is present. 'path' when reverse proxy is present
 	 */
 	String getPageContextPath();
+	QPage getPage();
 }
