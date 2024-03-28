@@ -7,7 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.eclipse.jetty.server.Request;
 
 import hu.qgears.quickjs.qpage.HtmlTemplate;
-import hu.qgears.quickjs.qpage.QPageContainer;
+import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.jetty.QPageHandler;
 
 /**
@@ -21,12 +21,12 @@ abstract public class AbstractQPage extends HtmlTemplate {
 		super((Writer)null);
 	}
 
-	protected QPageContainer page;
+	protected QPage page;
 	/**
 	 * Initialize QPage object and generate initial HTML content.
 	 * @param parent
 	 */
-	public void initApplication(HtmlTemplate parent, QPageContainer newPage)
+	public void initApplication(HtmlTemplate parent, QPage newPage)
 	{
 		setWriter(parent.getWriter());
 		page=newPage;
@@ -48,7 +48,7 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	 * This is called first before generateHtmlContent() and writeBody();
 	 * @return
 	 */
-	abstract protected void initQPage(QPageContainer page);
+	abstract protected void initQPage(QPage page);
 
 	/**
 	 * Generate initial HTML content of the page that is downloaded from the web server by the client.
@@ -58,12 +58,12 @@ abstract public class AbstractQPage extends HtmlTemplate {
 		write("<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n");
 		writeFaviconHeaders();
 		writeHeaders();
-		page.writeHeaders(this);
+		page.getParent().writeHeaders(this);
 		write("</head>\n<body>\n");
 		setupWebSocketArguments(false);
-		page.setInitialHtmlTemplate(this);
+		page.getParent().setInitialHtmlTemplate(this);
 		writeBody();
-		page.generateInitialization();
+		page.getParent().generateInitialization();
 		bodyAfterQPageInitialization();
 		write("</body>\n</html>\n");
 	}

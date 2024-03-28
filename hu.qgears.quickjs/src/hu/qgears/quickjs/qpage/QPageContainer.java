@@ -4,8 +4,8 @@ import java.awt.Point;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -66,13 +66,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	 * The single current active QPage child.
 	 */
 	private QPage child;
-	/**
-	 * The current page handled on this thread.
-	 */
-	private static ThreadLocal<QPageContainer> currentPage=new ThreadLocal<>();
 	public final UtilListenableProperty<Boolean> started=new UtilListenableProperty<Boolean>(false);
-	public static List<String> scripts=Arrays.asList("indexedComm.js", 
-			"QPage.js", "QComponent.js");
 	/**
 	 * Counter for component unique id creator.
 	 */
@@ -119,7 +113,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 				jsTemplate.write("page.dispose(\"Server side component is already disposed.\");\n");
 				return;
 			}
-			try(NoExceptionAutoClosable c=setThreadCurrentPage())
+			try(NoExceptionAutoClosable c=child.setThreadCurrentPage())
 			{
 				if (post.has("history_popstate"))
 				{
@@ -139,7 +133,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 					}
 				}else
 				{
-					String cid = JSONHelper.getStringSafe(post, "component");
+					String cid = post.optString("component", null);
 					if(getId().equals(cid))
 					{
 						handleClientPost(msg, post);
@@ -161,7 +155,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 			synchronized (syncObject) {
 				// Proper ordering of messages is done by messaging subsystem
 				thread=Thread.currentThread();
-				try(NoExceptionAutoClosable c=setThreadCurrentPage())
+				try(NoExceptionAutoClosable c=child.setThreadCurrentPage())
 				{
 					try(AutoCloseable s=setupContext.get())
 					{
@@ -259,24 +253,13 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		{
 			new HtmlTemplate(parent) {
 				public void generate() {
-					for(String fname: scripts)
+					for(String fname: QPageTypesRegistry.getInstance().getJsOrder())
 					{
 						write("<script language=\"javascript\" type=\"text/javascript\" src=\"");
 						writeObject(scriptsAsSeparateFile);
 						write("/");
 						writeObject(fname);
 						write("\"></script>\n");
-					}
-					for(QComponent c: QPageTypesRegistry.getInstance().getTypes())
-					{
-						for(String scriptRef: c.getScriptReferences())
-						{
-							write("<script language=\"javascript\" type=\"text/javascript\" src=\"");
-							writeObject(scriptsAsSeparateFile);
-							write("/");
-							writeObject(scriptRef);
-							write(".js\"></script>\n");
-						}
 					}
 					for(QComponent c: getAdditionalComponentTypes())
 					{
@@ -300,7 +283,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	public void generateInitialization() {
 		new HtmlTemplate(initialHtmlTemplate) {
 			public void generate() {
-				write("<script language=\"javascript\" type=\"text/javascript\">\n// Script that starts the QuickJS communication loop and connects managed objects DOM and JS \nglobalQPage=new QPage('");
+				write("<script language=\"javascript\" type=\"text/javascript\">\n// Script that starts the QuickJS communication loop and connects managed objects DOM and JS \nglobalQPage=new QPageContainer('");
 				writeObject(identifier);
 				write("', ");
 				writeObject(TIMEOUT_DISPOSE);
@@ -315,8 +298,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 				afterComponentInitialization.eventHappened(this);
 				write("window.addEventListener(\"load\", function(){\n\tvar page=this;\n\tvar args=staticArgs();\n");
 				writeObject(jsTemplate.getWriter().toString());
-				write("\tpage.start();\n");
-				write("}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
+				write("\tpage.start();\n}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
 				UtilComma c=new UtilComma(", ");
 				for(Object o: jsTemplate.toWebSocketArguments())
 				{
@@ -338,10 +320,11 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		new HtmlTemplate(parent) {
 			public void generate() {
 				try {
-					for(String fname: scripts)
+					for(String fname: QPageTypesRegistry.getInstance().getJsOrder())
 					{
+						URL url=QPageTypesRegistry.getInstance().getResource(fname);
 						write("<script language=\"javascript\" type=\"text/javascript\">\n");
-						writeObject(UtilFile.loadAsString(QPageContainer.class.getResource(fname)));
+						writeObject(UtilFile.loadAsString(url));
 						write("\n</script>\n");
 					}
 				} catch (IOException e) {
@@ -349,10 +332,6 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 				}
 			}
 		}.generate();
-		for(QComponent c: QPageTypesRegistry.getInstance().getTypes())
-		{
-			c.generateHeader(parent);
-		}
 		for(QComponent c: getAdditionalComponentTypes())
 		{
 			c.generateHeader(parent);
@@ -491,7 +470,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 							while(r!=null)
 							{
 								synchronized (syncObject) {
-									try (NoExceptionAutoClosable c=setThreadCurrentPage()) {
+									try (NoExceptionAutoClosable c=child.setThreadCurrentPage()) {
 										thread=Thread.currentThread();
 										try(AutoCloseable s=setupContext.get())
 										{
@@ -589,7 +568,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 				disposedEvent.ready(QPageContainer.this, null);
 			}
 		};
-		if(currentPage.get()==this)
+		if(QPage.getCurrent().getParent()==this)
 		{
 			onThread.run();
 		}else
@@ -848,24 +827,6 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 			}
 		}.gen();
 	}
-	/**
-	 * Set this QPage object to be the current for this thread.
-	 * @return
-	 */
-	public NoExceptionAutoClosable setThreadCurrentPage() {
-		QPageContainer prev=currentPage.get();
-		currentPage.set(this);
-		return new NoExceptionAutoClosable() {
-			@Override
-			public void close() {
-				currentPage.set(prev);
-			}
-		};
-	}
-	public static QPageContainer getCurrent() {
-		return currentPage.get();
-	}
-
 	public void setInitialHtmlTemplate(HtmlTemplate htmlTemplate) {
 		this.initialHtmlTemplate=htmlTemplate;
 	}

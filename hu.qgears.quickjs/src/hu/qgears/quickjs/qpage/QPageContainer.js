@@ -93,7 +93,7 @@ class QPageContainer
 	createWebSocketUrl(websocketName='true')
 	{
 	
-		const url=window.location.origin.replace('http', 'ws')+window.location.pathname+'?websocket='+websocketName+'&QPage='+this.identifier+this.sessionIdParameterAdditional;
+		const url=window.location.origin.replace('http', 'ws')+window.location.pathname+'?websocket='+websocketName+'&QPageContainer='+this.identifier+this.sessionIdParameterAdditional;
 		return url;
 	}
 	/// Start communication with server and set up global listeners

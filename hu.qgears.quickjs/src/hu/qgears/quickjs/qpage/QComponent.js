@@ -190,7 +190,7 @@ class QComponent
 	dispose()
 	{
 		delete this.page.components[this.identifier];
-		disposeDom();
+		this.disposeDom();
 	}
 	disposeDom()
 	{

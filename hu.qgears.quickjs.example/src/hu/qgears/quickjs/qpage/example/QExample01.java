@@ -7,7 +7,7 @@ import java.util.Timer;
 import hu.qgears.commons.EscapeString;
 import hu.qgears.quickjs.qpage.QButton;
 import hu.qgears.quickjs.qpage.QLabel;
-import hu.qgears.quickjs.qpage.QPageContainer;
+import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QTextEditor;
 import hu.qgears.quickjs.utils.AbstractQPage;
 import hu.qgears.quickjs.utils.QTimerTask;
@@ -25,7 +25,7 @@ public class QExample01 extends AbstractQPage
 	private QLabel l=new QLabel("mylabel");
 
 	@Override
-	protected void initQPage(final QPageContainer page) {
+	protected void initQPage(final QPage page) {
 		// Create text editor object, initialize string content 
 		
 		textEd.text.setPropertyFromServer("Example text to edit");
@@ -49,8 +49,8 @@ public class QExample01 extends AbstractQPage
 		QTimerTask tt=new QTimerTask(()->counter.getPage().submitToUI(()->counter.innerhtml.setPropertyFromServer(df.format(new Date()))));
 		timer.schedule(tt, 1000, 1000);
 		
-		// In case the page is disposed cancel the updater timer (by user leaves pagem timeout, HTTP session ends or explicite dispose)
-		page.disposedEvent.addOnReadyHandler(p->{tt.cancel(); System.out.println("Page disposed.");});
+		// In case the page is disposed cancel the updater timer (by user leaves page timeout, HTTP session ends or explicite dispose)
+		page.addCloseable(()->{tt.cancel(); System.out.println("Page disposed.");});
 	}
 	/**
 	 * See the rtemplate version of this file <a href="https://github.com/rizsi/quickjs/blob/master/quickjs-example/template/hu/qgears/quickjs/qpage/example/QExample01.java.rt#L58">here</a>

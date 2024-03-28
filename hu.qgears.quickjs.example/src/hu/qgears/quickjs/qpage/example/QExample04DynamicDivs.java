@@ -4,7 +4,7 @@ import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.quickjs.qpage.AppendTarget;
 import hu.qgears.quickjs.qpage.QButton;
 import hu.qgears.quickjs.qpage.QDiv;
-import hu.qgears.quickjs.qpage.QPageContainer;
+import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.utils.AbstractQPage;
 
 /**
@@ -20,7 +20,7 @@ public class QExample04DynamicDivs extends AbstractQPage
 	private QDiv dynamicContainer;
 	int index=0;
 	@Override
-	protected void initQPage(QPageContainer page) {
+	protected void initQPage(QPage page) {
 		dynamicContainer=new QDiv(page, "dynamicContainer");
 		new QButton(page, "create").clicked.addListener(e->{
 			System.out.println("Create pressed!");

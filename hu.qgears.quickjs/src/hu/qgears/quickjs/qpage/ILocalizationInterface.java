@@ -4,6 +4,7 @@ import java.util.Date;
 
 import hu.qgears.commons.UtilString;
 
+/** Interface to access page localization data. */
 public interface ILocalizationInterface {
 	default String getString(String id, Object[] args)
 	{

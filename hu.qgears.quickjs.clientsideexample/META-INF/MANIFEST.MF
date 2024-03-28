@@ -8,4 +8,5 @@ Bundle-RequiredExecutionEnvironment: JavaSE-11
 Require-Bundle: org.teavm.jso.apis;bundle-version="1.0.0",
  hu.qgears.quickjs;bundle-version="4.0.0",
  org.junit;bundle-version="4.13.0",
- org.slf4j.api
+ org.slf4j.api,
+ org.apache.log4j;bundle-version="1.2.15"

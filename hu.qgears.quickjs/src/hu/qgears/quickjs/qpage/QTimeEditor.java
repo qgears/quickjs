@@ -36,12 +36,12 @@ public class QTimeEditor extends QComponent
 //	}
 
 	public void handle(JSONObject post) throws IOException {
-		String ntext=JSONHelper.getStringSafe(post,"text");
+		String ntext=post.optString("text", null);
 		if(ntext!=null)
 		{
 			text.setPropertyFromClient(ntext);
 		}
-		String exter=JSONHelper.getStringSafe(post, "enter");
+		String exter=post.optString("enter", null);
 		if(exter!=null)
 		{
 			enterPressed.eventHappened(exter);

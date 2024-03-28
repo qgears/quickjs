@@ -1,16 +1,17 @@
-class QDiv extends QComponent
+class QPage extends QComponent
 {
 	addDomListeners()
 	{
-		findDomElement()
-		{
-			return document.getElementById(document.body);
-		}
+	}
+	findDomElement()
+	{
+		return document.body;
 	}
 	disposeDom()
 	{
 		var p=this.dom;
 		while (p.hasChildNodes())
+		{
 			p.removeChild(p.firstChild)
 		}
 	}

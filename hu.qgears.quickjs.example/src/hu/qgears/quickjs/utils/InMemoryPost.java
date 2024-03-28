@@ -10,8 +10,6 @@ import java.util.Map;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.util.MultiMap;
 
-import hu.qgears.quickjs.qpage.IInMemoryPost;
-
 public class InMemoryPost implements IMultipartHandler, IInMemoryPost
 {
 	private Map<String, ByteArrayOutputStream> parameters=new HashMap<>();

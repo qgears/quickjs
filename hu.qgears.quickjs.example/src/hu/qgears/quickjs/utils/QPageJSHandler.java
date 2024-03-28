@@ -5,50 +5,19 @@ import java.io.OutputStream;
 import java.net.URL;
 
 import hu.qgears.commons.UtilFile;
-import hu.qgears.quickjs.qpage.QComponent;
-import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QPageTypesRegistry;
 
 public class QPageJSHandler extends JSHandler
 {
-
 	@Override
 	protected void writeTo(OutputStream os, String pathinfo) throws IOException {
-		for(String s: QPageContainer.scripts)
-		{
-			if(pathinfo.equals("/"+s))
-			{
-				os.write(UtilFile.loadFile(QPageContainer.class.getResource(s)));
-				return;
-			}
-		}
-		{
-			String name=pathinfo.substring(1, pathinfo.length()-3);
-			if(name.contains("/")||name.contains(".."))
-			{
-				throw new IOException();
-			}
-			for(QComponent c: QPageTypesRegistry.getInstance().getTypes())
-			{
-				byte[] content=c.loadJs(name);
-				if(content!=null)
-				{
-					os.write(content);
-					return;
-				}
-			}
-		}
+		URL t=QPageTypesRegistry.getInstance().getJsResources().get(pathinfo.substring(1));
+		os.write(UtilFile.loadFile(t));
+		return;
 	}
 	@Override
 	protected boolean handlesJs(String pathinfo) {
-		for(String s: QPageContainer.scripts)
-		{
-			if(pathinfo.equals("/"+s))
-			{
-				return true;
-			}
-		}
-		QComponent t=QPageTypesRegistry.getInstance().getType(pathinfo.substring(1, pathinfo.length()-3));
+		URL t=QPageTypesRegistry.getInstance().getJsResources().get(pathinfo.substring(1));
 		if(t!=null)
 		{
 			return true;

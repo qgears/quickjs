@@ -1,11 +1,19 @@
 package hu.qgears.quickjs.qpage;
 
+/** Specify the target where a newly created DOM subtree is put into the
+ * DOM tree of the application.
+ */
 public class AppendTarget {
+	/** String that selects the target node */
 	public String domSelector;
+	/** Append method. */
 	public EAppendTargetMethod method;
 	public String arg1;
 	public String arg2;
+	/** Namespace of the nodes to be created. Default is HTML and SVG, MathML etc are possible. */
 	public String nameSpaceUri=namespaceUriHtml;
+	/** Namespace of the node type that can contain the created elements. This node is used as a technical temporary container
+	 *  when the subtree is created. */
 	public String rootObjectType="div";
 	public static final String namespaceUriHtml="http://www.w3.org/1999/xhtml";
 	public static final String namespaceUriSvg="http://www.w3.org/2000/svg";
@@ -23,6 +31,7 @@ public class AppendTarget {
 		ret.domSelector=domSelector;
 		return ret;
 	}
+	/** Configure that the newly created content is not XHTML but SVG. */
 	public AppendTarget setSvg()
 	{
 		nameSpaceUri=namespaceUriSvg;

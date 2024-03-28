@@ -1,8 +1,12 @@
 package hu.qgears.quickjs.qpage;
 
+/** Interface of nodes that can contain other nodes. */
 public interface IQContainer {
+	/** Get reference to the hosting page container. */
 	QPageContainer getPage();
+	/** Get reference to the parent container. null in case of the QPageContainer or if the object was removed from the tree. */
 	IQContainer getParent();
+	/** Get the identifier of this object. */
 	String getId();
 	/**
 	 * Add a closeable object to this component: when this component is disposed then this closeable will also be closed.

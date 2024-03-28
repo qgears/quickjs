@@ -2,7 +2,6 @@ package hu.qgears.quickjs.qpage;
 
 import java.awt.Point;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -103,21 +102,21 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 * @param container
 	 */
 	public QComponent(IQContainer container) {
-		this(container, container.getPage().createComponentId());
+		this(container, container==null?null:container.getPage().createComponentId());
 	}
 	/**
 	 * Create a component object with given identifier
 	 * @param id
 	 */
 	public QComponent(String id) {
-		this(QPageContainer.getCurrent(), id);
+		this(QPage.getCurrent(), id);
 	}
 	/**
 	 * Create a component object with auto-generated unique identifier
 	 * and using QPage.getCurrent() as parent.
 	 */
 	public QComponent() {
-		this(QPageContainer.getCurrent(), null);
+		this(QPage.getCurrent(), null);
 	}
 
 	/**
@@ -126,6 +125,13 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 */
 	final public void init()
 	{
+		if(page!=null)
+		{
+			try(NoExceptionAutoClosable c=activateJS())
+			{
+				doInitJSObject();
+			}
+		}
 		initChildren();
 	}
 	abstract protected void doInitJSObject();
@@ -297,10 +303,10 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public IQContainer getParent() {
 		return container;
 	}
-	public void registerResources(Map<String, URL> jsResources) {
+	public void registerResources(QPageTypesRegistry typeReg) {
 		for(String s: getScriptReferences())
 		{
-			jsResources.put(s+".js", getClass().getResource(s+".js"));
+			typeReg.addJs(s+".js", getClass().getResource(s+".js"));
 		}
 	}
 	

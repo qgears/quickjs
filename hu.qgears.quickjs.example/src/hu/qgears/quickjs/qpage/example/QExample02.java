@@ -6,7 +6,7 @@ import java.util.List;
 import hu.qgears.commons.EscapeString;
 import hu.qgears.commons.UtilEventListener;
 import hu.qgears.quickjs.qpage.QLabel;
-import hu.qgears.quickjs.qpage.QPageContainer;
+import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QSelect;
 import hu.qgears.quickjs.qpage.QSelectCombo;
 import hu.qgears.quickjs.qpage.QTextEditor;
@@ -20,7 +20,7 @@ public class QExample02 extends AbstractQPage
 	private int n=1;
 	QSelect[] selarr=new QSelect[5];
 	@Override
-	protected void initQPage(final QPageContainer page) {
+	protected void initQPage(final QPage page) {
 		final QTextEditor number=new QTextEditor(page, "number");
 		number.text.setPropertyFromServer("1");
 		final QLabel result=new QLabel(page, "result");
@@ -77,7 +77,7 @@ public class QExample02 extends AbstractQPage
 			};
 		});
 	}
-	protected QSelect createQSelect(QPageContainer page, String string) {
+	protected QSelect createQSelect(QPage page, String string) {
 		return new QSelectCombo(page, string);
 	}
 	private void setOptions(int i, QSelect select, String prefix) {
