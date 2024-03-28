@@ -1,7 +1,6 @@
 package hu.qgears.quickjs.qpage;
 
 import java.awt.Point;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -30,39 +29,41 @@ import hu.qgears.commons.UtilFile;
 import hu.qgears.commons.UtilListenableProperty;
 import hu.qgears.commons.UtilTimer;
 import hu.qgears.commons.signal.SignalFutureWrapper;
-import hu.qgears.quickjs.qpage.IndexedComm.Msg;
 import hu.qgears.quickjs.helpers.IPlatform;
+import hu.qgears.quickjs.helpers.QTimer;
+import hu.qgears.quickjs.qpage.IndexedComm.Msg;
 
 /** QuickJS web page instance.
  */
 public class QPageContainer implements Closeable, IQContainer, IUserObjectStorage {
 	// TODO to be moved into IPlatform
 	private Object syncObject = new Object();
+	private Executor executor;
+	private volatile Thread thread;
+	private final QPageManager qpm;
+	private long TIMEOUT_DISPOSE=IndexedComm.timeoutPingMillis*2;
+	private IndexedComm indexedComm=new IndexedComm();
+	private SafeTimerTask disposeTimer;
+	/// TODO move to QSPa
+	@Deprecated
+	private Map<String, IndexedComm> customWebSocketImplementations=Collections.synchronizedMap(new HashMap<>());
 
-	
 	public static String idAttribute = QPageContainer.class.getSimpleName();
 	protected static final Logger log=LoggerFactory.getLogger(QPageContainer.class);
 	private String identifier = "id";
 	private volatile boolean active = true;
 	private Map<String, QComponent> components = new HashMap<>();
 	private HtmlTemplate jsTemplate=createJsTemplate();
-	private final QPageManager qpm;
-	private long TIMEOUT_DISPOSE=IndexedComm.timeoutPingMillis*2;
 	public final SignalFutureWrapper<QPageContainer> disposedEvent=new SignalFutureWrapper<>();
 	private String scriptsAsSeparateFile=null;
 	private List<QComponent> additionaComponentTypes=new ArrayList<QComponent>();
 	private Map<String, Object> userObjectStorage=new HashMap<String, Object>();
-	private IndexedComm indexedComm=new IndexedComm();
-	private Executor executor;
-	private volatile Thread thread;
-	private SafeTimerTask currentTimerTask;
 	private LinkedList<Runnable> tasks=new LinkedList<>();
-	private Map<String, IndexedComm> customWebSocketImplementations=Collections.synchronizedMap(new HashMap<>());
 	private String sessionIdParameterName;
 	private String sessionId;
 	private ISessionUpdateLastAccessedTime sessionToUpdateLastAccessedTime;
-	private SafeTimerTask disposeTimer;
 	private List<AutoCloseable> closeables;
+	private QTimer currentTimerTask;	
 	private IPlatform platform;
 	/**
 	 * The single current active QPage child.
@@ -231,7 +232,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	}
 
 	/**
-	 * Internal API. 
+	 * Internal API.
 	 * Can be used in the very rare case when for some reason the page is blocked for a time.
 	 * Calling this periodically will disable page disposal by timer.
 	 */
@@ -394,68 +395,21 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	 * @param timeoutMillis
 	 * @param r
 	 */
-	public SafeTimerTask scheduleToUI(long timeoutMillis, Runnable r) {
-		SafeTimerTask ret=new SafeTimerTask() {
-			@Override
-			public void doRun() {
-				submitToUI(()->{
-					currentTimerTask=this;
-					try
-					{
-						r.run();
-					}finally
-					{
-						currentTimerTask=null;
-					}
-				});
-			}
-		};
-		if(!disposedEvent.isDone())
-		{
-			QPageManager.disposeTimer.schedule(ret, timeoutMillis);
-		}else
-		{
-			ret.cancel();
-		}
-		return ret;
+	public QTimer scheduleToUI(long timeoutMillis, Runnable r) {
+		return scheduleToUI(timeoutMillis, 0, r);
 	}
 	/**
-	 * When page is disposed the task is cancelled when would run.
+	 * When page is disposed the task is cancelled.
 	 * To access the timer inside the runnable: see getCurrentTimerTask()
 	 * @param timeoutMillis
 	 * @param periodMillis
 	 * @param r
 	 * @return
 	 */
-	public SafeTimerTask scheduleToUI(long timeoutMillis, long periodMillis, Runnable r) {
-		SafeTimerTask ret=new SafeTimerTask() {
-			@Override
-			public void doRun() {
-				if(disposedEvent.isDone())
-				{
-					this.cancel();
-					return;
-				}
-				submitToUI(()->{
-					currentTimerTask=this;
-					try
-					{
-						r.run();
-					}finally
-					{
-						currentTimerTask=null;
-					}
-				});
-			}
-		};
-		if(!disposedEvent.isDone())
-		{
-			QPageManager.disposeTimer.schedule(ret, timeoutMillis, periodMillis);
-		}else
-		{
-			ret.cancel();
-		}
-		return ret;
+	public QTimer scheduleToUI(long timeoutMillis, long periodMillis, Runnable r) {
+		QTimer t=getPlatform().startTimer(r, (int)timeoutMillis, (int)periodMillis);
+		t.addCloseable(addCloseable(t));
+		return t;
 	}
 	protected void scheduleNext() {
 		synchronized(tasks)
@@ -549,14 +503,18 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 				{
 					jsTemplate=prev;
 				}
-				if(closeables!=null)
+				List<AutoCloseable> toClose;
+				synchronized (syncObject) {
+					toClose=closeables;
+					closeables=null;
+				}
+				if(toClose!=null)
 				{
-					for(AutoCloseable c: closeables)
+					for(AutoCloseable c: toClose)
 					{
 						closeCloseable(c);
 					}
 				}
-				closeables=null;
 				/**
 				 * Timeout is required so that the last messages are sent first hopefully.
 				 */
@@ -752,7 +710,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	 * In case current task is executed as a timer then the current timer is queryed by this query.
 	 * @return
 	 */
-	public SafeTimerTask getCurrentTimerTask() {
+	public QTimer getCurrentTimerTask() {
 		return currentTimerTask;
 	}
 	/**
@@ -796,17 +754,32 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		}.generate();
 	}
 	@Override
-	public void addCloseable(AutoCloseable closeable) {
+	public NoExceptionAutoClosable addCloseable(AutoCloseable closeable) {
 		if(!active)
 		{
 			closeCloseable(closeable);
+			return new NoExceptionAutoClosable() {};
 		}else
 		{
-			if(closeables==null)
-			{
-				closeables=new ArrayList<>();
+			synchronized (syncObject) {
+				if(closeables==null)
+				{
+					closeables=new ArrayList<>();
+				}
+				closeables.add(closeable);
 			}
-			closeables.add(closeable);
+			return new NoExceptionAutoClosable() {
+				@Override
+				public void close() {
+					synchronized(syncObject)
+					{
+						if(closeables!=null)
+						{
+							closeables.remove(closeable);
+						}
+					}
+				}
+			};
 		}
 	}
 	private void closeCloseable(AutoCloseable closeable) {
@@ -874,5 +847,30 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	public void internalSetPlatform(IPlatform platform)
 	{
 		this.platform=platform;
+	}
+	/**
+	 * Submit a timer task to be executed now (ASAP) on the UI thread.
+	 * Intended to be called by the platform specific timer implementation.
+	 * @param t
+	 * @param r
+	 */
+	public void submitTimerTask(QTimer t, Runnable r) {
+		submitToUI(()->{
+			try {
+				if(!t.isClosed())
+				{
+					currentTimerTask=t;
+					try
+					{
+						r.run();
+					}finally
+					{
+						currentTimerTask=null;
+					}
+				}
+			} catch (Exception e) {
+				log.error("Unhandled exception in timer", e);
+			}
+		});
 	}
 }

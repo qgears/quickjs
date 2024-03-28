@@ -1,9 +1,0 @@
-2024-03-28 23:07:04.225 INFO org.eclipse.jetty.util.log: Logging initialized @524ms to org.eclipse.jetty.util.log.Slf4jLog
-2024-03-28 23:07:04.386 INFO org.eclipse.jetty.server.Server: jetty-{}; built: {}; git: {}; jvm {}
-2024-03-28 23:07:04.452 INFO org.eclipse.jetty.server.session: DefaultSessionIdManager workerName={}
-2024-03-28 23:07:04.453 INFO org.eclipse.jetty.server.session: No SessionScavenger set, using defaults
-2024-03-28 23:07:04.456 INFO org.eclipse.jetty.server.session: {} Scavenging every {}ms
-2024-03-28 23:07:04.531 INFO org.eclipse.jetty.server.handler.ContextHandler: Started {}
-2024-03-28 23:07:04.531 INFO org.eclipse.jetty.server.handler.ContextHandler: Started {}
-2024-03-28 23:07:04.552 INFO org.eclipse.jetty.server.AbstractConnector: Started {}
-2024-03-28 23:07:04.552 INFO org.eclipse.jetty.server.Server: Started @888ms

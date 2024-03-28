@@ -30,6 +30,7 @@ public class JettyPlatform implements IPlatform {
 		t.stt=new SafeTimerTask() {
 			@Override
 			protected void doRun() {
+				pageContainer.submitTimerTask(t, r);
 				pageContainer.submitToUI(()->{
 					try {
 						if(!isCancelled())

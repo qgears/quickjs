@@ -247,16 +247,20 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 				}
 			}
 			page.remove(this);
-			if(closeables!=null)
+			disposed=true;
+			List<AutoCloseable> toClose;
+			synchronized (this) {
+				toClose=closeables;
+				closeables=null;
+			}
+			if(toClose!=null)
 			{
-				for(AutoCloseable c: closeables)
+				for(AutoCloseable c: toClose)
 				{
 					closeCloseable(c);
 				}
 			}
-			closeables=null;
 		}
-		disposed=true;
 	}
 	private void removeFromParentList()
 	{
@@ -501,17 +505,28 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		}
 	}
 	@Override
-	public void addCloseable(AutoCloseable closeable) {
+	public NoExceptionAutoClosable addCloseable(AutoCloseable closeable) {
 		if(isDisposed())
 		{
 			closeCloseable(closeable);
+			return new NoExceptionAutoClosable() {};
 		}else
 		{
-			if(closeables==null)
-			{
-				closeables=new ArrayList<>();
+			synchronized (this) {
+				if(closeables==null)
+				{
+					closeables=new ArrayList<>();
+				}
+				closeables.add(closeable);
 			}
-			closeables.add(closeable);
+			return new NoExceptionAutoClosable() {
+				@Override
+				public void close() {
+					synchronized (QComponent.this) {
+						closeables.remove(closeable);
+					}
+				}
+			};
 		}
 	}
 	private void closeCloseable(AutoCloseable closeable) {
