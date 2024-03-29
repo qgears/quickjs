@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.UtilListenableProperty;
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 
 /**
  * Connect a real time event to the UI:
@@ -16,9 +16,9 @@ abstract public class FrameLimiter {
 	private long minPeriodMillis;
 	private long tPrev;
 	private boolean await=false;
-	private QPage page;
+	private QPageContainer page;
 	
-	public FrameLimiter(QPage page, long minPeriodMillis) {
+	public FrameLimiter(QPageContainer page, long minPeriodMillis) {
 		super();
 		this.page = page;
 		this.minPeriodMillis = minPeriodMillis;

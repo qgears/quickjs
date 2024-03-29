@@ -14,6 +14,7 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 
 import hu.qgears.quickjs.qpage.example.websocket.QWSMessagingServlet;
 import hu.qgears.quickjs.qpage.jetty.QPageHandler;
+import hu.qgears.quickjs.qpage.jetty.QPageHandler2;
 import hu.qgears.quickjs.utils.DispatchHandler;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
 import joptsimple.annot.AnnotatedClass;
@@ -70,7 +71,7 @@ public class QExampleMain {
 		
 		DispatchHandler dh=new DispatchHandler();
 		dh.addHandler("/", new QPageHandler(Index.class));
-		dh.addHandler("/", "/01", new QPageHandler(QExample01.class));
+		dh.addHandler("/", "/01", new QPageHandler2(QExample01.class));
 		dh.addHandler("/", "/02", new QPageHandler(QExample02.class));
 		dh.addHandler("/", "/03", new QPageHandler(QExample03.class));
 		dh.addHandler("/", "/04", new QPageHandler(QExample04DynamicDivs.class));

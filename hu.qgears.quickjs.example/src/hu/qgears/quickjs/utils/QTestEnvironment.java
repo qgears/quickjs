@@ -13,7 +13,7 @@ import java.util.function.Function;
 import org.eclipse.jetty.server.Request;
 
 import hu.qgears.commons.signal.SignalFutureWrapper;
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 
 /**
  * Test environment for testing web UI.
@@ -22,11 +22,11 @@ import hu.qgears.quickjs.qpage.QPage;
  * to the test code.
  */
 public class QTestEnvironment implements IQTestEnvironment {
-	Map<Function<Request, Boolean>, SignalFutureWrapper<QPage>> awaits=Collections.synchronizedMap(new HashMap<Function<Request,Boolean>, SignalFutureWrapper<QPage>>());
+	Map<Function<Request, Boolean>, SignalFutureWrapper<QPageContainer>> awaits=Collections.synchronizedMap(new HashMap<Function<Request,Boolean>, SignalFutureWrapper<QPageContainer>>());
 	@Override
-	public void qPageCreated(Request baseRequest, QPage newPage) {
+	public void qPageCreated(Request baseRequest, QPageContainer newPage) {
 		List<Function<Request, Boolean>> found=new ArrayList<Function<Request,Boolean>>();
-		List<SignalFutureWrapper<QPage>> signals=new ArrayList<SignalFutureWrapper<QPage>>();
+		List<SignalFutureWrapper<QPageContainer>> signals=new ArrayList<SignalFutureWrapper<QPageContainer>>();
 		synchronized (awaits) {
 			for(Function<Request, Boolean> filter: awaits.keySet())
 			{
@@ -40,7 +40,7 @@ public class QTestEnvironment implements IQTestEnvironment {
 				signals.add(awaits.remove(filter));
 			}
 		}
-		for(SignalFutureWrapper<QPage> s: signals)
+		for(SignalFutureWrapper<QPageContainer> s: signals)
 		{
 			s.ready(newPage, null);
 		}
@@ -51,13 +51,13 @@ public class QTestEnvironment implements IQTestEnvironment {
 	 * @param filter
 	 * @return
 	 */
-	public SignalFutureWrapper<QPage> createNewPageListener(Function<Request, Boolean> filter)
+	public SignalFutureWrapper<QPageContainer> createNewPageListener(Function<Request, Boolean> filter)
 	{
-		SignalFutureWrapper<QPage> ret=new SignalFutureWrapper<QPage>();
+		SignalFutureWrapper<QPageContainer> ret=new SignalFutureWrapper<QPageContainer>();
 		awaits.put(filter, ret);
-		SignalFutureWrapper<QPage> ret2=new SignalFutureWrapper<QPage>();
+		SignalFutureWrapper<QPageContainer> ret2=new SignalFutureWrapper<QPageContainer>();
 		ret.addOnReadyHandler(e->{
-			QPage p=e.getSimple();
+			QPageContainer p=e.getSimple();
 			if(p!=null)
 			{
 				p.started.addListenerWithInitialTrigger(ev->{
@@ -73,11 +73,11 @@ public class QTestEnvironment implements IQTestEnvironment {
 		});
 		return ret2;
 	}
-	public SignalFutureWrapper<QPage> createNewPageListener()
+	public SignalFutureWrapper<QPageContainer> createNewPageListener()
 	{
 		return createNewPageListener(r->true);
 	}
-	private SignalFutureWrapper<QPage> newPage;
+	private SignalFutureWrapper<QPageContainer> newPage;
 	/**
 	 * Start listening to a new page and store the reference to the new page listener.
 	 * New page can be queried using the getNewPage() method
@@ -86,7 +86,7 @@ public class QTestEnvironment implements IQTestEnvironment {
 	{
 		newPage=createNewPageListener();
 	}
-	public QPage getNewPage() throws InterruptedException, ExecutionException, TimeoutException
+	public QPageContainer getNewPage() throws InterruptedException, ExecutionException, TimeoutException
 	{
 		try
 		{

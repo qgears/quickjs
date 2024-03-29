@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import hu.qgears.commons.UtilEventListener;
 import hu.qgears.commons.signal.SignalFutureWrapper;
 import hu.qgears.quickjs.qpage.HtmlTemplate;
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 
 /**
  * Execute an automaton script in a page.
@@ -23,13 +23,13 @@ import hu.qgears.quickjs.qpage.QPage;
 @Deprecated
 abstract public class AutomatExecutor extends HtmlTemplate implements UtilEventListener<JSONObject>
 {
-	protected QPage page;
+	protected QPageContainer page;
 	private StringWriter jsWriter=new StringWriter();
 	private long queryId;
 	private Map<Long, SignalFutureWrapper<Object>> queries=new HashMap<>();
 	private long msQueryTimeout=10000;
 	private Logger log=LoggerFactory.getLogger(getClass());
-	public AutomatExecutor(QPage page) {
+	public AutomatExecutor(QPageContainer page) {
 		super();
 		this.page = page;
 	}

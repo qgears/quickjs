@@ -11,13 +11,14 @@ import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.signal.SignalFutureWrapper;
 import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 
 /**
  * Query the position of an HTML element by its identifier.
  */
 public class QueryRectangleById extends HtmlTemplate {
 	private hu.qgears.commons.NoExceptionAutoClosable d;
-	public SignalFutureWrapper<List<Rectangle>> getRectanglesBySelector(QPage page, String selector)
+	public SignalFutureWrapper<List<Rectangle>> getRectanglesBySelector(QPageContainer page, String selector)
 	{
 		SignalFutureWrapper<List<Rectangle>> reply=new SignalFutureWrapper<List<Rectangle>>();
 		String replyId="rectangle";
@@ -48,13 +49,13 @@ public class QueryRectangleById extends HtmlTemplate {
 		return reply;
 	}
 	private NoExceptionAutoClosable activateJs() {
-		return setParent(QPage.getCurrent().getJsTemplate());
+		return setParent(QPage.getCurrent().getParent().getJsTemplate());
 	}
-	public SignalFutureWrapper<Rectangle> getRectangleById(QPage page, String id)
+	public SignalFutureWrapper<Rectangle> getRectangleById(QPageContainer page, String id)
 	{
 		return getRectangleBySelector(page, "#"+id);
 	}
-	public SignalFutureWrapper<Rectangle> getRectangleBySelector(QPage page, String selector)
+	public SignalFutureWrapper<Rectangle> getRectangleBySelector(QPageContainer page, String selector)
 	{
 		SignalFutureWrapper<Rectangle> ret=new SignalFutureWrapper<Rectangle>();
 		getRectanglesBySelector(page, selector).addOnReadyHandler(e->{

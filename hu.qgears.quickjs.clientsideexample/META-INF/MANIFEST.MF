@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Clientsideexample
+Bundle-SymbolicName: hu.qgears.quickjs.clientsideexample
+Bundle-Version: 1.0.0.qualifier
+Automatic-Module-Name: hu.quickjs.clientsideexample
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Require-Bundle: org.teavm.jso.apis;bundle-version="1.0.0",
+ hu.qgears.quickjs;bundle-version="4.0.0",
+ org.junit;bundle-version="4.13.0",
+ org.slf4j.api,
+ org.apache.log4j;bundle-version="1.2.15",
+ hu.qgears.quickjs.serverside;bundle-version="1.0.0"

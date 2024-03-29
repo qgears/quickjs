@@ -1,0 +1,3 @@
+= QuickJS codes intended for the HTTP server side only
+
+But still implementation independent codes.

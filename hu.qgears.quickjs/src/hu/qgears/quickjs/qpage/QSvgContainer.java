@@ -88,12 +88,12 @@ public class QSvgContainer extends QComponent
 			write(");\n");
 		}
 	}
-	@Override
-	public void generateHtmlObject() {
-		write("<svg id=\"");
-		writeObject(id);
-		write("</svg>\n");
-	}
+//	@Override
+//	public void generateHtmlObject() {
+//		write("<svg id=\"");
+//		writeObject(id);
+//		write("</svg>\n");
+//	}
 
 	public void handle(JSONObject post) throws IOException {
 /*		String ntext=JSONHelper.getStringSafe(post,"text");

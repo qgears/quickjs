@@ -57,15 +57,14 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	protected void generateHtmlContent() {
 		write("<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n");
 		writePreloadHeaders();
-		page.writePreloadHeaders(this);
+		page.getParent().writePreloadHeaders(this);
 		writeFaviconHeaders();
 		writeHeaders();
-		page.writeHeaders(this);
+		page.getParent().writeHeaders(this);
 		write("</head>\n<body>\n");
 		setupWebSocketArguments(false);
-		page.setInitialHtmlTemplate(this);
 		writeBody();
-		page.generateInitialization();
+		page.getParent().generateInitialization(this);
 		bodyAfterQPageInitialization();
 		write("</body>\n</html>\n");
 	}

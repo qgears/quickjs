@@ -4,8 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilComma;
@@ -15,7 +16,7 @@ import hu.qgears.commons.UtilEventListener;
  * Combo box selector implementation based on div based implementation.
  */
 public class QSelectCombo2 extends QComponent {
-	private Logger log=Logger.getLogger(getClass());
+	private Logger log=LoggerFactory.getLogger(getClass());
 	public interface OptionCreator
 	{
 		default String createOption(int optionIndex)
@@ -39,12 +40,9 @@ public class QSelectCombo2 extends QComponent {
 	
 	protected void serverOptionsChanged(final List<OptionCreator> msg)
 	{
-		if(page.inited)
+		try(NoExceptionAutoClosable c=activateJS())
 		{
-			try(NoExceptionAutoClosable c=activateJS())
-			{
-				sendOptions(msg);
-			}
+			sendOptions(msg);
 		}
 	}
 
@@ -101,12 +99,9 @@ public class QSelectCombo2 extends QComponent {
 			selected.serverChangedEvent.addListener(new UtilEventListener<Integer>() {
 				@Override
 				public void eventHappened(Integer msg) {
-					if(page.inited)
+					try(NoExceptionAutoClosable c=activateJS())
 					{
-						try(NoExceptionAutoClosable c=activateJS())
-						{
-							sendSelected();
-						}
+						sendSelected();
 					}
 				}
 			});
@@ -122,15 +117,15 @@ public class QSelectCombo2 extends QComponent {
 				selected.setPropertyFromClient(post.getInt("selected"));
 			}
 		} catch (Exception e) {
-			log.error(e);
+			log.error("Handle selected event", e);
 		}
 	}
-	@Override
-	public void generateHtmlObject() {
-		write("<div id=\"");
-		writeObject(getId());
-		write("\"></div>\n");
-	}
+//	@Override
+//	public void generateHtmlObject() {
+//		write("<div id=\"");
+//		writeObject(getId());
+//		write("\"></div>\n");
+//	}
 	@Override
 	protected boolean isSelfInitialized() {
 		return true;

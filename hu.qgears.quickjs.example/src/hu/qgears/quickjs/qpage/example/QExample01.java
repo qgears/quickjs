@@ -2,30 +2,28 @@ package hu.qgears.quickjs.qpage.example;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Timer;
 
 import hu.qgears.commons.EscapeString;
+import hu.qgears.quickjs.qpage.AbstractQPage;
 import hu.qgears.quickjs.qpage.QButton;
 import hu.qgears.quickjs.qpage.QLabel;
-import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QTextEditor;
-import hu.qgears.quickjs.utils.AbstractQPage;
-import hu.qgears.quickjs.utils.QTimerTask;
 
 /**
  * A simple example of a QPage based web application. 
  */
 public class QExample01 extends AbstractQPage
 {
-	private static final Timer timer=new Timer("QExample01 server push update timer", true);
 	private SimpleDateFormat df=new SimpleDateFormat("yyyy. M dd. HH:mm:ss");
 	private QButton dispose=new QButton();
 	private QButton buttonClear=new QButton();
 	private QTextEditor textEd=new QTextEditor();
 	private QLabel l=new QLabel("mylabel");
-
 	@Override
-	protected void initQPage(final QPage page) {
+	public void initPage() {
+	}
+	@Override
+	public void createBody() {
 		// Create text editor object, initialize string content 
 		
 		textEd.text.setPropertyFromServer("Example text to edit");
@@ -44,19 +42,12 @@ public class QExample01 extends AbstractQPage
 		final QLabel counter=new QLabel(page, "counter");
 		counter.innerhtml.setPropertyFromServer("");
 		
-		// Timer task that passes execution to the UI executor to update the label to current time
-		// Events that are coming from non UI scope (other threads) have to be submitted to the UI thread as in the example.
-		QTimerTask tt=new QTimerTask(()->counter.getPage().submitToUI(()->counter.innerhtml.setPropertyFromServer(df.format(new Date()))));
-		timer.schedule(tt, 1000, 1000);
+		// Timer task that passes execution to the UI executor to update the label to current time.
+		// The timer is stored on the page and auto-closed when the page is closed. The returned object can also be used to close it.
+		page.startTimer(()->counter.innerhtml.setPropertyFromServer(df.format(new Date())), 1000, 1000);
 		
-		// In case the page is disposed cancel the updater timer (by user leaves pagem timeout, HTTP session ends or explicite dispose)
-		page.disposedEvent.addOnReadyHandler(p->{tt.cancel(); System.out.println("Page disposed.");});
-	}
-	/**
-	 * See the rtemplate version of this file <a href="https://github.com/rizsi/quickjs/blob/master/quickjs-example/template/hu/qgears/quickjs/qpage/example/QExample01.java.rt#L58">here</a>
-	 */
-	@Override
-	protected void writeBody() {
+		// In case the page is disposed cancel the updater timer (by user leaves page timeout, HTTP session ends or explicite dispose)
+		page.addCloseable(()->{System.out.println("Page disposed.");});
 		write("<h1>QPage example page</h1>\n<a href=\"/\">Back to index</a><br/>\n\n<h2>Text editor with feedback</h2>\n\n<textarea id=\"");
 		writeObject(textEd.getId());
 		write("\" rows=\"5\" cols=\"150\"></textarea>\n<br/>\n<button id=\"");

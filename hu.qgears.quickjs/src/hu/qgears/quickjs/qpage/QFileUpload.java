@@ -10,7 +10,7 @@ import org.json.JSONObject;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
-import hu.qgears.quickjs.qpage.IndexedComm.Msg;
+import hu.qgears.quickjs.helpers.IPlatformServerSide;
 
 /**
  * File upload handler.
@@ -37,7 +37,6 @@ public class QFileUpload extends QComponent
 	private long size;
 	private long allReceived;
 	private long allEnqueued;
-	private String jsRef;
 	public final UtilEvent<QFileUpload> statusUpdated=new UtilEvent<>();
 	private IndexedComm comm=new IndexedComm();
 	private FolderCreator folderCreator;
@@ -58,9 +57,9 @@ public class QFileUpload extends QComponent
 		comm.received.addListener(msg->{
 			received(msg);
 		});
-		if(getPage()!=null)
+		if(getPageContainer()!=null)
 		{
-			commId=getPage().registerCustomWebsocketImplementation(comm);
+			commId=((IPlatformServerSide)getPageContainer().getPlatform()).registerCustomWebsocketImplementation(comm);
 		}
 	}
 	private Map<String, FileInfo> toUploads=new TreeMap<>();
@@ -107,7 +106,7 @@ public class QFileUpload extends QComponent
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			getPage().submitToUI(new Runnable() {
+			getPageContainer().submitToUI(new Runnable() {
 				@Override
 				public void run() {
 					statusUpdated.eventHappened(QFileUpload.this);
@@ -141,7 +140,7 @@ public class QFileUpload extends QComponent
 				bos=null;
 				System.out.println("File upload finsihed: "+currentFileName+" "+at+" "+fileLength);
 			}
-			getPage().submitToUI(new Runnable() {
+			getPageContainer().submitToUI(new Runnable() {
 				@Override
 				public void run() {
 					statusUpdated.eventHappened(QFileUpload.this);
@@ -152,12 +151,12 @@ public class QFileUpload extends QComponent
 		}
 	}
 
-	@Override
-	public void generateHtmlObject() {
-		write("<input id=\"");
-		writeObject(id);
-		write("\" type=\"file\" name=\"attachment[]\" webkitdirectory directory multiple>\n");
-	}
+//	@Override
+//	public void generateHtmlObject() {
+//		write("<input id=\"");
+//		writeObject(id);
+//		write("\" type=\"file\" name=\"attachment[]\" webkitdirectory directory multiple>\n");
+//	}
 
 	@Override
 	protected void doInitJSObject() {
@@ -168,11 +167,6 @@ public class QFileUpload extends QComponent
 			write("\", \"");
 			writeObject(commId);
 			write("\");\n");
-		}
-		if(jsRef!=null)
-		{
-			installDropListenerPrivate(jsRef);
-			jsRef=null;
 		}
 	}
 
@@ -206,9 +200,9 @@ public class QFileUpload extends QComponent
 	}
 	@Override
 	protected void onDispose() {
-		if(getPage()!=null)
+		if(getPageContainer()!=null)
 		{
-			getPage().unregisterCustomWebsocketImplementation(commId);
+			((IPlatformServerSide)getPageContainer().getPlatform()).unregisterCustomWebsocketImplementation(commId);
 		}
 		if(bos!=null)
 		{
@@ -224,13 +218,7 @@ public class QFileUpload extends QComponent
 	}
 
 	public void installDropListener(String string) {
-		if(this.inited)
-		{
-			installDropListenerPrivate(string);
-		}else
-		{
-			jsRef=string;
-		}
+		installDropListenerPrivate(string);
 	}
 	private void installDropListenerPrivate(String string) {
 		try(NoExceptionAutoClosable c=activateJS())

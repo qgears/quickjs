@@ -28,6 +28,7 @@ import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.ISessionUpdateLastAccessedTime;
 import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QPageManager;
 import hu.qgears.quickjs.qpage.example.IQPageFactory;
 import hu.qgears.quickjs.qpage.example.QPageContext;
@@ -82,7 +83,7 @@ public class QPageHandler extends HandlerCollection {
 		System.err.println("PROTOCOL: "+baseRequest.getProtocol());
 		HttpSession sess=baseRequest.getSession();
 		final QPageManager qpm=HttpSessionQPageManager.getManager(sess);
-		String id=baseRequest.getParameter(QPage.class.getSimpleName());
+		String id=baseRequest.getParameter(QPageContainer.class.getSimpleName());
 		if(!isStarted())
 		{
 			throw new RuntimeException("Handler is used but not started");
@@ -133,7 +134,11 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 					// handle initial get
 					new HtmlTemplate(wr){
 						public void generate() throws Exception {
-							QPage newPage=new QPage(qpm);
+							String id=qpm.createId();
+							QPageContainer newPage=new QPageContainer(id);
+							qpm.register(id, newPage);
+							JettyPlatform platform=new JettyPlatform(newPage, qpm);
+							newPage.internalStart(platform);
 							QPageContext qpc=QPageContext.getCurrent();
 							{
 								Object attrib=sess.getAttribute(GdprSession.keyUseNoCookieSession);
@@ -150,15 +155,16 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 							HttpSession session=request.getSession();
 							if(session instanceof ISessionUpdateLastAccessedTime)
 							{
-								newPage.setSessionToUpdateLastAccessedTime((ISessionUpdateLastAccessedTime) session);
+								platform.setSessionToUpdateLastAccessedTime((ISessionUpdateLastAccessedTime) session);
 							}
-							try(NoExceptionAutoClosable c=newPage.setThreadCurrentPage())
+							QPage page=new QPage(newPage);
+							try(NoExceptionAutoClosable c=page.setThreadCurrentPage())
 							{
 								AbstractQPage inst=pageFactory.createPage(userData);
 								inst.setRequest(baseRequest, request);
-								inst.initApplication(this, newPage);
+								inst.initApplication(this, page);
 							}
-							newPage.setExecutor(r->{
+							platform.setExecutor(r->{
 								try
 								{
 									Server server=getServer();

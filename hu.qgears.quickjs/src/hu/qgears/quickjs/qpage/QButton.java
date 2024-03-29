@@ -22,8 +22,6 @@ public class QButton extends QComponent
 	 */
 	@SuppressWarnings("resource")
 	public final UtilEventWithListenerTrack<QButtonEvent> rightClicked=new UtilEventWithListenerTrack<>(e->{
-		if(inited)
-		{
 			if(e.getNListeners()==1)
 			{
 				try(NoExceptionAutoClosable c=activateJS())
@@ -41,14 +39,11 @@ public class QButton extends QComponent
 					write("\"].addRightClickListener(false);\n");
 				}
 			}
-		}
 	});
 	/**
 	 * Mouse down event. In case a listener is added then mouse down event listening is activated.
 	 */
 	public final UtilEventWithListenerTrack<QButtonEvent> mouseDown=new UtilEventWithListenerTrack<>(e->{
-		if(inited)
-		{
 			if(e.getNListeners()==1)
 			{
 				try(NoExceptionAutoClosable c=activateJS())
@@ -66,7 +61,6 @@ public class QButton extends QComponent
 					write("\"].addMouseDownListener(false);\n");
 				}
 			}
-		}
 	});
 	public QButton(IQContainer container, String identifier) {
 		super(container, identifier);
@@ -80,11 +74,6 @@ public class QButton extends QComponent
 	public QButton() {
 		super();
 		init();
-	}
-	public void generateHtmlObject() {
-		write("<button id=\"");
-		writeObject(id);
-		write("\">BUTTON</button>\n");
 	}
 
 	public void handle(JSONObject post) throws IOException {

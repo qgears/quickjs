@@ -2,7 +2,6 @@ package hu.qgears.quickjs.qpage;
 
 import java.awt.Point;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,14 +10,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.apache.log4j.Logger;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
 import hu.qgears.commons.UtilFile;
 import hu.qgears.commons.UtilListenableProperty;
-import hu.qgears.quickjs.qpage.IndexedComm.Msg;
 
 /**
  * When a Java/JS component is created it is either already in the HTML tree
@@ -31,14 +30,11 @@ import hu.qgears.quickjs.qpage.IndexedComm.Msg;
  */
 public abstract class QComponent extends HtmlTemplate implements IQContainer, IUserObjectStorage
 {
-	protected QPage page;
+	protected QPageContainer page;
 	protected String id;
-	@Deprecated
-	protected boolean inited;
 	private List<QComponent> children=new ArrayList<>();
 	private boolean disposed;
 	private IQContainer container;
-	private ComponentCreator creator;
 	public final UtilListenableProperty<Object> userObject=new UtilListenableProperty<>();
 	private Map<String, Object> userObjectStorage;
 	private UtilEvent<QComponent> initEvent;
@@ -48,13 +44,12 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	private List<AutoCloseable> closeables;
 	protected boolean disabled;
 	private UtilListenableProperty<Point> size;
+	private static Logger log=LoggerFactory.getLogger(QComponent.class);
 	/**
 	 * Focused event. In case a listener is added then onfocus listening is activated.
 	 */
 	@SuppressWarnings("resource")
 	public final UtilEventWithListenerTrack<QComponent> focused=new UtilEventWithListenerTrack<>(e->{
-		if(inited)
-		{
 			if(e.getNListeners()==1)
 			{
 				try(NoExceptionAutoClosable c=activateJS())
@@ -72,20 +67,19 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 					write("\"].addFocusListener(false);\n");
 				}
 			}
-		}
 	});
 
 	public QComponent(IQContainer container, String id) {
 		super();
 		if(id==null && container!=null)
 		{
-			id=container.getPage().createComponentId();
+			id=container.getPageContainer().createComponentId();
 		}
 		this.id = id;
 		this.container=container;
 		if(container!=null)
 		{
-			this.page = container.getPage();
+			this.page = container.getPageContainer();
 		}
 		if(page!=null)
 		{
@@ -107,7 +101,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 * @param container
 	 */
 	public QComponent(IQContainer container) {
-		this(container, container.getPage().createComponentId());
+		this(container, container==null?null:container.getPageContainer().createComponentId());
 	}
 	/**
 	 * Create a component object with given identifier
@@ -124,68 +118,21 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		this(QPage.getCurrent(), null);
 	}
 
-	public void generateHtmlObject(HtmlTemplate templateTarget)
-	{
-		try(ResetOutputObject eoo=setParent(templateTarget))
-		{
-			generateHtmlObject();
-		}
-	}
-	abstract public void generateHtmlObject();
-
 	/**
 	 * Must set "inited" field to true!
 	 * @param parent
 	 */
 	final public void init()
 	{
-		if(!inited && page!=null)
+		if(page!=null)
 		{
 			try(NoExceptionAutoClosable c=activateJS())
 			{
-				doCreateHTMLObject();
 				doInitJSObject();
-				if(this.childContainerSelector!=null)
-				{
-					syncChildContainerSelector();
-				}
-			}
-			if(focused.getNListeners()>0)
-			{
-				try(NoExceptionAutoClosable c=activateJS())
-				{
-					write("\tpage.components[\"");
-					writeObject(id);
-					write("\"].addFocusListener(true);\n");
-				}
-			}
-			if(size!=null)
-			{
-				startSizeListener();
-			}
-			if(initEvent!=null)
-			{
-				initEvent.eventHappened(this);
 			}
 		}
 		initChildren();
 	}
-	/**
-	 * Create HTML object into the HTML tree.
-	 * This is called in the init phase of the component.
-	 * In case of pre-created HTML objects
-	 * (when the HTML tree of the object is already in the DOM tree and we only
-	 *  create and connect the JS object to the existing DOM in the init phase)
-	 * this step is a no-op.
-	 */
-	protected void doCreateHTMLObject()
-	{
-		if(creator!=null)
-		{
-			creator.createHtmlFor(this);
-		}
-	}
-
 	abstract protected void doInitJSObject();
 	/**
 	 * Handle incoming message. This version can contain (binary) attachments not only the 
@@ -219,10 +166,9 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	final public String getId() {
 		return id;
 	}
-	public QPage getPage() {
+	public QPageContainer getPageContainer() {
 		return page;
 	}
-
 	public void generateHeader(HtmlTemplate parent)
 	{
 		new HtmlTemplate(parent){
@@ -300,24 +246,28 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 				}
 			}
 			page.remove(this);
-			if(closeables!=null)
+			disposed=true;
+			List<AutoCloseable> toClose;
+			synchronized (this) {
+				toClose=closeables;
+				closeables=null;
+			}
+			if(toClose!=null)
 			{
-				for(AutoCloseable c: closeables)
+				for(AutoCloseable c: toClose)
 				{
 					closeCloseable(c);
 				}
 			}
-			closeables=null;
 		}
-		disposed=true;
 	}
 	private void removeFromParentList()
 	{
-		if(container instanceof QComponent)
-		{
-			QComponent p=(QComponent) container;
-			p.children.remove(this);
-		}
+		container.removeChild(this);
+	}
+	@Override
+	public void removeChild(QComponent child) {
+		children.remove(child);
 	}
 	/**
 	 * Called when the object is deleted from the server.
@@ -355,37 +305,10 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public IQContainer getParent() {
 		return container;
 	}
-	/**
-	 * Set the creator that creates the HTML node for this object.
-	 * @param creator
-	 */
-	public void setCreator(ComponentCreator creator) {
-		this.creator = creator;
-	}
-	/**
-	 * Set up whether the HTML f this component already exists in the HTML tree or
-	 * it has to be created when the object is created.
-	 * @param existing true means already existing HTML DOM objects and sets creator to null
-	 *        false means HTML DOM must be created and sets up the default creator that will 
-	 *        call the doCreateHTMLObject() function before initializing the JS object.
-	 * @return this same object - for possible command chaining
-	 */
-	public QComponent setHtmlExisting(boolean existing)
-	{
-		if(!existing)
-		{
-			setCreator(page.defaultCreator);
-		}else
-		{
-			setCreator(null);
-		}
-		return this;
-	}
-
-	public void registerResources(Map<String, URL> jsResources) {
+	public void registerResources(QPageTypesRegistry typeReg) {
 		for(String s: getScriptReferences())
 		{
-			jsResources.put(s+".js", getClass().getResource(s+".js"));
+			typeReg.addJs(s+".js", getClass().getResource(s+".js"));
 		}
 	}
 	
@@ -473,7 +396,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		}
 		return userEvent;
 	}
-	public void handleClientPost(IndexedComm.Msg msg, JSONObject post) throws IOException {
+	public void handleClientPost(Msg msg, JSONObject post) throws IOException {
 		if(post.has("user"))
 		{
 			if(userEvent!=null)
@@ -497,7 +420,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public QComponent setChildContainerSelector(String childContainerSelector)
 	{
 		this.childContainerSelector=childContainerSelector;
-		if(childContainerSelector!=null && this.inited)
+		if(childContainerSelector!=null)
 		{
 			syncChildContainerSelector();
 		}
@@ -513,7 +436,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public QComponent setControlledNodeSelector(String controlledNodeSelector)
 	{
 		this.controlledNodeSelector=controlledNodeSelector;
-		if(controlledNodeSelector!=null && this.inited)
+		if(controlledNodeSelector!=null)
 		{
 			syncControlledNodeSelector();
 		}
@@ -546,7 +469,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	 * @return
 	 */
 	public String createChildContainerId() {
-		String id=getPage().createComponentId();
+		String id=getPageContainer().createComponentId();
 		setChildContainerSelector("#"+id);
 		return id;
 	}
@@ -581,38 +504,46 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		}
 	}
 	@Override
-	public void addCloseable(AutoCloseable closeable) {
+	public NoExceptionAutoClosable addCloseable(AutoCloseable closeable) {
 		if(isDisposed())
 		{
 			closeCloseable(closeable);
+			return new NoExceptionAutoClosable() {};
 		}else
 		{
-			if(closeables==null)
-			{
-				closeables=new ArrayList<>();
+			synchronized (this) {
+				if(closeables==null)
+				{
+					closeables=new ArrayList<>();
+				}
+				closeables.add(closeable);
 			}
-			closeables.add(closeable);
+			return new NoExceptionAutoClosable() {
+				@Override
+				public void close() {
+					synchronized (QComponent.this) {
+						closeables.remove(closeable);
+					}
+				}
+			};
 		}
 	}
 	private void closeCloseable(AutoCloseable closeable) {
 		try {
 			closeable.close();
 		} catch (Exception e) {
-			Logger.getLogger(getClass()).error("Closing attached closeable", e);
+			log.error("Closing attached closeable", e);
 		}
 	}
 	public void setDisabled(final boolean disabled) {
 		this.disabled=disabled;
-		if(inited)
+		try(NoExceptionAutoClosable c=activateJS())
 		{
-			try(NoExceptionAutoClosable c=activateJS())
-			{
-				write("page.components['");
-				writeJSValue(id);
-				write("'].setDisabled(");
-				writeObject(disabled);
-				write(");\n");
-			}
+			write("page.components['");
+			writeJSValue(id);
+			write("'].setDisabled(");
+			writeObject(disabled);
+			write(");\n");
 		}
 	}
 	/**
@@ -637,10 +568,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		if(size==null)
 		{
 			size=new UtilListenableProperty<>();
-			if(inited)
-			{
-				startSizeListener();
-			}
+			startSizeListener();
 		}
 		return size;
 	}

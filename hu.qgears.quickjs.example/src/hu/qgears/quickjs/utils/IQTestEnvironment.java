@@ -2,7 +2,7 @@ package hu.qgears.quickjs.utils;
 
 import org.eclipse.jetty.server.Request;
 
-import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
 
 /**
  * Interface to communicate with test environment when auto-testing is used.
@@ -13,5 +13,5 @@ public interface IQTestEnvironment {
 	 * @param baseRequest
 	 * @param newPage
 	 */
-	default void qPageCreated(Request baseRequest, QPage newPage) {}
+	default void qPageCreated(Request baseRequest, QPageContainer newPage) {}
 }
