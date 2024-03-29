@@ -6,7 +6,7 @@ import hu.qgears.quickjs.serialization.RemotingBase;
 /** Access the context of the QPageContainer.
  * This object is accessible both on the server(JVM) and the client(TeaVM).
  * For this reason its methods are serializable and remote callable.
- * {@link hu.qgears.quickjs.serialization.ProcessInterface} generator can be used to generate the necessary serialization and remoting classes
+ * {@link hu.qgears.quickjs.serialization.generator.ProcessInterface} generator can be used to generate the necessary serialization and remoting classes
  */
 public interface IQPageContaierContext {
 	/** Object created by the embedding code on the server side. It is initialized

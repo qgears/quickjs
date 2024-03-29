@@ -20,25 +20,6 @@ public class IndexedComm {
 		void close();
 	}
 	public static final long timeoutPingMillis=20000;
-	public class Msg
-	{
-		/**
-		 * {@link JSONObject} or string
-		 */
-		public Object header;
-		public long index;
-		public Object[] arguments;
-		public int nPart;
-		public int currentArgument;
-		public void log()
-		{
-			System.out.println("Header: "+header);
-			for(int i=0;i<arguments.length;++i)
-			{
-				System.out.println("Arg "+i+" "+arguments[i]);
-			}
-		}
-	}
 	private ConnectedSocket socket;
 	private long currentIndex=0;
 	private long currentReceivingIndex=0;

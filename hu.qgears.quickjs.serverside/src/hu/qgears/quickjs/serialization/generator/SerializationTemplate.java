@@ -1,8 +1,13 @@
-package hu.qgears.quickjs.serialization;
+package hu.qgears.quickjs.serialization.generator;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
+
+import hu.qgears.quickjs.serialization.ClassFullName;
+import hu.qgears.quickjs.serialization.CommunicationModel;
+import hu.qgears.quickjs.serialization.JavaTemplate;
+import hu.qgears.quickjs.serialization.SerializeBase;
 
 public class SerializationTemplate extends JavaTemplate {
 	CommunicationModel model;

@@ -126,7 +126,11 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 					// handle initial get
 					new HtmlTemplate(wr){
 						public void generate() throws Exception {
-							QPageContainer newPage=new QPageContainer(qpm);
+							String id=qpm.createId();
+							QPageContainer newPage=new QPageContainer(id);
+							qpm.register(id, newPage);
+							JettyPlatform platform=new JettyPlatform(newPage, qpm);
+							newPage.internalStart(platform);
 							QPageContext qpc=QPageContext.getCurrent();
 							{
 								Object attrib=sess.getAttribute(GdprSession.keyUseNoCookieSession);
@@ -143,7 +147,7 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 							HttpSession session=request.getSession();
 							if(session instanceof ISessionUpdateLastAccessedTime)
 							{
-								newPage.setSessionToUpdateLastAccessedTime((ISessionUpdateLastAccessedTime) session);
+								platform.setSessionToUpdateLastAccessedTime((ISessionUpdateLastAccessedTime) session);
 							}
 							QPage page=new QPage(newPage);
 							try(NoExceptionAutoClosable c=page.setThreadCurrentPage())
@@ -152,7 +156,7 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 								inst.setRequest(baseRequest, request);
 								inst.initApplication(this, page);
 							}
-							newPage.setExecutor(r->{
+							platform.setExecutor(r->{
 								try
 								{
 									Server server=getServer();

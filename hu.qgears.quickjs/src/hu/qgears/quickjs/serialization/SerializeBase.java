@@ -37,7 +37,7 @@ public class SerializeBase {
 	 * @param value
 	 * @return false means not serialized because type is not known
 	 */
-	protected boolean serializeObject(Object value)
+	public boolean serializeObject(Object value)
 	{
 		if(value==null)
 		{

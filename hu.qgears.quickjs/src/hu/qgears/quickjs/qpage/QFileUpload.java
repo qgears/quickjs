@@ -10,7 +10,7 @@ import org.json.JSONObject;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
-import hu.qgears.quickjs.qpage.IndexedComm.Msg;
+import hu.qgears.quickjs.helpers.IPlatformServerSide;
 
 /**
  * File upload handler.
@@ -59,7 +59,7 @@ public class QFileUpload extends QComponent
 		});
 		if(getPageContainer()!=null)
 		{
-			commId=getPageContainer().registerCustomWebsocketImplementation(comm);
+			commId=((IPlatformServerSide)getPageContainer().getPlatform()).registerCustomWebsocketImplementation(comm);
 		}
 	}
 	private Map<String, FileInfo> toUploads=new TreeMap<>();
@@ -202,7 +202,7 @@ public class QFileUpload extends QComponent
 	protected void onDispose() {
 		if(getPageContainer()!=null)
 		{
-			getPageContainer().unregisterCustomWebsocketImplementation(commId);
+			((IPlatformServerSide)getPageContainer().getPlatform()).unregisterCustomWebsocketImplementation(commId);
 		}
 		if(bos!=null)
 		{

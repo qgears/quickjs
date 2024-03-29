@@ -18,7 +18,6 @@ import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
 import hu.qgears.commons.UtilFile;
 import hu.qgears.commons.UtilListenableProperty;
-import hu.qgears.quickjs.qpage.IndexedComm.Msg;
 
 /**
  * When a Java/JS component is created it is either already in the HTML tree
@@ -397,7 +396,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 		}
 		return userEvent;
 	}
-	public void handleClientPost(IndexedComm.Msg msg, JSONObject post) throws IOException {
+	public void handleClientPost(Msg msg, JSONObject post) throws IOException {
 		if(post.has("user"))
 		{
 			if(userEvent!=null)

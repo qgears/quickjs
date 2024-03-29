@@ -183,7 +183,10 @@ class QPageContainer
 		{
 			clearTimeout(this.disposeTimeout);
 		}
-		this.disposeTimeout=setTimeout(this.disposeByTimeout.bind(this), this.timeoutDispose);
+		if(this.timeoutDispose!=0)
+		{
+			this.disposeTimeout=setTimeout(this.disposeByTimeout.bind(this), this.timeoutDispose);
+		}
 	}
 	disposeByTimeout()
 	{

@@ -1,8 +1,13 @@
-package hu.qgears.quickjs.serialization;
+package hu.qgears.quickjs.serialization.generator;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+
+import hu.qgears.quickjs.serialization.ClassFullName;
+import hu.qgears.quickjs.serialization.CommunicationModel;
+import hu.qgears.quickjs.serialization.JavaTemplate;
+import hu.qgears.quickjs.serialization.RemotingServer;
 
 public class RemotingServerTemplate extends JavaTemplate {
 	Class<?> cla;

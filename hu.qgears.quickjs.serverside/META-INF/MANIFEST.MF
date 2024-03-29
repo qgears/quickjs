@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Serverside
+Bundle-SymbolicName: hu.qgears.quickjs.serverside
+Bundle-Version: 1.0.0.qualifier
+Automatic-Module-Name: hu.qgears.quickjs.serverside
+Bundle-RequiredExecutionEnvironment: JavaSE-11
+Require-Bundle: hu.qgears.quickjs;bundle-version="4.0.0"
+Export-Package: hu.qgears.quickjs.serialization.generator

@@ -8,6 +8,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import hu.qgears.quickjs.helpers.IPlatformServerSide;
 import hu.qgears.quickjs.qpage.IndexedComm;
 import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QPageManager;
@@ -27,27 +28,29 @@ public class QWSCreator implements WebSocketCreator {
 		final QPageManager qpm=HttpSessionQPageManager.getManager(req.getSession());
 		String id=req.getHttpServletRequest().getParameter(QPageContainer.class.getSimpleName());
 		final QPageContainer page=qpm.getPage(id);
-		List<String> customId=req.getParameterMap().get("customId");
-		if(page!=null && customId!=null && customId.size()==1)
-		{
-			IndexedComm ic=page.getCustomWebsocketImplementation(customId.get(0));
-			if(ic!=null)
-			{
-				QWSMessagingClass ret=new QWSMessagingClass();
-				ret.setIndexedComm(ic);
-				return ret;
-			}
-			return null;
-		}
-		QWSMessagingClass ret=new QWSMessagingClass();
-		if(page!=null)
-		{
-			ret.setIndexedComm(page.getIndexedComm());
-		}else
+		if(page==null)
 		{
 			log.info("Page Websocket Query finds no page: pageid: "+id+" session id: '"+req.getSession().getId()+"'");
+			return null;
+		}else
+		{
+			IPlatformServerSide pss=(IPlatformServerSide)page.getPlatform();
+			List<String> customId=req.getParameterMap().get("customId");
+			if(customId!=null && customId.size()==1)
+			{
+				IndexedComm ic=pss.getCustomWebsocketImplementation(customId.get(0));
+				if(ic!=null)
+				{
+					QWSMessagingClass ret=new QWSMessagingClass();
+					ret.setIndexedComm(ic);
+					return ret;
+				}
+				return null;
+			}
+			QWSMessagingClass ret=new QWSMessagingClass();
+			ret.setIndexedComm(pss.getIndexedComm());
+			return ret;
 		}
-		return ret;
 	}
 
 }

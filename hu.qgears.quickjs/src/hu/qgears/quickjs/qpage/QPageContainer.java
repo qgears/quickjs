@@ -6,48 +6,28 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
-import java.util.function.Supplier;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
-import hu.qgears.commons.SafeTimerTask;
 import hu.qgears.commons.UtilComma;
 import hu.qgears.commons.UtilEvent;
 import hu.qgears.commons.UtilFile;
 import hu.qgears.commons.UtilListenableProperty;
-import hu.qgears.commons.UtilTimer;
 import hu.qgears.commons.signal.SignalFutureWrapper;
 import hu.qgears.quickjs.helpers.IPlatform;
 import hu.qgears.quickjs.helpers.QTimer;
-import hu.qgears.quickjs.qpage.IndexedComm.Msg;
 
 /** QuickJS web page instance.
  */
 public class QPageContainer implements Closeable, IQContainer, IUserObjectStorage {
-	// TODO to be moved into IPlatform
-	private Object syncObject = new Object();
-	private Executor executor;
-	private volatile Thread thread;
-	private final QPageManager qpm;
-	private long TIMEOUT_DISPOSE=IndexedComm.timeoutPingMillis*2;
-	private IndexedComm indexedComm=new IndexedComm();
-	private SafeTimerTask disposeTimer;
-	/// TODO move to QSPa
-	@Deprecated
-	private Map<String, IndexedComm> customWebSocketImplementations=Collections.synchronizedMap(new HashMap<>());
-
 	public static String idAttribute = QPageContainer.class.getSimpleName();
 	protected static final Logger log=LoggerFactory.getLogger(QPageContainer.class);
 	private String identifier = "id";
@@ -58,11 +38,10 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	private String scriptsAsSeparateFile=null;
 	private List<QComponent> additionaComponentTypes=new ArrayList<QComponent>();
 	private Map<String, Object> userObjectStorage=new HashMap<String, Object>();
-	private LinkedList<Runnable> tasks=new LinkedList<>();
 	private String sessionIdParameterName;
 	private String sessionId;
-	private ISessionUpdateLastAccessedTime sessionToUpdateLastAccessedTime;
 	private List<AutoCloseable> closeables;
+	private Object closeablesSyncObject=new Object();
 	private QTimer currentTimerTask;	
 	private IPlatform platform;
 	/**
@@ -75,7 +54,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	 */
 	private int idCtr=0;
 	private Map<String, UtilEvent<JSONObject>> customQueryListeners=new HashMap<>();
-	private Map<String, UtilEvent<IndexedComm.Msg>> customQueryListeners2=new HashMap<>();
+	private Map<String, UtilEvent<Msg>> customQueryListeners2=new HashMap<>();
 	@Deprecated
 	public final UtilEvent<HtmlTemplate> afterComponentInitialization=new UtilEvent<>();
 	/**
@@ -94,20 +73,12 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	 */
 	public final UtilListenableProperty<Point> windowClientSize=new UtilListenableProperty<>();
 	
-	private Supplier<AutoCloseable> setupContext=()->(()->{});
 	class Message {
-		IndexedComm.Msg msg;
-		JSONObject post;
-		boolean outOfOrder=false;
+		Msg msg;
 
-		public Message(IndexedComm.Msg msg) throws NumberFormatException, IOException {
+		public Message(Msg msg) throws NumberFormatException, IOException {
 			super();
 			this.msg = msg;
-			this.post = (JSONObject)msg.header;
-		}
-		public Message(boolean outOfOrder) throws NumberFormatException, IOException {
-			super();
-			this.outOfOrder=outOfOrder;
 		}
 		protected void executeTask() throws IOException
 		{
@@ -118,6 +89,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 			}
 			try(NoExceptionAutoClosable c=child.setThreadCurrentPage())
 			{
+				JSONObject post = (JSONObject)msg.header;
 				if (post.has("history_popstate"))
 				{
 					historyPopState.eventHappened(new HistoryPopStateEvent(QPageContainer.this, post.getString("pathname"), post.getString("search")));
@@ -155,23 +127,8 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 			}
 		}
 		public void executeOnThread() throws Exception {
-			synchronized (syncObject) {
-				// Proper ordering of messages is done by messaging subsystem
-				thread=Thread.currentThread();
-				try(NoExceptionAutoClosable c=child.setThreadCurrentPage())
-				{
-					try(AutoCloseable s=setupContext.get())
-					{
-						executeTask();
-					}
-					indexedComm.sendMessage("js", jsTemplate.toWebSocketArguments());
-				}finally
-				{
-					jsTemplate=createJsTemplate();
-					thread=null;
-					reinitDisposeTimer();
-				}
-			}
+			// Proper ordering of messages is done by messaging subsystem
+			executeTask();
 		}
 	}
 	public void handleClientPost(Msg msg, JSONObject post) {
@@ -189,66 +146,26 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 			log.error("Unhandled post type: "+post);
 		}
 	}
-	public QPageContainer(QPageManager qpm) {
-		this.qpm=qpm;
-		thread=Thread.currentThread();
-		identifier = qpm.createId();
-		qpm.register(identifier, this);
-		reinitDisposeTimer();
-		indexedComm.received.addListener(msg->{
-			JSONObject jo=(JSONObject)msg.header;
-			if(jo.has("log"))
-			{
-				JSONArray a=jo.getJSONArray("log");
-				for(Object o: a)
-				{
-					log.info(""+o);
-				}
-			}else if(jo.has("unload")&&"true".equals(jo.get("unload"))) {
-				handleUnloadQuery();
-			}else if(jo.has("history_popstate")|| jo.has("custom")||jo.has("component"))
-			{
-				try {
-					new Message(msg).executeOnThread();
-				} catch (Exception e) {
-					log.error("Process browser message", e);
-				}
-			}
-			if(sessionToUpdateLastAccessedTime!=null)
-			{
-				try {
-					sessionToUpdateLastAccessedTime.setLastAccessedTime(System.currentTimeMillis());
-				} catch (Exception e) {
-					log.error("sessionToUpdateLastAccessedTime", e);
-				}
-			}
-		});
-		indexedComm.receivedPing.addListener(msg->{
-			reinitDisposeTimer();
-		});
+	public void processBrowserMessage(Msg msg)
+	{
+		try {
+			// Proper ordering of messages is done by messaging subsystem
+			new Message(msg).executeOnThread();
+		} catch (Exception e) {
+			log.error("Process browser message", e);
+		}
+	}
+	public QPageContainer(String identifier) {
+		this.identifier = identifier;
+	}
+	public void internalStart(IPlatform platform)
+	{
+		this.platform=platform;
+		getPlatform().reinitDisposeTimer();
+		getPlatform().startCommunicationWithJs();
 		getCustomQueryListener("visibilitychange").addListener(json->{
 			documentVisibilityState.setProperty("visible".equals(json.getString("data")));
 		});
-	}
-
-	/**
-	 * Internal API.
-	 * Can be used in the very rare case when for some reason the page is blocked for a time.
-	 * Calling this periodically will disable page disposal by timer.
-	 */
-	public void reinitDisposeTimer() {
-		if(disposeTimer!=null)
-		{
-			disposeTimer.cancel();
-			disposeTimer=null;
-		}
-		disposeTimer=new SafeTimerTask() {
-			@Override
-			public void doRun() {
-				dispose();
-			}
-		};
-		QPageManager.disposeTimer.schedule(disposeTimer, TIMEOUT_DISPOSE);
 	}
 
 	public void writeHeaders(final HtmlTemplate parent) {
@@ -289,7 +206,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 				write("<script language=\"javascript\" type=\"text/javascript\">\n// Script that starts the QuickJS communication loop and connects managed objects DOM and JS \nglobalQPage=new QPageContainer('");
 				writeObject(identifier);
 				write("', ");
-				writeObject(TIMEOUT_DISPOSE);
+				writeObject(getPlatform().getTIMEOUT_DISPOSE_MS());
 				write(");\n");
 				if(sessionIdParameterName!=null){
 					write("globalQPage.setSessionIdParameterAdditional(\"&");
@@ -339,55 +256,11 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 			c.generateHeader(parent);
 		}
 	}
-	private void handleUnloadQuery() {
-		// Unload means that the client does not accept more messages: comm has to be closed immediately.
-		indexedComm.close();
-		dispose();
-	}
 	public void submitToUI(Runnable r) {
-		if(!disposedEvent.isDone())
-		{
-			synchronized (tasks) {
-				tasks.add(r);
-				// Otherwise we have one task already being executed
-				if(tasks.size()==1)
-				{
-					scheduleNext();
-				}
-			}
-		}
+		getPlatform().submitToUI(r);
 	}
 	public <V> Future<V> submitToUICallable(Callable<V> c) {
-		SignalFutureWrapper<V> ret=new SignalFutureWrapper<V>();
-		if(!disposedEvent.isDone())
-		{
-			synchronized (tasks) {
-				tasks.add(()->{
-					try
-					{
-						V v=c.call();
-						ret.ready(v, null);
-					}catch(Exception e)
-					{
-						ret.ready(null, e);
-					}
-					catch(Throwable t)
-					{
-						ret.ready(null, t);
-						throw t;
-					}
-				});
-				// Otherwise we have one task already being executed
-				if(tasks.size()==1)
-				{
-					scheduleNext();
-				}
-			}
-		}else
-		{
-			ret.ready(null, new IllegalStateException("Page already disposed"));
-		}
-		return ret;
+		return getPlatform().submitToUICallable(c);
 	}
 	/**
 	 * In case the page is disposed before timeout then the task will not be executed!
@@ -410,52 +283,6 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		QTimer t=getPlatform().startTimer(r, (int)timeoutMillis, (int)periodMillis);
 		t.addCloseable(addCloseable(t));
 		return t;
-	}
-	protected void scheduleNext() {
-		synchronized(tasks)
-		{
-			if(tasks.size()>0)
-			{
-				if(executor!=null)
-				{
-					executor.execute(new Runnable() {
-						@Override
-						public void run() {
-							Runnable r=tasks.peek();
-							while(r!=null)
-							{
-								synchronized (syncObject) {
-									try (NoExceptionAutoClosable c=child.setThreadCurrentPage()) {
-										thread=Thread.currentThread();
-										try(AutoCloseable s=setupContext.get())
-										{
-											r.run();
-										}
-										indexedComm.sendMessage("js", jsTemplate.toWebSocketArguments());
-									} catch (Exception e) {
-										log.error("send JS to client", e);
-									} finally
-									{
-										jsTemplate=createJsTemplate();
-										thread=null;
-									}
-								}
-								synchronized (tasks) {
-									tasks.remove();
-									if(tasks.size()>0)
-									{
-										r=tasks.peek();
-									}else
-									{
-										r=null;
-									}
-								}
-							}
-						}
-					});
-				}
-			}
-		}
 	}
 
 	@Override
@@ -480,7 +307,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	 */
 	public void dispose() {
 		active=false;
-		qpm.remove(this);
+		platform.deregister();
 		Runnable onThread=new Runnable() {
 			@Override
 			public void run() {
@@ -504,7 +331,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 					jsTemplate=prev;
 				}
 				List<AutoCloseable> toClose;
-				synchronized (syncObject) {
+				synchronized (closeablesSyncObject) {
 					toClose=closeables;
 					closeables=null;
 				}
@@ -515,15 +342,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 						closeCloseable(c);
 					}
 				}
-				/**
-				 * Timeout is required so that the last messages are sent first hopefully.
-				 */
-				UtilTimer.javaTimer.schedule(new SafeTimerTask() {
-					@Override
-					public void doRun() {
-						indexedComm.close();
-					}
-				}, 2000);
+				getPlatform().disposeCommunicationToJS();
 				disposedEvent.ready(QPageContainer.this, null);
 			}
 		};
@@ -587,10 +406,6 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		components.remove(qComponent.id);
 	}
 
-	public QPageManager getQPageManager() {
-		return qpm;
-	}
-
 	@Override
 	public QPageContainer getPageContainer() {
 		return this;
@@ -649,10 +464,10 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 			return li;
 		}
 	}
-	public UtilEvent<IndexedComm.Msg> getCustomQueryListener2(String type) {
+	public UtilEvent<Msg> getCustomQueryListener2(String type) {
 		synchronized(customQueryListeners2)
 		{
-			UtilEvent<IndexedComm.Msg> li=customQueryListeners2.get(type);
+			UtilEvent<Msg> li=customQueryListeners2.get(type);
 			if(li==null)
 			{
 				li=new UtilEvent<>();
@@ -665,63 +480,12 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	public Map<String, Object> getUserObjectStorage() {
 		return userObjectStorage;
 	}
-	public IndexedComm getIndexedComm() {
-		return indexedComm;
-	}
-	public void setExecutor(Executor executor) {
-		thread=null;
-		this.executor = executor;
-		scheduleNext();
-	}
-	public boolean isQPageThread()
-	{
-		return thread==Thread.currentThread();
-	}
-	/**
-	 * Change dispose timeout for this page.
-	 * This timeout may be very long then the QPage object is stored until the application becomes online again.
-	 * @param timeoutMillis
-	 * @return this object itself
-	 */
-	public QPageContainer setDisposeTimeout(long timeoutMillis)
-	{
-		this.TIMEOUT_DISPOSE=timeoutMillis;
-		reinitDisposeTimer();
-		return this;
-	}
-	/**
-	 * In case of a custom Websocket connection is used by a QPage component (file upload for example)
-	 * then return the object for the identifier.
-	 * @param string
-	 * @return
-	 */
-	public IndexedComm getCustomWebsocketImplementation(String string) {
-		return customWebSocketImplementations.get(string);
-	}
-	public String registerCustomWebsocketImplementation(IndexedComm websocketImplementation) {
-		String id=createComponentId();
-		customWebSocketImplementations.put(id, websocketImplementation);
-		return id;
-	}
-	public void unregisterCustomWebsocketImplementation(String id) {
-		customWebSocketImplementations.remove(id);
-	}
 	/**
 	 * In case current task is executed as a timer then the current timer is queryed by this query.
 	 * @return
 	 */
 	public QTimer getCurrentTimerTask() {
 		return currentTimerTask;
-	}
-	/**
-	 * When messages are processed on the WebSocket thread then
-	 * this supplier can be used to set up and tear down the context
-	 * for processing.
-	 * Can also be used to do synchronization between pages.
-	 * @param setupContext
-	 */
-	public void setSetupContext(Supplier<AutoCloseable> setupContext) {
-		this.setupContext = setupContext;
 	}
 	/**
 	 * In case a parameter based session is used then this will not be null.
@@ -761,7 +525,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 			return new NoExceptionAutoClosable() {};
 		}else
 		{
-			synchronized (syncObject) {
+			synchronized (closeablesSyncObject) {
 				if(closeables==null)
 				{
 					closeables=new ArrayList<>();
@@ -771,7 +535,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 			return new NoExceptionAutoClosable() {
 				@Override
 				public void close() {
-					synchronized(syncObject)
+					synchronized(closeablesSyncObject)
 					{
 						if(closeables!=null)
 						{
@@ -815,16 +579,6 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		this.jsTemplate=subJs;
 	}
 	/**
-	 * Set the session object callback to extend the timeout of the session.
-	 * @param sessionToUpdateLastAccessedTime
-	 * @return
-	 */
-	public QPageContainer setSessionToUpdateLastAccessedTime(ISessionUpdateLastAccessedTime sessionToUpdateLastAccessedTime)
-	{
-		this.sessionToUpdateLastAccessedTime=sessionToUpdateLastAccessedTime;
-		return this;
-	}
-	/**
 	 * The minimal session timeout required to work on case of short times session objects are used.
 	 * In case of short lived sessions setSessionToUpdateLastAccessedTime has to be used to register a listener that
 	 * keeps the session object alive while the page is alive.
@@ -839,14 +593,6 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	 */
 	public IPlatform getPlatform() {
 		return platform;
-	}
-	/**
-	 * Set the platform specific funcitons accessor. Intended to be only used once after creation by the framework.
-	 * @param platform the server side or the client side platform implementation
-	 */
-	public void internalSetPlatform(IPlatform platform)
-	{
-		this.platform=platform;
 	}
 	/**
 	 * Submit a timer task to be executed now (ASAP) on the UI thread.
@@ -872,5 +618,14 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 				log.error("Unhandled exception in timer", e);
 			}
 		});
+	}
+	public QPage getPage() {
+		return child;
+	}
+	
+	public HtmlTemplate internalGetAndRecreateJsTemplate() {
+		HtmlTemplate ret=jsTemplate;
+		jsTemplate=createJsTemplate();
+		return ret;
 	}
 }

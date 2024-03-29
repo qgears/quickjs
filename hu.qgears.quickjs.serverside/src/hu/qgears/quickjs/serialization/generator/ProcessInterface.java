@@ -1,9 +1,13 @@
-package hu.qgears.quickjs.serialization;
+package hu.qgears.quickjs.serialization.generator;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+
+import hu.qgears.quickjs.serialization.ClassFullName;
+import hu.qgears.quickjs.serialization.CmdArgs;
+import hu.qgears.quickjs.serialization.CommunicationModel;
 
 public class ProcessInterface {
 	Class<?> cla;

@@ -11,7 +11,7 @@ import hu.qgears.commons.SafeTimerTask;
 import hu.qgears.commons.UtilTimer;
 import hu.qgears.commons.mem.INativeMemory;
 import hu.qgears.quickjs.qpage.IndexedComm;
-import hu.qgears.quickjs.qpage.IndexedComm.Msg;
+import hu.qgears.quickjs.qpage.Msg;
 
 public class QWSMessagingClass extends WebSocketAdapter implements IndexedComm.ConnectedSocket {
 	public static long pingPeriodMillis = IndexedComm.timeoutPingMillis;
