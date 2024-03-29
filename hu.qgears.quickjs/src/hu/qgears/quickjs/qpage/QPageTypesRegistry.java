@@ -3,7 +3,9 @@ package hu.qgears.quickjs.qpage;
 import java.net.URL;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 public class QPageTypesRegistry {
@@ -42,6 +44,9 @@ public class QPageTypesRegistry {
 	}
 	public Collection<QComponent> getTypes() {
 		return types.values();
+	}
+	public Set<String> getAllJsNames() {
+		return new HashSet<>(jsResources.keySet());
 	}
 	public QComponent getType(String substring) {
 		return types.get(substring);

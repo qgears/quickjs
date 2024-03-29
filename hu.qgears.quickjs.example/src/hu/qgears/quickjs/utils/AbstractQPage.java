@@ -56,6 +56,8 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	 */
 	protected void generateHtmlContent() {
 		write("<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n");
+		writePreloadHeaders();
+		page.writePreloadHeaders(this);
 		writeFaviconHeaders();
 		writeHeaders();
 		page.writeHeaders(this);
@@ -66,6 +68,13 @@ abstract public class AbstractQPage extends HtmlTemplate {
 		page.generateInitialization();
 		bodyAfterQPageInitialization();
 		write("</body>\n</html>\n");
+	}
+
+	/**
+	 * Write link rel="preload" type headers. Default implementation does nothing.
+	 */
+	protected void writePreloadHeaders()
+	{
 	}
 
 	/**
@@ -88,7 +97,6 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	 */
 	protected void writeHeaders() {
 	}
-
 	/**
 	 * Generate the body of the page.
 	 */

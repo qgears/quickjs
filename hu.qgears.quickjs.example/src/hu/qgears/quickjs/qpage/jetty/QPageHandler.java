@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import org.eclipse.jetty.server.PushBuilder;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -77,6 +78,8 @@ public class QPageHandler extends HandlerCollection {
 	}
 	@Override
 	public void handle(String target, final Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
+		PushBuilder push=baseRequest.getPushBuilder();
+		System.err.println("PROTOCOL: "+baseRequest.getProtocol());
 		HttpSession sess=baseRequest.getSession();
 		final QPageManager qpm=HttpSessionQPageManager.getManager(sess);
 		String id=baseRequest.getParameter(QPage.class.getSimpleName());
@@ -122,6 +125,11 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 				if(id==null)
 				{
 					Object userData=userParameterGetter==null?null:userParameterGetter.apply(request);
+					if(push!=null)
+					{
+						System.out.println("PUSH!!!!!");
+						push.path("quickjs/QTextEditor.js").push();
+					}
 					// handle initial get
 					new HtmlTemplate(wr){
 						public void generate() throws Exception {

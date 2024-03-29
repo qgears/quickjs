@@ -1,6 +1,5 @@
 package hu.qgears.quickjs.qpage;
 
-import java.awt.Point;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -95,7 +94,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 	 * Size of the HTML Window client. Null before first report was received.
 	 * Auto-updated by client.
 	 */
-	public final UtilListenableProperty<Point> windowClientSize=new UtilListenableProperty<>();
+	public final UtilListenableProperty<BrowserWindowSize> windowClientSize=new UtilListenableProperty<>();
 	
 	private Supplier<AutoCloseable> setupContext=()->(()->{});
 	class Message {
@@ -182,8 +181,8 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 		switch(type)
 		{
 		case "windowSize":
-			Point p=new Point(post.getInt("width"), post.getInt("height"));
-			windowClientSize.setProperty(p);
+			BrowserWindowSize size=new BrowserWindowSize(post);
+			windowClientSize.setProperty(size);
 			break;
 		case "started":
 			started.setProperty(true);
@@ -296,6 +295,45 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 			generateStaticScripts(parent);
 		}
 	}
+	public void writePreloadHeaders(final HtmlTemplate parent) {
+		if(scriptsAsSeparateFile!=null)
+		{
+			new HtmlTemplate(parent) {
+				public void generate() {
+					for(String fname: scripts)
+					{
+						write("<link rel=\"preload\" href=\"");
+						writeObject(scriptsAsSeparateFile);
+						write("/");
+						writeObject(fname);
+						write("\" as=\"script\" />\n");
+					}
+					for(QComponent c: QPageTypesRegistry.getInstance().getTypes())
+					{
+						for(String scriptRef: c.getScriptReferences())
+						{
+							write("<link rel=\"preload\" href=\"");
+							writeObject(scriptsAsSeparateFile);
+							write("/");
+							writeObject(scriptRef);
+							write(".js\" as=\"script\" />\n");
+						}
+					}
+					for(QComponent c: getAdditionalComponentTypes())
+					{
+						for(String scriptRef: c.getScriptReferences())
+						{
+							write("<link rel=\"preload\" href=\"");
+							writeObject(scriptsAsSeparateFile);
+							write("/");
+							writeObject(scriptRef);
+							write(".js\" as=\"script\" />\n");
+						}
+					}
+				}
+			}.generate();
+		}
+	}
 
 	public void generateInitialization() {
 		new HtmlTemplate(initialHtmlTemplate) {
@@ -315,8 +353,7 @@ public class QPage implements Closeable, IQContainer, IUserObjectStorage {
 				afterComponentInitialization.eventHappened(this);
 				write("window.addEventListener(\"load\", function(){\n\tvar page=this;\n\tvar args=staticArgs();\n");
 				writeObject(jsTemplate.getWriter().toString());
-				write("\tpage.start();\n");
-				write("}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
+				write("\tpage.start();\n}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
 				UtilComma c=new UtilComma(", ");
 				for(Object o: jsTemplate.toWebSocketArguments())
 				{

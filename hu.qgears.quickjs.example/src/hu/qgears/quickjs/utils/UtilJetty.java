@@ -5,12 +5,21 @@ import javax.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.util.UrlEncoded;
 
 public class UtilJetty {
+	public static final Long maxAgeSeconds_year=60l*60l*24l*366l;
 	/**
 	 * Set response header that it is cacheable until 1 day.
 	 * @param response
 	 */
 	public static void setResponseCacheable(HttpServletResponse response) {
-		response.setHeader("Cache-Control", "public, max-age=86400, immutable");
+		setResponseCacheable(response, 86400);
+	}
+	/**
+	 * Set response header that it is cacheable until maxAgeSeconds timeout.
+	 * @param response
+	 * @param maxAgeSeconds maximum age in seconds
+	 */
+	public static void setResponseCacheable(HttpServletResponse response, long maxAgeSeconds) {
+		response.setHeader("Cache-Control", "public, max-age="+maxAgeSeconds+", immutable");
 	}
 	/**
 	 * Set response header that it is not cacheable at all.
