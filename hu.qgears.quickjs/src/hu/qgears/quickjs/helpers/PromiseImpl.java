@@ -77,12 +77,25 @@ public class PromiseImpl<T> implements Promise<T>
 	@Override
 	public <Q> Promise<Q> onError(Function<Exception, Q> handler) {
 		PromiseImpl<Q> ret=new PromiseImpl<>();
-		synchronized (this) {
-			
-		}
-		throw new RuntimeException("TODO not implemented");
-		// TODO Auto-generated method stub
-		// return ret;
+		addConsumer(r->{
+			Result<T> resin=(Result<T>) r;
+			Throwable t=resin.getThrowable();
+			if(t!=null && t instanceof Exception)
+			{
+				Exception e=(Exception) t;
+				try {
+					Q q=handler.apply(e);
+					ret.ready(q);
+				} catch (Exception ex) {
+					log.error("onError", ex);
+				}
+				ret.ready(null);
+			}else
+			{
+				ret.error(resin.getThrowable());
+			}
+		});
+		return ret;
 	}
 	public void ready(T o) {
 		setResult(new Result<T>(o, null));

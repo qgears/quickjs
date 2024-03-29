@@ -48,6 +48,12 @@ import hu.qgears.quickjs.utils.gdpr.GdprSession;
 public class QPageHandler2 extends HandlerCollection {
 	private static Logger log=LoggerFactory.getLogger(QPageHandler2.class);
 	private QSpa pageFactory;
+	private IContextConfigurator contextConfigurator=new IContextConfigurator() {
+		@Override
+		public void configurePageContext(QPage page, QPageContextServerSide context, QueryWrapperJetty queryWrapper) {
+			// Default implementation does nothing
+		}
+	};
 	public static final String key=QPageHandler2.class.getName()+".objectParameter";
 	private Map<String, AbstractHandler> webSocketHandlers=new HashMap<>();
 	public static void setUserParameter(ServletRequest request, Object userParameter)
@@ -150,10 +156,15 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 								platform.setSessionToUpdateLastAccessedTime((ISessionUpdateLastAccessedTime) session);
 							}
 							QPage page=new QPage(newPage);
+							QPageContextServerSide context=new QPageContextServerSide(page, UtilHttpContext.getContext(baseRequest));
+							QueryWrapperJetty queryWrapper=new QueryWrapperJetty(target, baseRequest, request, response);
+							contextConfigurator.configurePageContext(page, context, queryWrapper);
+							page.addCloseable(()->{
+								context.closeEvent.eventHappened(context);
+							});
 							try(NoExceptionAutoClosable c=page.setThreadCurrentPage())
 							{
-								AbstractQPage inst=pageFactory.createPage(new QueryWrapperJetty());
-								QPageContextServerSide context=new QPageContextServerSide(page, UtilHttpContext.getContext(baseRequest));
+								AbstractQPage inst=pageFactory.createPage(queryWrapper, context);
 								inst.setPageContext(context);
 								inst.initPage();
 								try(NoExceptionAutoClosable close= inst.setInitialHtmlOutput(this))
@@ -207,5 +218,9 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 			}
 			throw new IOException("Processing page: "+target+" "+baseRequest.getMethod()+" "+baseRequest.getParameter("QPage"), e);
 		}
+	}
+	public QPageHandler2 setContextConfigurator(IContextConfigurator contextConfigurator) {
+		this.contextConfigurator = contextConfigurator;
+		return this;
 	}
 }

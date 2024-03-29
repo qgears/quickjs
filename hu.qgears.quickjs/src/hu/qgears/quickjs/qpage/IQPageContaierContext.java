@@ -1,7 +1,7 @@
 package hu.qgears.quickjs.qpage;
 
 import hu.qgears.quickjs.helpers.Promise;
-import hu.qgears.quickjs.serialization.RemotingBase;
+import hu.qgears.quickjs.serialization.IRemotingBase;
 
 /** Access the context of the QPageContainer.
  * This object is accessible both on the server(JVM) and the client(TeaVM).
@@ -24,7 +24,7 @@ public interface IQPageContaierContext {
 	 * @param id
 	 * @return
 	 */
-	RemotingBase openConnection(String id);
+	IRemotingBase openConnection(String id);
 	/** Get the rewrite context of this page (if a reverse proxy rewrite is present)
 	 * @param baseRequest
 	 * @return never ends with / Will be '' if no reverse proxy is present. 'path' when reverse proxy is present

@@ -7,14 +7,15 @@ import hu.qgears.commons.NoExceptionAutoClosable;
  */
 abstract public class AbstractQPage extends HtmlTemplate {
 	/** The context object is always accessible and set by the framework before the first method call to user code. */
-	protected IQPageContaierContext context;
+	protected IQPageContaierContext pageContainerContext;
 	/** The page object is always accessible and set by the framework before the first method call to user code. */
 	protected QPage page;
 	/** Called by the framework to set up the context of the page. */
-	final public void setPageContext(IQPageContaierContext context)
+	final public AbstractQPage setPageContext(IQPageContaierContext context)
 	{
 		this.page=context.getPage();
-		this.context=context;
+		this.pageContainerContext=context;
+		return this;
 	}
 	final public NoExceptionAutoClosable setInitialHtmlOutput(HtmlTemplate htmlTemplate)
 	{

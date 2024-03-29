@@ -1,15 +1,22 @@
 package hu.qgears.quickjs.serverside;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import hu.qgears.commons.UtilEvent;
 import hu.qgears.quickjs.helpers.Promise;
 import hu.qgears.quickjs.helpers.PromiseImpl;
 import hu.qgears.quickjs.qpage.IQPageContaierContext;
 import hu.qgears.quickjs.qpage.QPage;
-import hu.qgears.quickjs.serialization.RemotingBase;
+import hu.qgears.quickjs.serialization.IRemotingBase;
 
 /** The server side implementation of the page context. */
 public class QPageContextServerSide implements IQPageContaierContext {
-	private QPage page;
-	private String pageContextPath;
+	public QPage page;
+	public String pageContextPath;
+	public Object initializeObject;
+	public Map<String, IRemotingBase> connections=new HashMap<>();
+	public final UtilEvent<QPageContextServerSide> closeEvent=new UtilEvent<>();
 	public QPageContextServerSide(QPage page, String pageContextPath) {
 		super();
 		this.page = page;
@@ -17,13 +24,11 @@ public class QPageContextServerSide implements IQPageContaierContext {
 	}
 	@Override
 	public Object getInitializeObject() {
-		// TODO Auto-generated method stub
-		return null;
+		return initializeObject;
 	}
 	@Override
-	public RemotingBase openConnection(String id) {
-		// TODO Auto-generated method stub
-		return null;
+	public IRemotingBase openConnection(String id) {
+		return connections.get(id);
 	}
 	@Override
 	public String getPageContextPath() {

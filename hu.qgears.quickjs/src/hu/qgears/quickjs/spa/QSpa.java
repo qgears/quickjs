@@ -1,6 +1,7 @@
 package hu.qgears.quickjs.spa;
 
 import hu.qgears.quickjs.qpage.AbstractQPage;
+import hu.qgears.quickjs.qpage.IQPageContaierContext;
 import hu.qgears.quickjs.qpage.IQPageFactory2;
 import hu.qgears.quickjs.qpage.QQueryWrapper;
 
@@ -11,11 +12,12 @@ public class QSpa {
 	/**
 	 * Create a page for the query.
 	 * @param query
+	 * @param context 
 	 * @return
 	 * @throws Exception 
 	 */
-	public AbstractQPage createPage(QQueryWrapper query) throws Exception {
-		return supplier.createPage();
+	public AbstractQPage createPage(QQueryWrapper query, IQPageContaierContext context) throws Exception {
+		return supplier.createPage().setPageContext(context);
 	}
 	/**
 	 * Configure additional Websocket connections on the server that are accessible
