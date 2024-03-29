@@ -1,6 +1,5 @@
 package hu.qgears.quickjs.qpage;
 
-import java.awt.Point;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -71,7 +70,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	 * Size of the HTML Window client. Null before first report was received.
 	 * Auto-updated by client.
 	 */
-	public final UtilListenableProperty<Point> windowClientSize=new UtilListenableProperty<>();
+	public final UtilListenableProperty<BrowserWindowSize> windowClientSize=new UtilListenableProperty<>();
 	
 	class Message {
 		Msg msg;
@@ -136,8 +135,8 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		switch(type)
 		{
 		case "windowSize":
-			Point p=new Point(post.getInt("width"), post.getInt("height"));
-			windowClientSize.setProperty(p);
+			BrowserWindowSize size=new BrowserWindowSize(post);
+			windowClientSize.setProperty(size);
 			break;
 		case "started":
 			started.setProperty(true);
@@ -197,6 +196,35 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		}else
 		{
 			generateStaticScripts(parent);
+		}
+	}
+	
+	public void writePreloadHeaders(final HtmlTemplate parent) {
+		if(scriptsAsSeparateFile!=null)
+		{
+			new HtmlTemplate(parent) {
+				public void generate() {
+					for(String fname: QPageTypesRegistry.getInstance().getJsOrder())
+					{
+						write("<link rel=\"preload\" href=\"");
+						writeObject(scriptsAsSeparateFile);
+						write("/");
+						writeObject(fname);
+						write("\" as=\"script\" />\n");
+					}
+					for(QComponent c: getAdditionalComponentTypes())
+					{
+						for(String scriptRef: c.getScriptReferences())
+						{
+							write("<link rel=\"preload\" href=\"");
+							writeObject(scriptsAsSeparateFile);
+							write("/");
+							writeObject(scriptRef);
+							write(".js\" as=\"script\" />\n");
+						}
+					}
+				}
+			}.generate();
 		}
 	}
 

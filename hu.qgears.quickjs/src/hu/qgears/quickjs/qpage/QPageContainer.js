@@ -129,6 +129,9 @@ class QPageContainer
 		fd.type="windowSize";
 		fd.width=window.innerWidth;
 		fd.height=window.innerHeight;
+		fd.devicePixelRatio=window.devicePixelRatio;
+		fd.screenWidth=window.screen.width;
+		fd.screenHeight=window.screen.height;
 		this.send(fd);
 	}
 	createFormData(component)
