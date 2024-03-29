@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.teavm.diagnostics.Problem;
+import org.teavm.diagnostics.ProblemSeverity;
 import org.teavm.model.CallLocation;
 import org.teavm.tooling.TeaVMTargetType;
 import org.teavm.tooling.TeaVMTool;
@@ -26,54 +27,21 @@ import org.teavm.vm.TeaVMProgressListener;
  * the classes of the application to be loaded.
  */
 public class RunTool {
-	public static void main(String[] args) throws Exception {
-		new RunTool().run();
-	}
-	public static int compile() throws Exception {
-		new RunTool().run();
+	public int compile() throws Exception {
+		run();
 		return 0;
 	}
+	public URL[] classLoaderUrls;
+	public File out;
+	public String mainClass;
 	private ClassLoader buildClassLoader() throws MalformedURLException {
-		//ClassLoader rootClassloader=ClassLoader.getSystemClassLoader();
-		//while(rootClassloader.getParent()!=null)
-		//{
-		//	rootClassloader=rootClassloader.getParent();
-		//}
 		ClassLoader rootClassloader=getClass().getClassLoader();
-		List<URL> urls=new ArrayList<>();
-		File g=new File("/home/rizsi/rizsi.com/jspa-binary-deps/tools/teavm");
-		for(File f: g.listFiles())
-		{
-			if(f.getName().endsWith(".jar"))
-			{
-				// System.out.println(f.getAbsolutePath());
-				urls.add(f.toURI().toURL());
-			}
-		}
-//		urls.add(new File("/home/rizsi/Downloads/teavm-classlib-0.9.2.jar").toURI().toURL());
-//		urls.add(new File("/home/rizsi/Downloads/teavm-platform-0.9.2.jar").toURI().toURL());
-//		urls.add(new File("/home/rizsi/Downloads/teavm-jso-0.9.2.jar").toURI().toURL());
-		
-		//urls.add(new File("/home/rizsi/Downloads/teavm-jso-apis-0.9.2.jar").toURI().toURL());
-		//urls.add(new File("/home/rizsi/Downloads/teavm-jso-impl-0.9.2.jar").toURI().toURL());
-		//		new File("/home/rizsi/Downloads/teavm-interop-0.9.2.jar").toURI().toURL(),
-//		new File("/home/rizsi/Downloads/teavm-core-0.9.2.jar").toURI().toURL(),
-//		new File("/home/rizsi/Downloads/teavm-tooling-0.9.2.jar").toURI().toURL(),
-
-		urls.add(new File("/home/rizsi/git-qgears/fos/quickjs/3rdparty/org.slf4j.api/bin").toURI().toURL());
-		urls.add(new File("/home/rizsi/git-qgears/fos/quickjs-clientside/hu.qgears.quickjs/bin").toURI().toURL());
-		urls.add(new File("/home/rizsi/git-qgears/fos/quickjs-clientside/hu.qgears.quickjs.clientsideexample/bin").toURI().toURL());
-		urls.add(new File("/home/rizsi/openproto/openproto/commons/hu.qgears.commons/bin").toURI().toURL());
 		URLClassLoader ret=new URLClassLoader(
-				urls.toArray(new URL[] {}), rootClassloader);
+				classLoaderUrls, rootClassloader);
 		return ret;
 	}
 	private void run() throws Exception {
-		File out=new File("/home/rizsi/tmp/teavm/example.js");
-		String mainClass="example.MainClass";
 		List<SourceFileProvider> sourceFileProviders = new ArrayList<>();
-//		sourceFileProviders.add(new DirectorySourceFileProvider(new File("/home/rizsi/git-qgears/fos/quickjs-clientside/hu.qgears.quickjs.clientsideexample/bin")));
-		
 		TeaVMTool tool=new TeaVMTool();
 		TeaVMProgressListener pl=new TeaVMProgressListener() {
 			
@@ -166,13 +134,19 @@ public class RunTool {
 
             tool.generate();
 
-        var generatedFiles = tool.getGeneratedFiles().stream()
+        @SuppressWarnings("unused")
+		var generatedFiles = tool.getGeneratedFiles().stream()
                 .map(File::getAbsolutePath)
                 .collect(Collectors.toSet());
         List<Problem> problems=tool.getProblemProvider().getProblems();
+        boolean hasError=false;
         for(Problem p: problems)
         {
         	System.out.print(p.getSeverity()+" "+p.getText());
+        	if(p.getSeverity()==ProblemSeverity.ERROR)
+        	{
+        		hasError=true;
+        	}
         	for(Object o: p.getParams())
         	{
             	System.out.print(" "+o);
@@ -181,6 +155,10 @@ public class RunTool {
         	CallLocation cl=p.getLocation();
         	System.out.println("Source: "+cl.getMethod());
         	System.out.println("Source: "+cl.getSourceLocation());
+        }
+        if(hasError)
+        {
+        	throw new RuntimeException("Compile error: see std output");
         }
 	}
 }
