@@ -5,7 +5,7 @@ import java.io.OutputStream;
 import java.net.URL;
 
 import hu.qgears.commons.UtilFile;
-import hu.qgears.quickjs.qpage.QPageTypesRegistry;
+import hu.qgears.quickjs.serverside.QPageTypesRegistry;
 
 public class QPageJSHandler extends JSHandler
 {

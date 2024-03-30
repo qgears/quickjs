@@ -236,3 +236,45 @@ class IndexedComm
 		this.setState(3);
 	}
 }
+/** In case of client side execution IndexedComm is replaced with this. */
+class TeaVMComm
+{
+	init(callback)
+	{
+		this.callback=callback;
+		this.hasRequest=false;
+		this.boundProcessMessages=this.processMessages.bind(this);
+	}
+	processMessages()
+	{
+		this.hasRequest=false;
+		this.callback.processMessages();
+	}
+	setQPageContainer(qPageContainer)
+	{
+		this.qPageContainer=qPageContainer;
+	}
+	send(header, ...args)
+	{
+		this.callback.msgHeader(JSON.stringify(header));
+		for(const part of args)
+		{
+			console.info(part);
+			throw Exception("not handled");
+			// this.socket.send(part);
+		}
+	}
+	javaMessage(header,firstPart)
+	{
+		this.qPageContainer.message(header,[firstPart]);
+	}
+	requestProcessMessages()
+	{
+		if(!this.hasRequest)
+		{
+			setTimeout(this.boundProcessMessages,0);
+			this.hasRequest=true;
+		}
+	}
+}
+

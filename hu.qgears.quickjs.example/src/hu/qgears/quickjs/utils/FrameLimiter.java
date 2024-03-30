@@ -57,7 +57,7 @@ abstract public class FrameLimiter {
 	protected abstract void doExec();
 	public FrameLimiter listenProperty(UtilListenableProperty<?> prop) {
 		hu.qgears.commons.NoExceptionAutoClosable unreg=prop.addListenerWithInitialTrigger(e->executeTask());
-		page.disposedEvent.addOnReadyHandler(e->{unreg.close();});
+		page.disposedEvent.thenApply(e->{unreg.close();});
 		return this;
 	}
 }

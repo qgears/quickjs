@@ -33,6 +33,7 @@ import hu.qgears.quickjs.qpage.example.QPageContext;
 import hu.qgears.quickjs.qpage.example.websocket.QWSMessagingServlet;
 import hu.qgears.quickjs.serverside.QPageContextServerSide;
 import hu.qgears.quickjs.spa.QSpa;
+import hu.qgears.quickjs.spa.RoutingEndpointQPage;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
 import hu.qgears.quickjs.utils.IQTestEnvironment;
 import hu.qgears.quickjs.utils.UtilHttpContext;
@@ -65,7 +66,8 @@ public class QPageHandler2 extends HandlerCollection {
 		createWebSocketEntry();
 	}
 	public QPageHandler2(Class<? extends AbstractQPage> pageClass) {
-		this.pageFactory=new QSpa().on("/", ()->pageClass.getDeclaredConstructor().newInstance());
+		this.pageFactory=new QSpa();
+		pageFactory.method("GET").handle(new RoutingEndpointQPage(()->pageClass.getDeclaredConstructor().newInstance()));
 			// req->{AbstractQPage ret=pageClass.getConstructor().newInstance(); 
 			// ret.setUserData(req); return ret;};
 		createWebSocketEntry();
@@ -134,9 +136,14 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 						public void generate() throws Exception {
 							String id=qpm.createId();
 							QPageContainer newPage=new QPageContainer(id);
-							qpm.register(id, newPage);
+							QPage page=new QPage(newPage);
+							QPageContextServerSide context=new QPageContextServerSide(page, UtilHttpContext.getContext(baseRequest));
+							newPage.setPageContext(context);
+							QueryWrapperJetty queryWrapper=new QueryWrapperJetty(target, baseRequest, request, response);
 							JettyPlatform platform=new JettyPlatform(newPage, qpm);
-							newPage.internalStart(platform);
+							newPage.internalSetPlatform(platform);
+							contextConfigurator.configurePageContext(page, context, queryWrapper);
+							newPage.internalStartPlatform();
 							QPageContext qpc=QPageContext.getCurrent();
 							{
 								Object attrib=sess.getAttribute(GdprSession.keyUseNoCookieSession);
@@ -155,40 +162,60 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 							{
 								platform.setSessionToUpdateLastAccessedTime((ISessionUpdateLastAccessedTime) session);
 							}
-							QPage page=new QPage(newPage);
-							QPageContextServerSide context=new QPageContextServerSide(page, UtilHttpContext.getContext(baseRequest));
-							QueryWrapperJetty queryWrapper=new QueryWrapperJetty(target, baseRequest, request, response);
-							contextConfigurator.configurePageContext(page, context, queryWrapper);
 							page.addCloseable(()->{
 								context.closeEvent.eventHappened(context);
 							});
 							try(NoExceptionAutoClosable c=page.setThreadCurrentPage())
 							{
-								AbstractQPage inst=pageFactory.createPage(queryWrapper, context);
+								boolean handled=pageFactory.query(queryWrapper, target, 0);
+								if(!handled)
+								{
+									throw new RuntimeException("Routing did not find QPage for path: "+target);
+								}
+								AbstractQPage inst=queryWrapper.epQPage.fact.createPage();
 								inst.setPageContext(context);
 								inst.initPage();
-								try(NoExceptionAutoClosable close= inst.setInitialHtmlOutput(this))
+								try(NoExceptionAutoClosable close=inst.setInitialHtmlOutput(this))
 								{
 									inst.initialCreateHtml();
 								}
 							}
-							platform.setExecutor(r->{
-								try
+							switch(platform.getMode())
+							{
+							case hybrid:
+							{
+								
+								/// In hybrid mode execution is continued on the client side in TeaVM in browser. This instance done its job.
+								try(NoExceptionAutoClosable c= page.setThreadCurrentPage())
 								{
-									Server server=getServer();
-									if(server!=null)
-									{
-										ThreadPool tp=server.getThreadPool();
-										if(!newPage.disposedEvent.isDone() && server.isRunning())
-										{
-											tp.execute(r);
-										}
-									}
-								}catch(Exception e)
-								{
-									log.error("executor error", e);
+									newPage.dispose();
 								}
-							});
+								break;
+							}
+							case serverside:
+							{
+								platform.setExecutor(r->{
+									try
+									{
+										Server server=getServer();
+										if(server!=null)
+										{
+											ThreadPool tp=server.getThreadPool();
+											if(!newPage.disposedEvent.isDone() && server.isRunning())
+											{
+												tp.execute(r);
+											}
+										}
+									}catch(Exception e)
+									{
+										log.error("executor error", e);
+									}
+								});
+								break;
+							}
+							default:
+								throw new RuntimeException("Unknown mode: "+platform.getMode());
+							}
 							if(qpc!=null)
 							{
 								IQTestEnvironment testEnvironment=qpc.getTestEnvironment();

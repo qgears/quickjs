@@ -13,7 +13,7 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import hu.qgears.commons.ConnectStreams;
 import hu.qgears.commons.UtilFile;
-import hu.qgears.quickjs.qpage.QPageTypesRegistry;
+import hu.qgears.quickjs.serverside.QPageTypesRegistry;
 
 /**
  * HTTP Handlder that serves the JS files of the QuickJS framework.

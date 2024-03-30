@@ -34,6 +34,11 @@ public class RunTool {
 	public URL[] classLoaderUrls;
 	public File out;
 	public String mainClass;
+	
+	public int optimizationLevel=0;
+	public boolean obfuscated=false;
+	
+	
 	private ClassLoader buildClassLoader() throws MalformedURLException {
 		ClassLoader rootClassloader=getClass().getClassLoader();
 		URLClassLoader ret=new URLClassLoader(
@@ -105,14 +110,14 @@ public class RunTool {
         tool.setTargetFileName(out.getName());
         var classLoader = buildClassLoader();
         tool.setClassLoader(classLoader);
-        tool.setOptimizationLevel(TeaVMOptimizationLevel.SIMPLE);
+        tool.setOptimizationLevel(TeaVMOptimizationLevel.values()[optimizationLevel]);
         tool.setFastDependencyAnalysis(false);
 
         tool.setSourceMapsFileGenerated(false);
         tool.setDebugInformationGenerated(false);
         tool.setSourceFilesCopied(false);
 
-        tool.setObfuscated(false);
+        tool.setObfuscated(obfuscated);
         tool.setStrict(true);
         tool.setMaxTopLevelNames(1000);
         tool.setIncremental(false);
@@ -153,8 +158,14 @@ public class RunTool {
         	}
         	System.out.println();
         	CallLocation cl=p.getLocation();
-        	System.out.println("Source: "+cl.getMethod());
-        	System.out.println("Source: "+cl.getSourceLocation());
+        	if(cl!=null)
+        	{
+        		System.out.println("Source method: "+cl.getMethod());
+        		System.out.println("Source sourceLocation: "+cl.getSourceLocation());
+        	}else
+        	{
+        		System.out.println("getLocation() is null");
+        	}
         }
         if(hasError)
         {

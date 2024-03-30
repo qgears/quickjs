@@ -6,12 +6,15 @@ import javax.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.server.Request;
 
 import hu.qgears.quickjs.qpage.QQueryWrapper;
+import hu.qgears.quickjs.spa.RoutingEndpoint;
+import hu.qgears.quickjs.spa.RoutingEndpointQPage;
 
 public class QueryWrapperJetty implements QQueryWrapper {
 	public String target;
 	public Request baseRequest;
 	public HttpServletRequest request;
 	public HttpServletResponse response;
+	public RoutingEndpointQPage epQPage;
 	public QueryWrapperJetty(String target, Request baseRequest, HttpServletRequest request,
 			HttpServletResponse response) {
 		this.target=target;
@@ -19,5 +22,17 @@ public class QueryWrapperJetty implements QQueryWrapper {
 		this.request=request;
 		this.response=response;
 	}
-
+	@Override
+	public String getMethod() {
+		return baseRequest.getMethod();
+	}
+	@Override
+	public boolean executeEndpoint(RoutingEndpoint re, String path, int pathAt) {
+		if(re instanceof RoutingEndpointQPage)
+		{
+			epQPage=(RoutingEndpointQPage) re;
+			return true;
+		}
+		return false;
+	}
 }

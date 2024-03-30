@@ -3,13 +3,11 @@ package hu.qgears.quickjs.qpage;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -18,10 +16,10 @@ import org.slf4j.LoggerFactory;
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilComma;
 import hu.qgears.commons.UtilEvent;
-import hu.qgears.commons.UtilFile;
 import hu.qgears.commons.UtilListenableProperty;
-import hu.qgears.commons.signal.SignalFutureWrapper;
 import hu.qgears.quickjs.helpers.IPlatform;
+import hu.qgears.quickjs.helpers.Promise;
+import hu.qgears.quickjs.helpers.PromiseImpl;
 import hu.qgears.quickjs.helpers.QTimer;
 
 /** QuickJS web page instance.
@@ -33,7 +31,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	private volatile boolean active = true;
 	private Map<String, QComponent> components = new HashMap<>();
 	private HtmlTemplate jsTemplate=createJsTemplate();
-	public final SignalFutureWrapper<QPageContainer> disposedEvent=new SignalFutureWrapper<>();
+	public final PromiseImpl<QPageContainer> disposedEvent=new PromiseImpl<>();
 	private String scriptsAsSeparateFile=null;
 	private List<QComponent> additionaComponentTypes=new ArrayList<QComponent>();
 	private Map<String, Object> userObjectStorage=new HashMap<String, Object>();
@@ -43,6 +41,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	private Object closeablesSyncObject=new Object();
 	private QTimer currentTimerTask;	
 	private IPlatform platform;
+	private IQPageContaierContext context;
 	/**
 	 * The single current active QPage child.
 	 */
@@ -54,8 +53,6 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	private int idCtr=0;
 	private Map<String, UtilEvent<JSONObject>> customQueryListeners=new HashMap<>();
 	private Map<String, UtilEvent<Msg>> customQueryListeners2=new HashMap<>();
-	@Deprecated
-	public final UtilEvent<HtmlTemplate> afterComponentInitialization=new UtilEvent<>();
 	/**
 	 * document.visibilityState visible:true hidden:false
 	 */
@@ -157,9 +154,11 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	public QPageContainer(String identifier) {
 		this.identifier = identifier;
 	}
-	public void internalStart(IPlatform platform)
-	{
+	public void internalSetPlatform(IPlatform platform) {
 		this.platform=platform;
+	}
+	public void internalStartPlatform()
+	{
 		getPlatform().reinitDisposeTimer();
 		getPlatform().startCommunicationWithJs();
 		getCustomQueryListener("visibilitychange").addListener(json->{
@@ -172,7 +171,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		{
 			new HtmlTemplate(parent) {
 				public void generate() {
-					for(String fname: QPageTypesRegistry.getInstance().getJsOrder())
+					for(String fname: getPlatform().getJsOrder())
 					{
 						write("<script language=\"javascript\" type=\"text/javascript\" src=\"");
 						writeObject(scriptsAsSeparateFile);
@@ -188,7 +187,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 							writeObject(scriptsAsSeparateFile);
 							write("/");
 							writeObject(scriptRef);
-							write(".js\"></script>\n");
+							write("\"></script>\n");
 						}
 					}
 				}
@@ -197,6 +196,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		{
 			generateStaticScripts(parent);
 		}
+		platform.writeHeaders(parent);
 	}
 	
 	public void writePreloadHeaders(final HtmlTemplate parent) {
@@ -204,7 +204,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		{
 			new HtmlTemplate(parent) {
 				public void generate() {
-					for(String fname: QPageTypesRegistry.getInstance().getJsOrder())
+					for(String fname: getPlatform().getJsOrder())
 					{
 						write("<link rel=\"preload\" href=\"");
 						writeObject(scriptsAsSeparateFile);
@@ -220,12 +220,13 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 							writeObject(scriptsAsSeparateFile);
 							write("/");
 							writeObject(scriptRef);
-							write(".js\" as=\"script\" />\n");
+							write("\" as=\"script\" />\n");
 						}
 					}
 				}
 			}.generate();
 		}
+		platform.writePreloadHeaders(parent);
 	}
 
 	public void generateInitialization(HtmlTemplate initialHtmlTemplate) {
@@ -243,10 +244,11 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 					writeJSValue(sessionId);
 					write("\");\n");
 				}
-				afterComponentInitialization.eventHappened(this);
 				write("window.addEventListener(\"load\", function(){\n\tvar page=this;\n\tvar args=staticArgs();\n");
 				writeObject(jsTemplate.getWriter().toString());
-				write("\tpage.start();\n}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
+				write("\tpage.start(");
+				writeObject(getPlatform().getMode().ordinal());
+				write(");\n}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
 				UtilComma c=new UtilComma(", ");
 				for(Object o: jsTemplate.toWebSocketArguments())
 				{
@@ -267,14 +269,13 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		new HtmlTemplate(parent) {
 			public void generate() {
 				try {
-					for(String fname: QPageTypesRegistry.getInstance().getJsOrder())
+					for(String fname: getPlatform().getJsOrder())
 					{
-						URL url=QPageTypesRegistry.getInstance().getResource(fname);
 						write("<script language=\"javascript\" type=\"text/javascript\">\n");
-						writeObject(UtilFile.loadAsString(url));
+						writeObject(getPlatform().loadResource(fname));
 						write("\n</script>\n");
 					}
-				} catch (IOException e) {
+				} catch (Exception e) {
 					log.error("Include scripts statically", e);
 				}
 			}
@@ -287,7 +288,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	public void submitToUI(Runnable r) {
 		getPlatform().submitToUI(r);
 	}
-	public <V> Future<V> submitToUICallable(Callable<V> c) {
+	public <V> Promise<V> submitToUICallable(Callable<V> c) {
 		return getPlatform().submitToUICallable(c);
 	}
 	/**
@@ -371,10 +372,11 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 					}
 				}
 				getPlatform().disposeCommunicationToJS();
-				disposedEvent.ready(QPageContainer.this, null);
+				disposedEvent.ready(QPageContainer.this);
 			}
 		};
-		if(QPage.getCurrent().getParent()==this)
+		QPage currpage=QPage.getCurrent();
+		if(currpage!=null && currpage.getParent()==this)
 		{
 			onThread.run();
 		}else
@@ -655,5 +657,11 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 		HtmlTemplate ret=jsTemplate;
 		jsTemplate=createJsTemplate();
 		return ret;
+	}
+	public void setPageContext(IQPageContaierContext context) {
+		this.context=context;
+	}
+	public IQPageContaierContext getPageContext() {
+		return context;
 	}
 }

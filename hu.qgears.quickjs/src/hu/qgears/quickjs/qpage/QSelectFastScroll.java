@@ -1,16 +1,13 @@
 package hu.qgears.quickjs.qpage;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import hu.qgears.commons.UtilFile;
 
 public class QSelectFastScroll extends QSelect {
 	static List<String> scriptReferences=new ArrayList<>();
 	{
-		scriptReferences.add("fastscroll");
-		scriptReferences.add(QSelectFastScroll.class.getSimpleName());
+		scriptReferences.add("fastscroll.js");
+		scriptReferences.add(QSelectFastScroll.class.getSimpleName()+".js");
 	}
 	public QSelectFastScroll(IQContainer parent, String id) {
 		super(parent, id);
@@ -37,23 +34,15 @@ public class QSelectFastScroll extends QSelect {
 			public void generate() {
 				try {
 					write("<style>\n.option:hover {\n    background-color: yellow;\n}\n.option:active {\n    background-color: red;\n}\n</style>\n<script language=\"javascript\" type=\"text/javascript\">\n");
-					writeObject(UtilFile.loadAsString(getClass().getResource("fastscroll.js")));
+					writeObject(getPageContainer().getPlatform().loadResource("fastscroll.js"));
 					write("\n");
-					writeObject(UtilFile.loadAsString(getClass().getResource("QSelectFastScroll.js")));
+					writeObject(getPageContainer().getPlatform().loadResource("QSelectFastScroll.js"));
 					write("\n</script>\n");
-				} catch (IOException e) {
+				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
 			}
 			
 		}.generate();
-	}
-	@Override
-	public byte[] loadJs(String name) throws IOException {
-		if(name.equals("fastscroll"))
-		{
-			return UtilFile.loadFile(getClass().getResource(name+".js"));
-		}
-		return super.loadJs(name);
 	}
 }

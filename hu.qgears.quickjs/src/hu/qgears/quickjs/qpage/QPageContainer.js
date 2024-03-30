@@ -96,11 +96,34 @@ class QPageContainer
 		const url=window.location.origin.replace('http', 'ws')+window.location.pathname+'?websocket='+websocketName+'&QPageContainer='+this.identifier+this.sessionIdParameterAdditional;
 		return url;
 	}
+	setTeaVMCallback(teaVmCallback)
+	{
+		this.teaVmCallback=teaVmCallback;
+		this.comm=new TeaVMComm();
+		this.comm.setQPageContainer(this);
+		return this.comm;
+	}
 	/// Start communication with server and set up global listeners
-	start()
+	/// mode: EQPageMode.ordinal()
+	///       0 start in serverside mode: server is accessed through IndexedComm - WebSocket
+	///       1 start in hybrid (clientside after initialization) mode: server is not accessed but local TeaVM is accessed with messages
+	start(mode)
 	{
 		const url=this.createWebSocketUrl();
-		this.comm=new IndexedComm().init(url, this);
+		switch(mode)
+		{
+		case 0:
+			this.comm=new IndexedComm().init(url, this);
+			break;
+		case 1:
+			main([]);
+			this.teaVmCallback.createPageContainer(this.identifier, mode);
+			this.teaVmCallback.openPath("unconfiguredpath");
+			this.comm.init(this.teaVmCallback);
+			break;
+		default:
+			throw Exception("Mode not handled: "+mode);
+		}
 		if(this.supports_history_api())
 		{
 			window.addEventListener("popstate", function(e) {

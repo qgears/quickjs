@@ -1,8 +1,10 @@
 package hu.qgears.quickjs.helpers;
 
+import java.util.List;
 import java.util.concurrent.Callable;
 
-import hu.qgears.commons.signal.SignalFutureWrapper;
+import hu.qgears.quickjs.qpage.EQPageMode;
+import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.IndexedComm;
 
 /** The platform implements the platform-specific features: timers, callbacks etc.
@@ -35,7 +37,7 @@ public interface IPlatform {
 
 	/**
 	 * Start communication with JS code.
-	 * In case of server side this opens an {@link IndexedComm} stream over WebSocket.
+	 * In case of server side this opens an {@link IndexedComm} stream over WebSocket and registers to application to the session object.
 	 * In case of client side message queues must be implemented TODO
 	 */
 	void startCommunicationWithJs();
@@ -44,8 +46,19 @@ public interface IPlatform {
 
 	void submitToUI(Runnable r);
 
-	<V> SignalFutureWrapper<V> submitToUICallable(Callable<V> c);
+	<V> Promise<V> submitToUICallable(Callable<V> c);
 
 	/** Remove the page from the pages registry. Only useful on server */
 	void deregister();
+
+	EQPageMode getMode();
+
+	void writePreloadHeaders(HtmlTemplate parent);
+
+	void writeHeaders(HtmlTemplate parent);
+
+	List<String> getJsOrder();
+
+	String loadResource(String fname) throws Exception;
+
 }

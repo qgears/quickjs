@@ -85,7 +85,7 @@ public class IndexedComm {
 					return;
 				}else
 				{
-					Object header=obj.get("header");
+					JSONObject header=obj.getJSONObject("header");
 					int nPart=obj.getInt("nPart");
 					int index=obj.getInt("index");
 					currentReceiving=new Msg();

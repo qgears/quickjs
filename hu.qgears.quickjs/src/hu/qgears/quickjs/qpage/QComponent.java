@@ -2,7 +2,6 @@ package hu.qgears.quickjs.qpage;
 
 import java.awt.Point;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
-import hu.qgears.commons.UtilFile;
 import hu.qgears.commons.UtilListenableProperty;
 
 /**
@@ -172,40 +170,22 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public void generateHeader(HtmlTemplate parent)
 	{
 		new HtmlTemplate(parent){
-
 			public void generate() {
 				write("<script language=\"javascript\" type=\"text/javascript\">\n");
 				try {
 					for(String name: getScriptReferences())
 					{
-						write(new String(loadJs(name), StandardCharsets.UTF_8));
+						write(getPageContainer().getPlatform().loadResource(name));
 					}
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				} catch (Exception e) {
+					log.error("Load additional component JS "+getClass().getName(), e);
 				}
 				write("</script>\n");
 			}
-			
 		}.generate();
 	}
-
-	public byte[] loadJs(String name) throws IOException {
-		if(name.equals(getClass().getSimpleName()))
-		{
-			try {
-				return UtilFile.loadFile(getClass().getResource(name+".js"));
-			} catch (Exception e) {
-				System.err.println("LOADJS: "+getClass().getName()+" "+name);
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		return null;
-	}
-
 	public List<String> getScriptReferences() {
-		return Collections.singletonList(getClass().getSimpleName());
+		return Collections.singletonList(getClass().getSimpleName()+".js");
 	}
 	/**
 	 * Delete the object from the server side registry and also delete from the
@@ -305,13 +285,10 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public IQContainer getParent() {
 		return container;
 	}
-	public void registerResources(QPageTypesRegistry typeReg) {
-		for(String s: getScriptReferences())
-		{
-			typeReg.addJs(s+".js", getClass().getResource(s+".js"));
-		}
-	}
-	
+	public String[] getConponentJsFiles()
+	{
+		return new String[] {};
+	}	
 	public void styleAddClass(final String msg) {
 		try(NoExceptionAutoClosable c=activateJS())
 		{

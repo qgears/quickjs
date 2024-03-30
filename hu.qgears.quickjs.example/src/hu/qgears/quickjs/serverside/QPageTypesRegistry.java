@@ -1,4 +1,4 @@
-package hu.qgears.quickjs.qpage;
+package hu.qgears.quickjs.serverside;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -10,6 +10,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+
+import hu.qgears.quickjs.qpage.QButton;
+import hu.qgears.quickjs.qpage.QCheckbox;
+import hu.qgears.quickjs.qpage.QComponent;
+import hu.qgears.quickjs.qpage.QDateEditor;
+import hu.qgears.quickjs.qpage.QDiv;
+import hu.qgears.quickjs.qpage.QFileUpload;
+import hu.qgears.quickjs.qpage.QImage;
+import hu.qgears.quickjs.qpage.QLabel;
+import hu.qgears.quickjs.qpage.QLink;
+import hu.qgears.quickjs.qpage.QPage;
+import hu.qgears.quickjs.qpage.QPageContainer;
+import hu.qgears.quickjs.qpage.QRange;
+import hu.qgears.quickjs.qpage.QSelectCombo;
+import hu.qgears.quickjs.qpage.QSelectCombo2;
+import hu.qgears.quickjs.qpage.QSelectFastScroll;
+import hu.qgears.quickjs.qpage.QSvgContainer;
+import hu.qgears.quickjs.qpage.QTextEditor;
+import hu.qgears.quickjs.qpage.QTimeEditor;
 
 public class QPageTypesRegistry {
 	private Map<String, QComponent> types=new TreeMap<>();
@@ -49,7 +68,10 @@ public class QPageTypesRegistry {
 	public void registerType(QComponent c)
 	{
 		types.put(c.getClass().getSimpleName(), c);
-		c.registerResources(this);
+		for (String s: c.getScriptReferences())
+		{
+			addJs(s, c.getClass().getResource(s));
+		}
 	}
 	public Collection<QComponent> getTypes() {
 		return types.values();
@@ -63,7 +85,8 @@ public class QPageTypesRegistry {
 	}
 	public URL getResource(String resname) {
 		synchronized (jsResources) {
-			return jsResources.get(resname);
+			URL ret=jsResources.get(resname);
+			return ret;
 		}
 	}
 	public void addJs(String jsFile, URL resource) {

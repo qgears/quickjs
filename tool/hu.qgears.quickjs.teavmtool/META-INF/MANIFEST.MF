@@ -6,4 +6,6 @@ Bundle-Version: 1.0.0.qualifier
 Automatic-Module-Name: hu.qgears.quickjs.teavmtool
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Require-Bundle: hu.qgears.tools;bundle-version="1.0.0",
- joptsimple;bundle-version="1.5.0"
+ joptsimple;bundle-version="1.5.0",
+ hu.qgears.commons;bundle-version="10.4.2",
+ hu.qgears.rtemplate.runtime;bundle-version="3.1.0"

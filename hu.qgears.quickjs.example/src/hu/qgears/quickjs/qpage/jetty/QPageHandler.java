@@ -33,9 +33,11 @@ import hu.qgears.quickjs.qpage.QPageManager;
 import hu.qgears.quickjs.qpage.example.IQPageFactory;
 import hu.qgears.quickjs.qpage.example.QPageContext;
 import hu.qgears.quickjs.qpage.example.websocket.QWSMessagingServlet;
+import hu.qgears.quickjs.serverside.QPageContextServerSide;
 import hu.qgears.quickjs.utils.AbstractQPage;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
 import hu.qgears.quickjs.utils.IQTestEnvironment;
+import hu.qgears.quickjs.utils.UtilHttpContext;
 import hu.qgears.quickjs.utils.UtilJetty;
 import hu.qgears.quickjs.utils.gdpr.GdprSession;
 
@@ -138,7 +140,8 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 							QPageContainer newPage=new QPageContainer(id);
 							qpm.register(id, newPage);
 							JettyPlatform platform=new JettyPlatform(newPage, qpm);
-							newPage.internalStart(platform);
+							newPage.internalSetPlatform(platform);
+							newPage.internalStartPlatform();
 							QPageContext qpc=QPageContext.getCurrent();
 							{
 								Object attrib=sess.getAttribute(GdprSession.keyUseNoCookieSession);
@@ -158,6 +161,7 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 								platform.setSessionToUpdateLastAccessedTime((ISessionUpdateLastAccessedTime) session);
 							}
 							QPage page=new QPage(newPage);
+							newPage.setPageContext(new QPageContextServerSide(page, UtilHttpContext.getContext(baseRequest)));
 							try(NoExceptionAutoClosable c=page.setThreadCurrentPage())
 							{
 								AbstractQPage inst=pageFactory.createPage(userData);

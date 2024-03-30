@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Toconsole
+Bundle-SymbolicName: org.slf4j.toconsole
+Bundle-Version: 1.0.0.qualifier
+Automatic-Module-Name: org.slf4j.toconsole
+Bundle-RequiredExecutionEnvironment: JavaSE-11

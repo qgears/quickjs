@@ -11,7 +11,7 @@ public class PromiseImpl<T> implements Promise<T>
 {
 	private static Logger log=LoggerFactory.getLogger(PromiseImpl.class);
 	private Consumer<?>[] consumers=(Consumer<?>[])new Consumer<?>[0];
-	private Result<T> result=null;
+	private volatile Result<T> result=null;
 	@Override
 	public <Q> Promise<Q> thenAccept(Function<T, Q> acceptResult) {
 		throw new RuntimeException("TODO not implemented");
@@ -136,5 +136,9 @@ public class PromiseImpl<T> implements Promise<T>
 		{
 			return result.getResult();
 		}
+	}
+	public boolean isDone()
+	{
+		return result!=null;
 	}
 }
