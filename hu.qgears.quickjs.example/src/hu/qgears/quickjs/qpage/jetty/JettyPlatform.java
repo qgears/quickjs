@@ -45,6 +45,7 @@ public class JettyPlatform implements IPlatformServerSide {
 	private LinkedList<Runnable> tasks=new LinkedList<>();
 	private ISessionUpdateLastAccessedTime sessionToUpdateLastAccessedTime;
 	private IndexedComm indexedComm;
+	private String path;
 	private Supplier<NoExceptionAutoClosable> setupContext=()->(new NoExceptionAutoClosable() {});
 	private Map<String, IndexedComm> customWebSocketImplementations=Collections.synchronizedMap(new HashMap<>());
 
@@ -417,5 +418,21 @@ public class JettyPlatform implements IPlatformServerSide {
 			throw new IOException("Does not exist: "+fname);
 		}
 		return UtilFile.loadAsString(url);
+	}
+	public void setPath(String path) {
+		this.path=path;
+	}
+	@Override
+	public void configureJsGlobalQPage(HtmlTemplate parent, String string) {
+		new HtmlTemplate(parent)
+		{
+			void ws()
+			{
+				writeObject(string);
+				write(".setPath(\"");
+				writeJSValue(path);
+				write("\");\n");
+			}
+		}.ws();
 	}
 }

@@ -141,6 +141,7 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 							newPage.setPageContext(context);
 							QueryWrapperJetty queryWrapper=new QueryWrapperJetty(target, baseRequest, request, response);
 							JettyPlatform platform=new JettyPlatform(newPage, qpm);
+							platform.setPath(target);
 							newPage.internalSetPlatform(platform);
 							contextConfigurator.configurePageContext(page, context, queryWrapper);
 							newPage.internalStartPlatform();

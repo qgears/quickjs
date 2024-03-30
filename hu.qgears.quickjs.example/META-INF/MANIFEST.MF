@@ -21,8 +21,7 @@ Require-Bundle: hu.qgears.quickjs;bundle-version="1.0.0";visibility:=reexport,
  org.eclipse.jetty.websocket.server;bundle-version="9.4.31";visibility:=reexport,
  org.eclipse.jetty.websocket.common;bundle-version="9.4.31";visibility:=reexport,
  org.eclipse.jetty.websocket.client;bundle-version="9.4.31";visibility:=reexport,
- org.eclipse.jetty.client;bundle-version="9.4.31",
- org.slf4j.toconsole;bundle-version="1.0.0"
+ org.eclipse.jetty.client;bundle-version="9.4.31"
 Export-Package: hu.qgears.quickjs.qpage.example,
  hu.qgears.quickjs.qpage.example.websocket,
  hu.qgears.quickjs.qpage.jetty,

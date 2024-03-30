@@ -1,5 +1,8 @@
 package hu.qgears.quickjs.qpage;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import hu.qgears.commons.NoExceptionAutoClosable;
 
 /** Base class of a QPage "code behind" that drives a single HTML page.
@@ -10,6 +13,8 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	protected IQPageContaierContext pageContainerContext;
 	/** The page object is always accessible and set by the framework before the first method call to user code. */
 	protected QPage page;
+	private List<String> cssUrl=new ArrayList<>();
+	private List<String> jsPreloadUrl=new ArrayList<>();
 	/** Called by the framework to set up the context of the page. */
 	final public AbstractQPage setPageContext(IQPageContaierContext context)
 	{
@@ -61,7 +66,19 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	 */
 	protected void initialWriteHeaders()
 	{
-		
+		for (String s: jsPreloadUrl)
+		{
+			write("<link rel=\"preload\" href=\"");
+			writeJSValue(pageContainerContext.getResourcePathSync(s));
+			write("\" as=\"script\"/>\n");
+			
+		}
+		for (String css: cssUrl)
+		{
+			write("<link rel=\"stylesheet\" href=\"");
+			writeJSValue(pageContainerContext.getResourcePathSync(css));
+			write("\" type=\"text/css\"/>\n");
+		}
 	}
 	/**
 	 * Default implementation disables favicon.
@@ -76,4 +93,10 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	 * What is generated here is the HTML content of the body tag.
 	 */
 	abstract public void createBody();
+	protected void headCss(String url) {
+		cssUrl.add(url);
+	}
+	protected void headJsPreload(String url) {
+		jsPreloadUrl.add(url);
+	}
 }

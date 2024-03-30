@@ -31,4 +31,27 @@ public class Routing {
 		}
 		return false;
 	}
+	public Routing path(String pathElement) {
+		boolean endsWithSlash=pathElement.lastIndexOf('/')==pathElement.length()-1;
+		Routing ret=new Routing();
+		RoutingElement re=new RoutingElement((q, path, pathAt)->{
+			if(path.startsWith(pathElement, pathAt))
+			{
+				if(endsWithSlash)
+				{
+					return pathElement.length();
+				}
+				if(path.length()==pathAt+pathElement.length())
+				{
+					return pathElement.length();
+				}else if(path.charAt(pathAt+pathElement.length())=='/')
+				{
+					return pathElement.length();
+				}
+			}
+			return null;
+		}, ret, null);
+		elements.add(re);
+		return ret;
+	}
 }

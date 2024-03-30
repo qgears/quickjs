@@ -61,4 +61,5 @@ public interface IPlatform {
 
 	String loadResource(String fname) throws Exception;
 
+	void configureJsGlobalQPage(HtmlTemplate parent, String string);
 }

@@ -237,6 +237,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 				write("', ");
 				writeObject(getPlatform().getTIMEOUT_DISPOSE_MS());
 				write(");\n");
+				getPlatform().configureJsGlobalQPage(this, "globalQPage");
 				if(sessionIdParameterName!=null){
 					write("globalQPage.setSessionIdParameterAdditional(\"&");
 					writeJSValue(sessionIdParameterName);

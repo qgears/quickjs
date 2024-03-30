@@ -103,6 +103,10 @@ class QPageContainer
 		this.comm.setQPageContainer(this);
 		return this.comm;
 	}
+	setPath(path)
+	{
+		this.path=path;
+	}
 	/// Start communication with server and set up global listeners
 	/// mode: EQPageMode.ordinal()
 	///       0 start in serverside mode: server is accessed through IndexedComm - WebSocket
@@ -118,7 +122,7 @@ class QPageContainer
 		case 1:
 			main([]);
 			this.teaVmCallback.createPageContainer(this.identifier, mode);
-			this.teaVmCallback.openPath("unconfiguredpath");
+			this.teaVmCallback.openPath(this.path);
 			this.comm.init(this.teaVmCallback);
 			break;
 		default:
