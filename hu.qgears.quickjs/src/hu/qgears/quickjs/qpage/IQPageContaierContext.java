@@ -54,4 +54,6 @@ public interface IQPageContaierContext {
 	 * @return
 	 */
 	QPage getPage();
+	String getImagePathSync(String s);
+	String getImagePathSync(String s, int thumbNailXSize);
 }

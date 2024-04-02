@@ -15,6 +15,7 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	protected QPage page;
 	private List<String> cssUrl=new ArrayList<>();
 	private List<String> jsPreloadUrl=new ArrayList<>();
+	private List<String> imgPreloadUrl=new ArrayList<>();
 	/** Called by the framework to set up the context of the page. */
 	final public AbstractQPage setPageContext(IQPageContaierContext context)
 	{
@@ -71,7 +72,18 @@ abstract public class AbstractQPage extends HtmlTemplate {
 			write("<link rel=\"preload\" href=\"");
 			writeJSValue(pageContainerContext.getResourcePathSync(s));
 			write("\" as=\"script\"/>\n");
-			
+		}
+		for (String img: imgPreloadUrl)
+		{
+			write("<link rel=\"preload\" href=\"");
+			writeJSValue(img);
+			write("\" as=\"image\"/>\n");
+		}
+		for (String css: cssUrl)
+		{
+			write("<link rel=\"preload\" href=\"");
+			writeJSValue(pageContainerContext.getResourcePathSync(css));
+			write("\" as=\"style\"/>\n");
 		}
 		for (String css: cssUrl)
 		{
@@ -98,5 +110,8 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	}
 	protected void headJsPreload(String url) {
 		jsPreloadUrl.add(url);
+	}
+	protected void headImgPreload(String url) {
+		imgPreloadUrl.add(url);
 	}
 }
