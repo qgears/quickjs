@@ -10,6 +10,8 @@ class QPageContainer
 		this.state=0;
 		this.timeoutDispose=timeoutDispose;
 		this.sessionIdParameterAdditional="";
+		this.replayObject=[];
+		this.logFailLogged=false;
 	}
 	getComponent(id)
 	{
@@ -103,6 +105,18 @@ class QPageContainer
 		this.comm.setQPageContainer(this);
 		return this.comm;
 	}
+	setTimeout(callback, ms)
+	{
+		var ret={};
+		ret.callback=callback;
+		ret.timeoutID=setTimeout(function(r){
+				r.callback.timeout();
+			}, ms, ret);
+		ret.cancel=function(){
+			clearTimeout(this.timeoutID);
+			}.bind(ret);
+		return ret;
+	}
 	setPath(path)
 	{
 		this.path=path;
@@ -122,8 +136,8 @@ class QPageContainer
 		case 1:
 			main([]);
 			this.teaVmCallback.createPageContainer(this.identifier, mode);
-			this.teaVmCallback.openPath(this.path);
 			this.comm.init(this.teaVmCallback);
+			this.teaVmCallback.openPath(this.path);
 			break;
 		default:
 			throw Exception("Mode not handled: "+mode);
@@ -167,13 +181,28 @@ class QPageContainer
 		FD.component=component.identifier;
 		return FD;
 	}
+	sendLogMessage(messageWrappedInJsonObject)
+	{
+		if(this.comm && this.comm.isConnected())
+		{
+			this.logFailLogged=false;
+			this.comm.send({log: messageWrappedInJsonObject});
+			// console.log("Send to server: "+JSON.stringify(messageWrappedInJsonObject));
+		}else
+		{
+			if(!this.logFailLogged)
+			{
+				this.logFailLogged=true;
+				console.error("Can not send log to server because offline");
+			}
+		}
+	}
 	sendCustomJson(type, jsonObj)
 	{
 		const toSend={};
 		toSend.type=type;
 		toSend.data=jsonObj;
 		toSend.custom=true;
-		// toSend.component=component.identifier;
 		this.send(toSend);
 	}
 	sendJson(type, jsonObj)
@@ -310,17 +339,49 @@ class QPageContainer
 				var component=this.components[selector];
 				var index=arg1;
 				var parentDOM=component.childContainer;
+				if(arg2!="")
+				{
+					parentDOM=parentDOM.querySelector(arg2);
+				}
 				const next=component.findNextNode(parentDOM, index);
 				parentDOM.insertBefore(item, next);
+				break;
+			case "QContainer_selector_after":
+				var component=this.components[selector];
+				var index=arg1;
+				var parentDOM=component.childContainer;
+				if(arg2!="")
+				{
+					parentDOM=parentDOM.querySelector(arg2);
+				}
+				var p=parentDOM.parentNode;
+				p.insertAfter(parentDOM, next);
 				break;
 			case "replaceWith":
 				var oldDom=document.querySelector(selector);
 				oldDom.replaceWith(item);
 				break;
+			case "replaceContent":
+				var parent=document.querySelector(selector);
+				while (parent.firstChild) {
+					parent.removeChild(parent.lastChild);
+				}
+				parent.append(item);
+				break;
 			default:
-					console.error(new Error().stack);
-					console.error({error: "methodName unknown", methodName: methodName});
-					break;
+				console.error(new Error().stack);
+				console.error({error: "methodName unknown", methodName: methodName});
+				break;
 		} 
+	}
+	/// In case of client side implementation the context initial object is set in serialized format (blob).
+	async setContextObjectSerialized(initialObjectInBlob)
+	{
+		this.initialObjectInByteArr=await initialObjectInBlob.arrayBuffer().then(res => res);
+	}
+	/// In case of client side implementation the context initial object is set in serialized format (blob).
+	async addReplayObject(ro)
+	{
+		this.replayObject.push(await ro.arrayBuffer().then(res => res));
 	}
 }

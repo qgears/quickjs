@@ -29,6 +29,7 @@ public class GdprSessionIdManager
 	private int maxInactiveIntervalCookiesAccepted=365*24*60*60;
 	private Random random;
 	private List<HttpSessionListener> listeners=new ArrayList<>();
+	private ISessionLoader sessionLoader;
 	/// Session by timeout
 	private MultiMapTreeImpl<Long, GdprSession> sessionTimeouts=new MultiMapTreeImpl<Long, GdprSession>();
 	private HttpSessionListener[] readOnlyCopy=null;
@@ -48,6 +49,14 @@ public class GdprSessionIdManager
 		GdprSession session;
 		synchronized (sessionsBySecureIdentifier) {
 			session=sessionsBySecureIdentifier.get(sessionIdFromRequest);
+			if(session==null && sessionLoader!=null)
+			{
+				try {
+					session=sessionLoader.loadSession(this, sessionIdFromRequest);
+				} catch (Exception e) {
+					log.error("Load session by id", e);
+				}
+			}
 			if(session!=null)
 			{
 				// Update last access time at once to avoid race condition dispose of the session once we got it out of the storage.
@@ -61,25 +70,30 @@ public class GdprSessionIdManager
 		if(session==null)
 		{
 			String id=createNewId();
-			session=new GdprSession(this, t, id);
-			synchronized (sessionsBySecureIdentifier) {
-				boolean exists=sessionsBySecureIdentifier.containsKey(id);
-				if(exists)
-				{
-					throw new RuntimeException("Internal error - session id gen");
-				}
-				sessionsBySecureIdentifier.put(id, session);
-			}
-			session.setMaxInactiveInterval(cookiesAccepted?maxInactiveIntervalCookiesAccepted:maxInactiveIntervalCookiesNotAccepted);
-			updateTimeout(session);
-			HttpSessionEvent ev=new HttpSessionEvent(session);
-			for(HttpSessionListener l: getCurrentListeners())
-			{
-				l.sessionCreated(ev);
-			}
+			session=createSessionForId(id, t, cookiesAccepted);
 		}else
 		{
 			updateTimeout(session);
+		}
+		return session;
+	}
+	public GdprSession createSessionForId(String id, long t, boolean cookiesAccepted)
+	{
+		GdprSession session=new GdprSession(this, t, id);
+		synchronized (sessionsBySecureIdentifier) {
+			boolean exists=sessionsBySecureIdentifier.containsKey(id);
+			if(exists)
+			{
+				throw new RuntimeException("Internal error - session id gen");
+			}
+			sessionsBySecureIdentifier.put(id, session);
+		}
+		session.setMaxInactiveInterval(cookiesAccepted?maxInactiveIntervalCookiesAccepted:maxInactiveIntervalCookiesNotAccepted);
+		updateTimeout(session);
+		HttpSessionEvent ev=new HttpSessionEvent(session);
+		for(HttpSessionListener l: getCurrentListeners())
+		{
+			l.sessionCreated(ev);
 		}
 		return session;
 	}
@@ -192,5 +206,14 @@ public class GdprSessionIdManager
 	}
 	public String getSessionIdCookieName() {
 		return handler.sessionCookieName;
+	}
+	public void setCookieAccepted(GdprSession session) {
+		if(session.getMaxInactiveInterval()!=maxInactiveIntervalCookiesAccepted)
+		{
+			session.setMaxInactiveInterval(maxInactiveIntervalCookiesAccepted);
+		}	
+	}
+	public void setSessionLoader(ISessionLoader sessionLoader) {
+		this.sessionLoader = sessionLoader;
 	}
 }

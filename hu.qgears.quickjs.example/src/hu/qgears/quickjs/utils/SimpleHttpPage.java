@@ -57,7 +57,7 @@ public class SimpleHttpPage extends HtmlTemplate implements Cloneable
 		write("<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n");
 		writeFaviconHeaders();
 		writeHeaders();
-		write("</head>\n<body>\n");
+		write("</head>\n<body id=\"bodyId\">\n");
 		writeBody();
 		write("</body>\n</html>\n");
 	}

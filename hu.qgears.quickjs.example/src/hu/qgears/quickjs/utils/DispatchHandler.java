@@ -168,7 +168,7 @@ public class DispatchHandler extends HandlerCollection {
 						contextPath.append(pieces.get(i));
 						contextPath.append("/");
 					}
-					try(NoExceptionAutoClosable reset=setContext(baseRequest, contextPath, newTarget))
+					try(NoExceptionAutoClosable reset=setContext(baseRequest, contextPath.toString(), newTarget))
 					{
 						// Exact match within context
 						for(AbstractHandler h: found.getHandlersArray(newTarget))
@@ -237,8 +237,10 @@ public class DispatchHandler extends HandlerCollection {
 	 */
 	protected void logRequest(String target, Request baseRequest, HttpServletRequest request,
 			HttpServletResponse response) {
+		String upgrade=baseRequest.getHeader("Upgrade");
 		// Logging the parameter map in case of POST invalidates the input stream object!
-		System.out.println("At: "+System.currentTimeMillis()+" "+new Date()+" Target: "+target
+		System.out.println("At: "+System.currentTimeMillis()+" "+new Date()+" Target: "+target+
+				(upgrade==null?"":(" UPGRADE:"+upgrade))
 				// +" "+("POST".equals(baseRequest.getMethod())? "" :baseRequest.getParameterMap())+" "+System.currentTimeMillis()
 				);
 	}
@@ -248,12 +250,12 @@ public class DispatchHandler extends HandlerCollection {
 	protected void postHandle(String target, Request baseRequest, HttpServletRequest request,
 			HttpServletResponse response) {
 	}
-	private NoExceptionAutoClosable setContext(Request baseRequest, StringBuilder contextPath, String newTarget)
+	public static NoExceptionAutoClosable setContext(Request baseRequest, String contextPath, String newTarget)
 	{
 		String prePathInfo=baseRequest.getPathInfo();
 		String preContextPath=baseRequest.getContextPath();
 		// Context path is the path that can be used to access this handler's owner folder
-		baseRequest.setContextPath(contextPath.toString());
+		baseRequest.setContextPath(contextPath);
 		baseRequest.setPathInfo(newTarget);
 		return new NoExceptionAutoClosable() {
 			@Override

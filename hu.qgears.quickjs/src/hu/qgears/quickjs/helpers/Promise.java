@@ -52,10 +52,21 @@ public interface Promise<T> {
 	 */
 	void resultAccept(Consumer<Result<T>> resultHandler);
 	/**
+	 * Add a listener to result and return the same object.
+	 * @param resultListener
+	 * @return
+	 */
+	Promise<T> listenResult(Consumer<Result<T>> resultListener);
+	/**
 	 * Get the return value of the promise right now.
 	 * @return
 	 * @throws IllegalStateException in case the promise is not resolved yet
 	 * @throws PromiseException in case the promise ended with an exception and the exception is wrapped into.
 	 */
 	T getValueSync();
+	/**
+	 * Cancel the ongoing promise before it is fulfilled.
+	 * @param throwable
+	 */
+	void error(Throwable throwable);
 }

@@ -19,6 +19,7 @@ import hu.qgears.quickjs.qpage.QPageContainer;
 
 /**
  * Execute an automaton script in a page.
+ * @deprecated Why exactly?
  */
 @Deprecated
 abstract public class AutomatExecutor extends HtmlTemplate implements UtilEventListener<JSONObject>

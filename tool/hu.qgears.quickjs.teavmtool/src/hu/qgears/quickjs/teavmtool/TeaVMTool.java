@@ -1,17 +1,11 @@
 package hu.qgears.quickjs.teavmtool;
 
 import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-import hu.qgears.commons.UtilFile;
 import hu.qgears.tools.Tools;
 import hu.qgears.tools.build.BundleManifest;
 import hu.qgears.tools.build.BundleResolver;
@@ -22,23 +16,17 @@ import hu.qgears.tools.build.teavm.BundleAdditionalInfoTeaVm;
 import joptsimple.tool.AbstractTool;
 
 public class TeaVMTool extends AbstractTool {
-	private TeaVmCompileArgs cargs;
+	private TeaVMCompileArgsBundle cargs;
 	public static void main(String[] args) throws Exception {
 		Tools t=new Tools();
 		t.register(new TeaVMTool());
+		t.register(new TeaVMTool2());
+		t.register(new CommGenTool());
 		t.mainEntryPoint(args);
 	}
-	private URL[] gatherTargetUrls(BundleSet toCompile) throws MalformedURLException
+	private List<File> gatherTargetFiles(BundleSet toCompile) throws MalformedURLException
 	{
-		List<URL> urls=new ArrayList<>();
-		File g=cargs.teavmJarsFolder;
-		for(File f: g.listFiles())
-		{
-			if(f.getName().endsWith(".jar"))
-			{
-				urls.add(f.toURI().toURL());
-			}
-		}
+		List<File> classesFolders=new ArrayList<>();
 		for(BundleManifest bm: toCompile.all)
 		{
 			switch (bm.type)
@@ -48,13 +36,13 @@ public class TeaVMTool extends AbstractTool {
 				for(String s: bm.cph.outputs)
 				{
 					File f=new File(bm.projectFile, s);
-					urls.add(f.toURI().toURL());
+					classesFolders.add(f);
 				}
 				break;
 			}
 			case binary:
 			{
-				urls.add(bm.projectFile.toURI().toURL());
+				classesFolders.add(bm.projectFile);
 				break;
 			}
 			case dummy:
@@ -62,91 +50,7 @@ public class TeaVMTool extends AbstractTool {
 				throw new RuntimeException("type unknown: "+bm.type);
 			}
 		}
-		return urls.toArray(new URL[] {});
-	}
-	private int reflectiveExec(BundleSet toCompile, BundleManifest b) throws Exception
-	{
-		BundleAdditionalInfoTeaVm tea=BundleAdditionalInfoTeaVm.get(b);
-		ClassLoader cl=buildClassLoader();
-		Class<?> cla=cl.loadClass("hu.qgears.quickjs.teavmtool.RunTool");
-		Object runTool=cla.getDeclaredConstructor().newInstance();
-		Field f=cla.getField("classLoaderUrls");
-		f.set(runTool, gatherTargetUrls(toCompile));
-		
-		if(tea.outputJsPath==null)
-		{
-			throw new IllegalArgumentException("outputJsPath not specified for bundle: "+b.id+" (in teavm.properties file)");
-		}
-		File outputFile=new File(b.projectFile, tea.outputJsPath);
-		f=cla.getField("out");
-		f.set(runTool, outputFile);
-		
-		System.out.println("Call tea compiler output file: "+outputFile.getAbsolutePath());
-		
-		System.out.println("Main class: "+tea.mainClass);
-		f=cla.getField("mainClass");
-		f.set(runTool, tea.mainClass);
-
-		f=cla.getField("optimizationLevel");
-		f.set(runTool, 0);
-
-		f=cla.getField("obfuscated");
-		f.set(runTool, false);
-
-		Method m=cla.getMethod("compile");
-		try {
-			return (Integer)m.invoke(runTool);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return 1;
-		}
-	}
-	private ClassLoader buildClassLoader() throws IOException {
-		ClassLoader rootClassloader=getClass().getClassLoader();
-		while(rootClassloader.getParent()!=null)
-		{
-			rootClassloader=rootClassloader.getParent();
-		}
-		List<URL> urls=new ArrayList<>();
-		File g=cargs.teavmJarsFolder;
-		for(File f: g.listFiles())
-		{
-			if(f.getName().endsWith(".jar"))
-			{
-				// System.out.println(f.getAbsolutePath());
-				urls.add(f.toURI().toURL());
-			}
-		}
-		
-		File reflectiveLoadTrick=new File(cargs.out, "reflectiveLoadTrick");
-
-		Class<?>[]clas=RunTool.class.getNestMembers();
-		for(Class<?> c: clas)
-		{
-			File outf=new File(reflectiveLoadTrick, c.getName().replaceAll("\\.", "\\/")+".class");
-			outf.getParentFile().mkdirs();
-			UtilFile.saveAsFile(outf, UtilFile.loadFile(getClass().getResource(outf.getName())));
-		}
-		// urls.add(new File("/home/rizsi/git-qgears/fos/quickjs/tool/teavmtool0/bin").toURI().toURL());
-		urls.add(reflectiveLoadTrick.toURI().toURL());
-		
-//		urls.add(new File("/home/rizsi/Downloads/teavm-classlib-0.9.2.jar").toURI().toURL());
-//		urls.add(new File("/home/rizsi/Downloads/teavm-platform-0.9.2.jar").toURI().toURL());
-//		urls.add(new File("/home/rizsi/Downloads/teavm-jso-0.9.2.jar").toURI().toURL());
-		
-		//urls.add(new File("/home/rizsi/Downloads/teavm-jso-apis-0.9.2.jar").toURI().toURL());
-		//urls.add(new File("/home/rizsi/Downloads/teavm-jso-impl-0.9.2.jar").toURI().toURL());
-		//		new File("/home/rizsi/Downloads/teavm-interop-0.9.2.jar").toURI().toURL(),
-//		new File("/home/rizsi/Downloads/teavm-core-0.9.2.jar").toURI().toURL(),
-//		new File("/home/rizsi/Downloads/teavm-tooling-0.9.2.jar").toURI().toURL(),
-
-//		urls.add(new File("/home/rizsi/git-qgears/fos/quickjs/3rdparty/org.slf4j.api/bin").toURI().toURL());
-//		urls.add(new File("/home/rizsi/git-qgears/fos/quickjs-clientside/hu.qgears.quickjs/bin").toURI().toURL());
-//		urls.add(new File("/home/rizsi/git-qgears/fos/quickjs-clientside/hu.qgears.quickjs.clientsideexample/bin").toURI().toURL());
-//		urls.add(new File("/home/rizsi/openproto/openproto/commons/hu.qgears.commons/bin").toURI().toURL());
-		URLClassLoader ret=new URLClassLoader(
-				urls.toArray(new URL[] {}), rootClassloader);
-		return ret;
+		return classesFolders;
 	}
 
 	@Override
@@ -161,13 +65,13 @@ public class TeaVMTool extends AbstractTool {
 
 	@Override
 	protected int doExec(IArgs a) throws Exception {
-		cargs=(TeaVmCompileArgs) a;
-		BundleResolver br=new BundleResolver(cargs);
+		cargs=(TeaVMCompileArgsBundle) a;
+		BundleResolver br=new BundleResolver(cargs.bundleArgs);
 		br.addAdditionalInfoParser(BundleAdditionalInfoTeaVm.createParser());
 		br.setBundleToBuildFilter(bmf->{return BundleAdditionalInfoTeaVm.get(bmf)!=null;});
 		br.execute();
 		int ret=0;
-		try(BuildGenContext bgc=new BuildGenContext(cargs.out, cargs))
+		try(BuildGenContext bgc=new BuildGenContext(cargs.bundleArgs.out, cargs.bundleArgs))
 		{
 			bgc.r=br.getResolver();
 			if(cargs.bundlesToBuild.size()>0)
@@ -177,7 +81,6 @@ public class TeaVMTool extends AbstractTool {
 					HashSet<BundleManifest> bundles=bgc.r.allTobuildBundles.byId.get(s);
 					if(bundles.size()!=1)
 					{
-						System.err.println();
 						throw new RuntimeException("TeaVM Bundle found by id: "+s+" "+bundles.size()+" must be exactly 1");
 					}
 					BundleManifest b=bundles.iterator().next();
@@ -189,12 +92,6 @@ public class TeaVMTool extends AbstractTool {
 				{
 					System.out.println("Build bundle: "+b);
 					buildBundle(bgc, b);
-					// b.
-	/*				BundleAdditionalInfoTeaVm tea=BundleAdditionalInfoTeaVm.get(b);
-					if(tea!=null)
-					{
-						b.
-					}*/
 				}
 			}
 		}
@@ -207,17 +104,14 @@ public class TeaVMTool extends AbstractTool {
 		bs.add(b);
 		Resolver e=new Resolver(bs, bgc.r.allAvailableBundles, resultBundles);
 		e.resolve();
-		// System.out.println("BundleSet: "+e.state.resultBundles);
-//		BundleAdditionalInfoTeaVm tea=BundleAdditionalInfoTeaVm.get(b);
-//		String gradle=new GradleTemplate(e).setMainClass(tea.mainClass).generate();
-//		File f=new File(cargs.out, b.id+"/build.gradle");
-//		f.getParentFile().mkdirs();
-//		UtilFile.saveAsFile(f, gradle);
 		System.out.println("Call tea compiler on: "+b.id+" with "+e.state.resultBundles);
-		reflectiveExec(e.state.resultBundles, b);
+		BundleAdditionalInfoTeaVm tea=BundleAdditionalInfoTeaVm.get(b);
+		File outputFile=new File(b.projectFile, tea.outputJsPath);
+
+		TeaVMTool2.reflectiveExec(cargs, gatherTargetFiles(e.state.resultBundles), tea, outputFile);
 	}
 	@Override
 	protected IArgs createArgsObject() {
-		return new TeaVmCompileArgs();
+		return new TeaVMCompileArgsBundle();
 	}
 }

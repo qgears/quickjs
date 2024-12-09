@@ -21,6 +21,10 @@ abstract public class QSelect extends QComponent {
 		super(parent);
 		init();
 	}
+	public QSelect() {
+		super();
+		init();
+	}
 	
 	protected void serverOptionsChanged(final List<String> msg)
 	{

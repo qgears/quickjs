@@ -2,6 +2,7 @@ package hu.qgears.quickjs.qpage.jetty;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -11,7 +12,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
-import org.json.JSONArray;
+import org.eclipse.jetty.server.Request;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,12 +29,16 @@ import hu.qgears.quickjs.qpage.EQPageMode;
 import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.ISessionUpdateLastAccessedTime;
 import hu.qgears.quickjs.qpage.IndexedComm;
+import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QPageManager;
+import hu.qgears.quickjs.serialization.SerializeBase;
 import hu.qgears.quickjs.serverside.QPageTypesRegistry;
+import hu.qgears.quickjs.utils.Base64Image;
 
 public class JettyPlatform implements IPlatformServerSide {
 	private static final Logger log=LoggerFactory.getLogger(JettyPlatform.class);
+	private static final Logger browserLog=LoggerFactory.getLogger("browser");
 	private final QPageManager qpm;
 	QPageContainer pageContainer;
 	private volatile Thread thread;
@@ -48,6 +53,9 @@ public class JettyPlatform implements IPlatformServerSide {
 	private String path;
 	private Supplier<NoExceptionAutoClosable> setupContext=()->(new NoExceptionAutoClosable() {});
 	private Map<String, IndexedComm> customWebSocketImplementations=Collections.synchronizedMap(new HashMap<>());
+	private SerializeBase serializator;
+	private List<byte[]> replayObjects;
+	private QueryWrapperJetty queryWrapper;
 
 	public JettyPlatform(QPageContainer pageContainer, QPageManager qpm) {
 		this.qpm=qpm;
@@ -70,19 +78,15 @@ public class JettyPlatform implements IPlatformServerSide {
 			@Override
 			protected void doRun() {
 				pageContainer.submitTimerTask(t, r);
-				pageContainer.submitToUI(()->{
-					try {
-						if(!isCancelled())
-						{
-							r.run();
-						}
-					} catch (Exception e) {
-						log.error("Unhandled exception in timer", e);
-					}
-				});
 			}
 		};
-		UtilTimer.javaTimer.schedule(t.stt, firstTimeoutMs, periodMs);
+		if(periodMs<=0)
+		{
+			UtilTimer.javaTimer.schedule(t.stt, firstTimeoutMs);
+		}else
+		{
+			UtilTimer.javaTimer.schedule(t.stt, firstTimeoutMs, periodMs);
+		}
 		return t;
 	}
 	public void setExecutor(Executor executor) {
@@ -146,11 +150,7 @@ public class JettyPlatform implements IPlatformServerSide {
 			JSONObject jo=(JSONObject)msg.header;
 			if(jo.has("log"))
 			{
-				JSONArray a=jo.getJSONArray("log");
-				for(Object o: a)
-				{
-					log.info(""+o);
-				}
+				browserLog.info("Browser log: "+jo.get("log"));
 			}else if(jo.has("unload")&&"true".equals(jo.get("unload"))) {
 				handleUnloadQuery();
 			}else if(jo.has("history_popstate")|| jo.has("custom")||jo.has("component"))
@@ -277,6 +277,7 @@ public class JettyPlatform implements IPlatformServerSide {
 	 * Can also be used to do synchronization between pages.
 	 * @param setupContext
 	 */
+	@Override
 	public void setSetupContext(Supplier<NoExceptionAutoClosable> setupContext) {
 		this.setupContext = setupContext;
 	}
@@ -434,5 +435,48 @@ public class JettyPlatform implements IPlatformServerSide {
 				write("\");\n");
 			}
 		}.ws();
+	}
+	@Override
+	public SerializeBase getSerializator() {
+		return serializator;
+	}
+	public void setSerializator(SerializeBase serializator) {
+		this.serializator = serializator;
+	}
+	@Override
+	public void writeBlobObject(HtmlTemplate template, byte[] o) {
+		Base64Image.writeBlobObject(template, o);
+	}
+	@Override
+	public void writeBlobObject(HtmlTemplate template, byte[] o, int pos, int length) {
+		Base64Image.writeBlobObject(template, o, pos, length);
+	}
+	@Override
+	public boolean isServer() {
+		return true;
+	}
+	@Override
+	public List<byte[]> getReplayObjects() {
+		if(replayObjects==null)
+		{
+			replayObjects=new ArrayList<>();
+		}
+		return replayObjects;
+	}
+	public void setQueryWrapper(QueryWrapperJetty queryWrapper) {
+		this.queryWrapper=queryWrapper;
+	}
+	public Request getBaseRequest() {
+		return queryWrapper.baseRequest;
+	}
+	public static Request getBaseRequest(QPage page) {
+		Request baseRequest = ((JettyPlatform)page.getPageContainer().getPlatform()).getBaseRequest();
+		return baseRequest;
+	}
+	public Object getUserParameter() {
+		return getBaseRequest().getAttribute(QPageHandler.key);
+	}
+	public void setUserParameter(Object userObject) {
+		getBaseRequest().setAttribute(QPageHandler.key, userObject);
 	}
 }

@@ -14,7 +14,7 @@ public class QueryWrapperJetty implements QQueryWrapper {
 	public Request baseRequest;
 	public HttpServletRequest request;
 	public HttpServletResponse response;
-	public RoutingEndpointQPage epQPage;
+	public RoutingEndpoint routingEndpoint;
 	public QueryWrapperJetty(String target, Request baseRequest, HttpServletRequest request,
 			HttpServletResponse response) {
 		this.target=target;
@@ -28,11 +28,7 @@ public class QueryWrapperJetty implements QQueryWrapper {
 	}
 	@Override
 	public boolean executeEndpoint(RoutingEndpoint re, String path, int pathAt) {
-		if(re instanceof RoutingEndpointQPage)
-		{
-			epQPage=(RoutingEndpointQPage) re;
-			return true;
-		}
-		return false;
+		routingEndpoint=(RoutingEndpointQPage) re;
+		return true;
 	}
 }

@@ -21,6 +21,8 @@ import hu.qgears.quickjs.helpers.IPlatform;
 import hu.qgears.quickjs.helpers.Promise;
 import hu.qgears.quickjs.helpers.PromiseImpl;
 import hu.qgears.quickjs.helpers.QTimer;
+import hu.qgears.quickjs.serialization.ByteBufferOutput;
+import hu.qgears.quickjs.serialization.SerializeBase;
 
 /** QuickJS web page instance.
  */
@@ -37,8 +39,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	private Map<String, Object> userObjectStorage=new HashMap<String, Object>();
 	private String sessionIdParameterName;
 	private String sessionId;
-	private List<AutoCloseable> closeables;
-	private Object closeablesSyncObject=new Object();
+	private DisposableContainer disposables=new DisposableContainer();
 	private QTimer currentTimerTask;	
 	private IPlatform platform;
 	private IQPageContaierContext context;
@@ -232,40 +233,81 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	public void generateInitialization(HtmlTemplate initialHtmlTemplate) {
 		new HtmlTemplate(initialHtmlTemplate) {
 			public void generate() {
-				write("<script language=\"javascript\" type=\"text/javascript\">\n// Script that starts the QuickJS communication loop and connects managed objects DOM and JS \nglobalQPage=new QPageContainer('");
-				writeObject(identifier);
-				write("', ");
-				writeObject(getPlatform().getTIMEOUT_DISPOSE_MS());
-				write(");\n");
-				getPlatform().configureJsGlobalQPage(this, "globalQPage");
-				if(sessionIdParameterName!=null){
-					write("globalQPage.setSessionIdParameterAdditional(\"&");
-					writeJSValue(sessionIdParameterName);
-					write("=");
-					writeJSValue(sessionId);
-					write("\");\n");
-				}
-				write("window.addEventListener(\"load\", function(){\n\tvar page=this;\n\tvar args=staticArgs();\n");
-				writeObject(jsTemplate.getWriter().toString());
-				write("\tpage.start(");
-				writeObject(getPlatform().getMode().ordinal());
-				write(");\n}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
-				UtilComma c=new UtilComma(", ");
-				for(Object o: jsTemplate.toWebSocketArguments())
+				if(getPlatform().isServer())
 				{
-					// TODO handle blob!
-					writeObject(c.getSeparator());
-					write("\"");
-					writeJSValue(o.toString());
-					write("\"");
+					write("<script language=\"javascript\" type=\"text/javascript\">\n// Script that starts the QuickJS communication loop and connects managed objects DOM and JS \nglobalQPage=new QPageContainer('");
+					writeObject(identifier);
+					write("', ");
+					writeObject(getPlatform().getTIMEOUT_DISPOSE_MS());
+					write(");\n");
+					getPlatform().configureJsGlobalQPage(this, "globalQPage");
+					if(sessionIdParameterName!=null){
+						write("globalQPage.setSessionIdParameterAdditional(\"&");
+						writeJSValue(sessionIdParameterName);
+						write("=");
+						writeJSValue(sessionId);
+						write("\");\n");
+					}
+					write("window.addEventListener(\"load\", async function(){\n\tvar page=this;\n\tvar args=staticArgs();\n");
+					if(EQPageMode.hybrid.equals(getPlatform().getMode()))
+					{
+						SerializeBase sb=getPlatform().getSerializator();
+						sb.reset();
+						sb.serializeObject(getPageContext().createClientSideCallContext());
+						ByteBufferOutput bbo=sb.getOutput();
+						write("\tvar pageContextInitialObject = ");
+						getPlatform().writeBlobObject(this, bbo.getData(), 0, bbo.getLength());//NB
+						write(";\n\tawait page.setContextObjectSerialized(pageContextInitialObject);\n");
+						for(byte[] ro: getPlatform().getReplayObjects())
+						{
+							// System.out.println("page.addReplayObject "+ro.length);
+							write("\tawait page.addReplayObject(");
+							getPlatform().writeBlobObject(this, ro);//NB
+							write(");\n");
+							
+//							sb.setInput(ByteBuffer.wrap(ro));
+//							RemoteMessageObject rmo=(RemoteMessageObject)sb.deserializeObject();
+//							System.out.println("page.addReplayObject  "+rmo);
+//							sb.reset();
+//							sb.serializeObject(rmo);
+//							System.out.println("page.addReplayObject length: "+sb.getOutput().getLength());
+//							byte[] data=sb.getOutput().getDataCopy();
+//							sb.setInput(ByteBuffer.wrap(data));
+//							sb.deserializeObject();
+						}
+						// sb.setInput(ByteBuffer.wrap(bbo.getData()));
+						// Object o=sb.deserializeObject();
+						// System.out.println("Context initial object: "+o);
+					}
+					writeObject(jsTemplate.getWriter().toString());
+					write("\tpage.start(");
+					writeObject(getPlatform().getMode().ordinal());
+					write(");\n}.bind(globalQPage), false);\nwindow.addEventListener(\"beforeunload\", function(){\n\tthis.beforeUnload();\n}.bind(globalQPage), false);\nstaticArgs=function()\n{\n\treturn [");
+					UtilComma c=new UtilComma(", ");
+					for(Object o: jsTemplate.toWebSocketArguments())
+					{
+						writeObject(c.getSeparator());
+						if(o instanceof byte[])
+						{
+							getPlatform().writeBlobObject(this, (byte[]) o);
+						}else
+						{
+							write("\"");
+							writeJSValue(o.toString());
+							write("\"");
+						}
+					}
+					write("];\n};\n</script>\n");
+					jsTemplate=createJsTemplate();
+				}else
+				{
+					// Just reset the JS template to a new instance
+					jsTemplate=createJsTemplate();
 				}
-				write("];\n};\n</script>\n");
-				jsTemplate=createJsTemplate();
 			}
 		}.generate();
 		initialHtmlTemplate=null;
 	}
-
 	public void generateStaticScripts(HtmlTemplate parent) {
 		new HtmlTemplate(parent) {
 			public void generate() {
@@ -360,18 +402,7 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 				{
 					jsTemplate=prev;
 				}
-				List<AutoCloseable> toClose;
-				synchronized (closeablesSyncObject) {
-					toClose=closeables;
-					closeables=null;
-				}
-				if(toClose!=null)
-				{
-					for(AutoCloseable c: toClose)
-					{
-						closeCloseable(c);
-					}
-				}
+				disposables.close();
 				getPlatform().disposeCommunicationToJS();
 				disposedEvent.ready(QPageContainer.this);
 			}
@@ -550,39 +581,11 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	}
 	@Override
 	public NoExceptionAutoClosable addCloseable(AutoCloseable closeable) {
-		if(!active)
-		{
-			closeCloseable(closeable);
-			return new NoExceptionAutoClosable() {};
-		}else
-		{
-			synchronized (closeablesSyncObject) {
-				if(closeables==null)
-				{
-					closeables=new ArrayList<>();
-				}
-				closeables.add(closeable);
-			}
-			return new NoExceptionAutoClosable() {
-				@Override
-				public void close() {
-					synchronized(closeablesSyncObject)
-					{
-						if(closeables!=null)
-						{
-							closeables.remove(closeable);
-						}
-					}
-				}
-			};
-		}
+		return disposables.addCloseable(closeable);
 	}
-	private void closeCloseable(AutoCloseable closeable) {
-		try {
-			closeable.close();
-		} catch (Exception e) {
-			log.error("Closing attached closeable", e);
-		}
+	@Override
+	public NoExceptionAutoClosable addOnClose(Runnable closeable) {
+		return disposables.addOnClose(closeable);
 	}
 	/**
 	 * Send a reload query to the client.
@@ -664,5 +667,21 @@ public class QPageContainer implements Closeable, IQContainer, IUserObjectStorag
 	}
 	public IQPageContaierContext getPageContext() {
 		return context;
+	}
+	public void vibrate() {
+		vibrate(50);
+	}
+	public void vibrate(int ms) {
+		new HtmlTemplate() {
+			void vibrate()
+			{
+				try(NoExceptionAutoClosable c=activateJS())
+				{
+					write("try{window.navigator.vibrate(");
+					writeObject(ms);
+					write(");}catch(e){}\n");
+				}
+			}
+		}.vibrate();
 	}
 }

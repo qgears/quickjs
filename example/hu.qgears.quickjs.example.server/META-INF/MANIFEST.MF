@@ -7,4 +7,4 @@ Automatic-Module-Name: hu.qgears.quickjs.example.server
 Bundle-RequiredExecutionEnvironment: JavaSE-11
 Require-Bundle: joptsimple;bundle-version="1.5.0",
  hu.qgears.quickjs.example.gui;bundle-version="1.0.0",
- hu.qgears.quickjs.example;bundle-version="4.0.0"
+ hu.qgears.quickjs.jetty;bundle-version="4.0.0"

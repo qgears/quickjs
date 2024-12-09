@@ -3,8 +3,10 @@ package hu.qgears.quickjs.utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilListenableProperty;
-import hu.qgears.quickjs.qpage.QPageContainer;
+import hu.qgears.quickjs.qpage.IQDisposableContainer;
+import hu.qgears.quickjs.qpage.QComponent;
 
 /**
  * Connect a real time event to the UI:
@@ -16,11 +18,13 @@ abstract public class FrameLimiter {
 	private long minPeriodMillis;
 	private long tPrev;
 	private boolean await=false;
-	private QPageContainer page;
+	private QComponent page;
+	private IQDisposableContainer disposableContainer;
 	
-	public FrameLimiter(QPageContainer page, long minPeriodMillis) {
+	public FrameLimiter(QComponent component, long minPeriodMillis) {
 		super();
-		this.page = page;
+		this.page = component;
+		this.disposableContainer=component;
 		this.minPeriodMillis = minPeriodMillis;
 	}
 	public void executeTask()
@@ -31,20 +35,25 @@ abstract public class FrameLimiter {
 				await=true;
 				long now=System.currentTimeMillis();
 				long elapsed=now-tPrev;
-				if(elapsed<0||elapsed>=minPeriodMillis)
+				if(elapsed<-2*minPeriodMillis||elapsed>=minPeriodMillis)
 				{
-					page.submitToUI(this::run);
+					page.getPageContainer().submitToUI(this::run);
 				}else
 				{
-					long delay=minPeriodMillis-elapsed;
-					page.scheduleToUI(delay, this::run);
+					long delay=minPeriodMillis-Math.max(elapsed, 0);
+					page.getPageContainer().scheduleToUI(delay, this::run);
 				}
 			}
 		}
 	}
+	private long prev=0;
 	final public void run()
 	{
 		synchronized (this) {
+			long t=System.currentTimeMillis();
+			prev=t;
+
+			
 			await=false;
 			tPrev=System.currentTimeMillis();
 		}
@@ -54,10 +63,14 @@ abstract public class FrameLimiter {
 			log.error("Error executing frame limited task.", e);
 		}
 	}
-	protected abstract void doExec();
-	public FrameLimiter listenProperty(UtilListenableProperty<?> prop) {
-		hu.qgears.commons.NoExceptionAutoClosable unreg=prop.addListenerWithInitialTrigger(e->executeTask());
-		page.disposedEvent.thenApply(e->{unreg.close();});
+	public FrameLimiter setDisposableContainer(IQDisposableContainer disposableContainer) {
+		this.disposableContainer = disposableContainer;
 		return this;
+	}
+	protected abstract void doExec();
+	public NoExceptionAutoClosable listenProperty(UtilListenableProperty<?> prop) {
+		NoExceptionAutoClosable unreg=prop.addListenerWithInitialTrigger(e->executeTask());
+		disposableContainer.addCloseable(unreg);
+		return unreg;
 	}
 }

@@ -1,23 +1,23 @@
 package hu.qgears.quickjs.serverside;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import hu.qgears.commons.UtilEvent;
 import hu.qgears.quickjs.helpers.Promise;
 import hu.qgears.quickjs.helpers.PromiseImpl;
 import hu.qgears.quickjs.qpage.IQPageContaierContext;
 import hu.qgears.quickjs.qpage.QPage;
-import hu.qgears.quickjs.serialization.IRemotingBase;
 
 /** The server side implementation of the page context. */
-public class QPageContextServerSide implements IQPageContaierContext {
+public class QPageContextServerSide extends QCallContext implements IQPageContaierContext {
 	public QPage page;
 	public String pageContextPath;
 	public Object initializeObject;
 	protected String cacheParameter;
-	public Map<String, IRemotingBase> connections=new HashMap<>();
+	public Object remoting;
 	public final UtilEvent<QPageContextServerSide> closeEvent=new UtilEvent<>();
+	/**
+	 * Event is fired after the first phase of page initialization happened.
+	 */
+	public final UtilEvent<QPageContextServerSide> pageInitializedEvent=new UtilEvent<>();
 	private IImageSizeToUrl imageSizeToUrl=null;
 	public QPageContextServerSide(QPage page, String pageContextPath) {
 		super();
@@ -29,8 +29,8 @@ public class QPageContextServerSide implements IQPageContaierContext {
 		return initializeObject;
 	}
 	@Override
-	public IRemotingBase openConnection(String id) {
-		return connections.get(id);
+	public Object getRemoting() {
+		return remoting;
 	}
 	@Override
 	public String getPageContextPath() {
@@ -58,7 +58,7 @@ public class QPageContextServerSide implements IQPageContaierContext {
 	public String getImagePathSync(String s) {
 		if(imageSizeToUrl!=null)
 		{
-			return imageSizeToUrl.imageSizeToUrl(s, cacheParameter, null);
+			return pageContextPath+"/"+imageSizeToUrl.imageSizeToUrl(s, cacheParameter, null);
 		}
 		return getResourcePathSync(s);
 	}
@@ -66,7 +66,7 @@ public class QPageContextServerSide implements IQPageContaierContext {
 	public String getImagePathSync(String s, int requiredWidth) {
 		if(imageSizeToUrl!=null)
 		{
-			return imageSizeToUrl.imageSizeToUrl(s, cacheParameter, requiredWidth);
+			return pageContextPath+"/"+imageSizeToUrl.imageSizeToUrl(s, cacheParameter, requiredWidth);
 		}
 		return getResourcePathSync(s);
 	}

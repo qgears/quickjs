@@ -2,10 +2,15 @@ package hu.qgears.quickjs.serialization;
 
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 public class SerializeBase {
 	private static Set<String> handledClasses=new HashSet<>();
@@ -31,6 +36,17 @@ public class SerializeBase {
 		handledClasses.add(java.util.Map.class.getName());
 		handledClasses.add(java.util.TreeMap.class.getName());
 		handledClasses.add(java.util.HashMap.class.getName());
+		handledClasses.add(CallbackRegistryEntry.class.getName());
+		handledClasses.add(RemoteMessageObject.class.getName());
+		handledClasses.add(ClientSideCallContextData.class.getName());
+	}
+	public void serializeObjectAssert(Object value)
+	{
+		boolean handled=serializeObject(value);
+		if(!handled)
+		{
+			throw new RuntimeException("Serialization of type not handled: "+value+" "+value.getClass());
+		}
 	}
 	/**
 	 * 
@@ -56,8 +72,15 @@ public class SerializeBase {
 			writeInt(d);
 			for(int i=0;i<l;++i)
 			{
-				serializeObject(Array.get(value, i));
+				serializeObjectAssert(Array.get(value, i));
 			}
+			return true;
+		}
+		if(value instanceof CallbackRegistryEntry)
+		{
+			CallbackRegistryEntry cre=(CallbackRegistryEntry) value;
+			writeString("callback");
+			writeInt(cre.id);
 			return true;
 		}
 		switch (claName) {
@@ -69,6 +92,36 @@ public class SerializeBase {
 			writeString(value.getClass().getName());
 			writeInt((Integer) value);
 			return true;
+		case "java.lang.Boolean":
+			writeString(value.getClass().getName());
+			output.writeBool((Boolean) value);
+			return true;
+		case "java.lang.Long":
+			writeString(value.getClass().getName());
+			writeLong((Long) value);
+			return true;
+		case "hu.qgears.quickjs.serialization.RemoteMessageObject":
+			writeString(value.getClass().getName());
+			RemoteMessageObject ro=(RemoteMessageObject) value;
+			writeInt(ro.type);
+			writeInt(ro.callbackId);
+			writeString(ro.iface);
+			writeString(ro.methodPrototype);
+			serializeObjectAssert(ro.argumentsToSerialize);
+			serializeObjectAssert(ro.ret);
+			return true;
+		case "hu.qgears.quickjs.serialization.ClientSideCallContextData":
+		{
+			writeString(value.getClass().getName());
+			ClientSideCallContextData d=(ClientSideCallContextData) value;
+			writeString(d.acceptCookiesCookieName);
+			output.writeBool(d.cookieAccepted);
+			writeString(d.pageContextPath);
+			writeString(d.sessionId);
+			writeString(d.sessionIdCookieName);
+			serializeObjectAssert(d.initObject);
+			return true;
+		}
 		default:
 			if (value instanceof List<?>)
 			{
@@ -77,7 +130,25 @@ public class SerializeBase {
 				writeInt(l.size());
 				for(int i=0;i<l.size();++i)
 				{
-					serializeObject(l.get(i));
+					serializeObjectAssert(l.get(i));
+				}
+				return true;
+			}
+			if (value instanceof Map<?, ?>)
+			{
+				Map<?,?> l=(Map<?,?>) value;
+				if(value instanceof SortedMap)
+				{
+					writeString(TreeMap.class.getName());
+				}else
+				{
+					writeString(HashMap.class.getName());
+				}
+				writeInt(l.size());
+				for(Map.Entry<?, ?> entry: l.entrySet())
+				{
+					serializeObjectAssert(entry.getKey());
+					serializeObjectAssert(entry.getValue());
 				}
 				return true;
 			}
@@ -101,15 +172,29 @@ public class SerializeBase {
 	protected void writeInt(int size) {
 		output.writeInt(size);
 	}
+	protected void writeLong(long l) {
+		output.writeLong(l);
+	}
 
 	protected void writeString(String s) {
 		output.writeString(s);
 	}
 	protected void assertEqual(String string, String readString) {
-		throw new RuntimeException("TODO");
+		if(!string.equals(readString))
+		{
+			throw new RuntimeException("assert error: "+string+"!="+readString);
+		}
+	}
+	protected int readInt()
+	{
+		return input.getInt();
 	}
 	protected String readString() {
 		int l=input.getInt();
+		if(l==-1)
+		{
+			return null;
+		}
 		StringBuilder ret=new StringBuilder();
 		for(int i=0;i<l;++i)
 		{
@@ -134,6 +219,7 @@ public class SerializeBase {
 		String type=readString();
 		return deserializeObject(type);
 	}
+	@SuppressWarnings("unchecked")
 	public Object deserializeObject(String type) {
 		switch(type)
 		{
@@ -141,6 +227,10 @@ public class SerializeBase {
 			return readString();
 		case "java.lang.Integer":
 			return input.getInt();
+		case "java.lang.Boolean":
+			return readBool();
+		case "java.lang.Long":
+			return input.getLong();
 		case "array":
 		{
 			String atype=readString();
@@ -154,9 +244,84 @@ public class SerializeBase {
 			}
 			return arr;
 		}
-		default:
-			throw new RuntimeException("not known how to deserialize: "+type);
+		case "callback":
+		{
+			int index=input.getInt();
+			@SuppressWarnings("rawtypes")
+			CallbackOnRemote rem=new CallbackOnRemote(index);
+			return rem;
 		}
+		case "hu.qgears.quickjs.serialization.RemoteMessageObject":
+		{
+			RemoteMessageObject ro=new RemoteMessageObject();
+			ro.type=input.getInt();
+			ro.callbackId=input.getInt();
+			ro.iface=readString();
+			ro.methodPrototype=readString();
+			ro.argumentsToSerialize=(Object[])deserializeObject();
+			ro.ret=deserializeObject();
+			return ro;
+		}
+		case "hu.qgears.quickjs.serialization.ClientSideCallContextData":
+		{
+			ClientSideCallContextData ret=new ClientSideCallContextData();
+			ret.acceptCookiesCookieName=readString();
+			ret.cookieAccepted=readBool();
+			ret.pageContextPath=readString();
+			ret.sessionId=readString();
+			ret.sessionIdCookieName=readString();
+			ret.initObject=deserializeObject();
+			return ret;
+		}
+		case "null":
+		{
+			return null;
+		}
+		case "java.util.ArrayList":
+		{
+			@SuppressWarnings("rawtypes")
+			List ret=new ArrayList();
+			int l=input.getInt();
+			for(int i=0;i<l;++i)
+			{
+				Object value=deserializeObject();
+				ret.add(value);
+			}
+			return ret;
+		}
+		case "java.util.TreeMap":
+		{
+			@SuppressWarnings("rawtypes")
+			TreeMap ret=new TreeMap();
+			int l=input.getInt();
+			for(int i=0;i<l;++i)
+			{
+				Object key=deserializeObject();
+				Object value=deserializeObject();
+				ret.put(key, value);
+			}
+			return ret;
+		}
+		case "java.util.HashMap":
+		{
+			@SuppressWarnings("rawtypes")
+			HashMap ret=new HashMap();
+			int l=input.getInt();
+			for(int i=0;i<l;++i)
+			{
+				Object key=deserializeObject();
+				Object value=deserializeObject();
+				ret.put(key, value);
+			}
+			return ret;
+		}
+		default:
+			throw new RuntimeException("not known how to deserialize: '"+type+"'");
+		}
+	}
+	private boolean readBool() {
+		byte v=input.get();
+		return v!=0;
 	}
 	private Object createArray(String atype, int d, int l) {
 		Class<?> arrClass=getClass(atype);
@@ -176,6 +341,16 @@ public class SerializeBase {
 		{
 		case "java.lang.Object":
 			return Object.class;
+		case "java.lang.String":
+			return String.class;
+		case "java.lang.Integer":
+			return Integer.class;
+		case "java.lang.Long":
+			return Long.class;
+		case "int":
+			return int.class;
+		case "long":
+			return long.class;
 		default:
 			throw new RuntimeException("Can not create array of type: "+claName);
 		}
@@ -185,8 +360,12 @@ public class SerializeBase {
 	}
 	public void setInput(ByteBuffer input) {
 		this.input = input;
+		input.order(ByteOrder.LITTLE_ENDIAN);
 	}
 	public ByteBuffer getSerializedBinary() {
 		return output.getSerializedBinary();
+	}
+	public ByteBufferOutput getOutput() {
+		return output;
 	}
 }

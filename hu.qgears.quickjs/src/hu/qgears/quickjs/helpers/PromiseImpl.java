@@ -14,7 +14,24 @@ public class PromiseImpl<T> implements Promise<T>
 	private volatile Result<T> result=null;
 	@Override
 	public <Q> Promise<Q> thenAccept(Function<T, Q> acceptResult) {
-		throw new RuntimeException("TODO not implemented");
+		PromiseImpl<Q> ret=new PromiseImpl<>();
+		addConsumer(r->{
+					Result<T> resin=(Result<T>) r;
+					if(resin.getThrowable()==null)
+					{
+						try {
+							Q processed=acceptResult.apply(resin.getResult());
+							ret.ready(processed);
+						} catch (Exception e) {
+							ret.error(e);
+						}
+						ret.ready(null);
+					}else
+					{
+						ret.error(resin.getThrowable());
+					}
+				});
+		return ret;
 	}
 	/**
 	 * Add consumer to the consumers list.
@@ -117,6 +134,7 @@ public class PromiseImpl<T> implements Promise<T>
 		}
 	}
 
+	@Override
 	public void error(Throwable throwable) {
 		setResult(new Result<T>(null, throwable));
 	}
@@ -140,5 +158,10 @@ public class PromiseImpl<T> implements Promise<T>
 	public boolean isDone()
 	{
 		return result!=null;
+	}
+	@Override
+	public Promise<T> listenResult(Consumer<Result<T>> resultListener) {
+		addConsumer(resultListener);
+		return this;
 	}
 }

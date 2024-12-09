@@ -21,7 +21,18 @@ abstract public class JavaTemplate {
 	protected void writeClass(Type cla) throws IOException {
 		if(cla instanceof Class<?>)
 		{
-			writer.write(((Class<?>)cla).getName());
+			Class<?> c=(Class<?>)cla;
+			int nArray=0;
+			while(c.isArray())
+			{
+				c=c.getComponentType();
+				nArray++;
+			}
+			writer.write(((Class<?>)c).getName());
+			for(int i=0;i<nArray;++i)
+			{
+				writer.write("[]");
+			}
 		}else if(cla instanceof ParameterizedType)
 		{
 			ParameterizedType pt=(ParameterizedType) cla;

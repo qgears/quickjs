@@ -9,6 +9,8 @@ import org.eclipse.jetty.server.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import hu.qgears.quickjs.helpers.HttpHelper;
+
 /**
  * Read HTTP headers and restore the context in which the application is accessed.
  * In case the application is accessed through a proxy then this to work requires correct setup in the proxy:
@@ -122,7 +124,6 @@ public class UtilHttpContext {
 	 * @return
 	 */
 	public static String getNeverExpiresCookieDate() {
-		return "Tue, 19 Jan 2038 03:14:07 GMT";
+		return HttpHelper.getNeverExpiresCookieDate();
 	}
-
 }

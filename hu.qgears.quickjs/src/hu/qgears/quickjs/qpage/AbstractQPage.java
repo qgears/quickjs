@@ -15,6 +15,7 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	protected QPage page;
 	private List<String> cssUrl=new ArrayList<>();
 	private List<String> jsPreloadUrl=new ArrayList<>();
+	private List<String> jsUrl=new ArrayList<>();
 	private List<String> imgPreloadUrl=new ArrayList<>();
 	/** Called by the framework to set up the context of the page. */
 	final public AbstractQPage setPageContext(IQPageContaierContext context)
@@ -51,7 +52,7 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	 */
 	public void initialCreateHtml()
 	{
-		write("<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n");
+		write("<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
 		initialWriteFaviconHeaders();
 		initialWriteHeaders();
 		page.getParent().writeHeaders(this);
@@ -59,18 +60,31 @@ abstract public class AbstractQPage extends HtmlTemplate {
 		setupWebSocketArguments(false);
 		createBody();
 		page.getParent().generateInitialization(this);
+		afterPageInitialized();
 		write("</body>\n</html>\n");
 	}
+	/**
+	 * Called after QPage initialization JS code was emitted.
+	 * Can be overridden to inject further JS initialization.
+	 */
+	protected void afterPageInitialized() {}
 	/**Write additional headers into the head section of the HTML page.
 	 * Called after favicon but before QPage related JS initialization.
 	 * Default implementation does nothing, can be overridden to add functionality.
 	 */
 	protected void initialWriteHeaders()
 	{
+		write("<!-- Required so that position:fixed; works properly on mobile browsers. -->\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, minimum-scale=1\" />\n");
 		for (String s: jsPreloadUrl)
 		{
 			write("<link rel=\"preload\" href=\"");
-			writeJSValue(pageContainerContext.getResourcePathSync(s));
+			writeJSValue(s);
+			write("\" as=\"script\"/>\n");
+		}
+		for (String s: jsUrl)
+		{
+			write("<link rel=\"preload\" href=\"");
+			writeJSValue(s);
 			write("\" as=\"script\"/>\n");
 		}
 		for (String img: imgPreloadUrl)
@@ -82,14 +96,20 @@ abstract public class AbstractQPage extends HtmlTemplate {
 		for (String css: cssUrl)
 		{
 			write("<link rel=\"preload\" href=\"");
-			writeJSValue(pageContainerContext.getResourcePathSync(css));
+			writeJSValue(css);
 			write("\" as=\"style\"/>\n");
 		}
 		for (String css: cssUrl)
 		{
 			write("<link rel=\"stylesheet\" href=\"");
-			writeJSValue(pageContainerContext.getResourcePathSync(css));
+			writeJSValue(css);
 			write("\" type=\"text/css\"/>\n");
+		}
+		for (String js: jsUrl)
+		{
+			write("<script type=\"text/javascript\" src=\"");
+			writeJSValue(js);
+			write("\"></script>\n");
 		}
 	}
 	/**
@@ -110,6 +130,9 @@ abstract public class AbstractQPage extends HtmlTemplate {
 	}
 	protected void headJsPreload(String url) {
 		jsPreloadUrl.add(url);
+	}
+	protected void headJs(String url) {
+		jsUrl.add(url);
 	}
 	protected void headImgPreload(String url) {
 		imgPreloadUrl.add(url);

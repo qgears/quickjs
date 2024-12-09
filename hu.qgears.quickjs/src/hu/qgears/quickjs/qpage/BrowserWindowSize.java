@@ -30,4 +30,14 @@ public class BrowserWindowSize {
 	private Point getResolution() {
 		return new Point((int) Math.round(devicePixelRatio*screenSize.x), (int) Math.round(devicePixelRatio*screenSize.y));
 	}
+	public JSONObject toJson()
+	{
+		JSONObject ret=new JSONObject();
+		ret.put("width", innerSize.x);
+		ret.put("height", innerSize.y);
+		ret.put("devicePixelRatio", devicePixelRatio);
+		ret.put("screenWidth", screenSize.x);
+		ret.put("screenHeight", screenSize.y);
+		return ret;
+	}
 }

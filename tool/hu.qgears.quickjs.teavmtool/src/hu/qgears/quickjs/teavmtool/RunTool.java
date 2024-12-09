@@ -33,6 +33,7 @@ public class RunTool {
 	}
 	public URL[] classLoaderUrls;
 	public File out;
+	public File cacheFolder;
 	public String mainClass;
 	
 	public int optimizationLevel=0;
@@ -111,6 +112,7 @@ public class RunTool {
         var classLoader = buildClassLoader();
         tool.setClassLoader(classLoader);
         tool.setOptimizationLevel(TeaVMOptimizationLevel.values()[optimizationLevel]);
+        /// Results in more classes and bigger result js file.
         tool.setFastDependencyAnalysis(false);
 
         tool.setSourceMapsFileGenerated(false);
@@ -120,10 +122,18 @@ public class RunTool {
         tool.setObfuscated(obfuscated);
         tool.setStrict(true);
         tool.setMaxTopLevelNames(1000);
-        tool.setIncremental(false);
         tool.getTransformers().addAll(Arrays.asList());
         tool.getClassesToPreserve().addAll(Arrays.asList());
-        tool.setCacheDirectory(null);
+        if(cacheFolder!=null)
+        {
+            /// Makes compilation about 20% faster 
+            tool.setIncremental(true);
+            tool.setCacheDirectory(cacheFolder);
+            System.out.println("Use cache folder: "+cacheFolder.getAbsolutePath());
+        }else
+        {
+            tool.setIncremental(false);
+        }
         // tool.setWasmVersion();
         // tool.setMinHeapSize(minHeapSize);
         // tool.setMaxHeapSize(maxHeapSize);

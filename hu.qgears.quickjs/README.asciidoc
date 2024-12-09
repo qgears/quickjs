@@ -1,4 +1,9 @@
-= QuickJS threading
+= QuickJS core
+
+This project is dependency of both server side and client side implementation of QuickJS
+
+
+== QuickJS threading
 
 The new QuickJS is designed to be executable on the client side using cross compilation technique.
 (Java to JS using the bytecoder project by Mirko Sertic)
@@ -17,9 +22,30 @@ Based on an interface (Java interface) generate a wrapper that makes it possible
 The implementation on the client is remoting.
 The implementation on the server is direct execution on the http thread. (with possible added latency to test its effect)
 
-== Listeners to server side objects
+== IQCallContext as first parameter on the interface
+
+When the first parameter is instance of IQCallContext then it will not be visible on the client side.
+
+The server receives this parameter but the client does not send it. This parameter is stored with the connection (session).
+
+
+== Listeners to server side objects - IRemotingCallback
+
+IRemotingCallback interface marks that the parameter is a callback.
 
 Event listeners are auto-wrapped so that the callback is executed on the GUI thread.
+
+When adding a listener is called in the page initialization code then it is executed at once before returning.
+
+Event listeners only work while the page has an active connection (WebSocket) to the server.
+
+WebSocket connection logic of the application:
+
+ * Application tracks the focused state of the web page (window.onfocus, window.onblur)
+ ** On onblur the connection is disposed (on mobile this happens automatically!)
+ ** On onfocus the connection is reopened
+ * When a listener is added that is automatically stored on the client side and it is automatically re-added (sending the same data with the subscription) whenever the connection is reopened
+
 
 == Callbacks
 

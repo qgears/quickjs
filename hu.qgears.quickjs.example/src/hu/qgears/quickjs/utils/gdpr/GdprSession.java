@@ -25,6 +25,7 @@ public class GdprSession implements HttpSession, ISessionUpdateLastAccessedTime 
 	private long lastAccessedTime;
 	private String id;
 	private int maxInactiveInterval;
+	private volatile String userAgent;
 	public static String keyUseNoCookieSession="hu.qgears.quickjs.utils.gdpr.SimpleSession.useNoCookieSession";
 	public static final String keySessionIdParameterName=QPageHandler.class.getName()+".sessionId";
 	private GdprSessionIdManager host;
@@ -170,5 +171,15 @@ public class GdprSession implements HttpSession, ISessionUpdateLastAccessedTime 
 	public void setLastAccessedTime(long t) {
 		lastAccessedTime=t;
 		host.updateTimeout(this);
+	}
+	public void setCookieAccepted() {
+		host.setCookieAccepted(this);
+	}
+	public void setUserAgent(String userAgent) {
+		this.userAgent=userAgent;
+	}
+
+	public String getUserAgent() {
+		return userAgent;
 	}
 }

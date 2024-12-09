@@ -69,6 +69,7 @@ public class GdprSessionHandler extends HandlerWrapper
 		}
 		session.setAttribute(GdprSession.keyUseNoCookieSession, !cookiesAccepted);
 		session.cookiesAccepted=cookiesAccepted;
+		session.setUserAgent(baseRequest.getHeader("User-Agent"));
 		baseRequest.setSession(session);
 		try
 		{
@@ -87,5 +88,8 @@ public class GdprSessionHandler extends HandlerWrapper
 	}
 	public void addEventListener(HttpSessionListener createSessionListener) {
 		idmanager.addEventListener(createSessionListener);
+	}
+	public GdprSessionIdManager getIdmanager() {
+		return idmanager;
 	}
 }

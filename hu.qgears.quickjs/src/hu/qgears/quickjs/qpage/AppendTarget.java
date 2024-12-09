@@ -25,9 +25,45 @@ public class AppendTarget {
 		ret.domSelector=dynamicContainer.getId();
 		return ret;
 	}
+	public static AppendTarget QContainer(IQContainer dynamicContainer, int index) {
+		AppendTarget ret=new AppendTarget();
+		ret.method=EAppendTargetMethod.QContainer;
+		ret.domSelector=dynamicContainer.getId();
+		ret.arg1 = ""+index;
+		ret.arg2 = "";
+		return ret;
+	}
+	public static AppendTarget QContainer(IQContainer dynamicContainer, String selector, int index) {
+		AppendTarget ret=new AppendTarget();
+		ret.method=EAppendTargetMethod.QContainer;
+		ret.domSelector=dynamicContainer.getId();
+		ret.arg1 = ""+index;
+		ret.arg2 = selector;
+		return ret;
+	}
+	/**
+	 * Select the node by selector within container node of c and inster just after this node.
+	 * @param table
+	 * @param selector
+	 * @return
+	 */
+	public static AppendTarget QContainer_selector_after(IQContainer c, String selector) {
+		AppendTarget ret=new AppendTarget();
+		ret.method=EAppendTargetMethod.QContainer_selector_after;
+		ret.domSelector=c.getId();
+		ret.arg1 = "";
+		ret.arg2 = selector;
+		return ret;
+	}
 	public static AppendTarget ReplaceWith(String domSelector) {
 		AppendTarget ret=new AppendTarget();
 		ret.method=EAppendTargetMethod.replaceWith;
+		ret.domSelector=domSelector;
+		return ret;
+	}
+	public static AppendTarget ReplaceContent(String domSelector) {
+		AppendTarget ret=new AppendTarget();
+		ret.method=EAppendTargetMethod.replaceContent;
 		ret.domSelector=domSelector;
 		return ret;
 	}
@@ -37,5 +73,8 @@ public class AppendTarget {
 		nameSpaceUri=namespaceUriSvg;
 		rootObjectType="svg";
 		return this;
+	}
+	public static AppendTarget ReplaceContent(QComponent c) {
+		return ReplaceContent("#"+c.getId());
 	}
 }

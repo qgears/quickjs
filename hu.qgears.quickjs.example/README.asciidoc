@@ -1,0 +1,5 @@
+= QuickJS Jetty
+
+This package integrates QuickJS into a Jetty Web server.
+
+QuickJS is web server independent in theory but currently this is the only integration it has.

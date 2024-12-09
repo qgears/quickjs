@@ -211,4 +211,8 @@ class QComponent
 		}
 		return this; // Chainable setter
 	}
+	scrollIntoView()
+	{
+		this.dom.scrollIntoView();
+	}
 }

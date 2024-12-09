@@ -6,6 +6,7 @@ import java.io.Writer;
 import java.util.Base64;
 
 import hu.qgears.commons.mem.INativeMemory;
+import hu.qgears.quickjs.qpage.HtmlTemplate;
 
 /**
  * Helper for Base64 image format.
@@ -23,13 +24,29 @@ public class Base64Image {
 		os.write("data:");
 		os.write(mimetype.toString());
 		os.write(";base64,");
-		OutputStream os2=createWrapper(os);
-		byte[] data=new byte[mem.getJavaAccessor().remaining()];
-		mem.getJavaAccessor().get(data);
-		os2.write(data);
-		os2.close();
+		try(OutputStream os2=createBase64Wrapper(os))
+		{
+			byte[] data=new byte[mem.getJavaAccessor().remaining()];
+			mem.getJavaAccessor().get(data);
+			os2.write(data);
+		}
 	}
-	public static OutputStream createWrapper(Writer wr)
+	public static void writeImage(Writer os, String mimetype, byte[] data) throws IOException
+	{
+		os.write("data:");
+		os.write(mimetype.toString());
+		os.write(";base64,");
+		try(OutputStream os2=createBase64Wrapper(os))
+		{
+			os2.write(data);
+		}
+	}
+	/**
+	 * Create a wrapper that converts byte[] data to Base64 string into the writer output. 
+	 * @param wr
+	 * @return
+	 */
+	public static OutputStream createBase64Wrapper(Writer wr)
 	{
 		OutputStream os2=Base64.getEncoder().wrap(new OutputStream() {
 			@Override
@@ -53,13 +70,23 @@ public class Base64Image {
 		});
 		return os2;
 	}
-	public static void writeImage(Writer os, String mimetype, byte[] data) throws IOException
-	{
-		os.write("data:");
-		os.write(mimetype.toString());
-		os.write(";base64,");
-		OutputStream os2=createWrapper(os);
-		os2.write(data);
-		os2.close();
+	/** write byte[] array to JS code that instantiates a blob based on that data.
+	 * @param o
+	 * @throws IOException 
+	 */
+	public static void writeBlobObject(HtmlTemplate template, byte[] o) {
+		writeBlobObject(template, o, 0, o.length);
+	}
+	public static void writeBlobObject(HtmlTemplate template, byte[] o, int from, int length) {
+		try {
+			template.getWriter().write("await fetch('data:plain/text;base64,");
+			try(OutputStream os=createBase64Wrapper(template.getWriter()))
+			{
+				os.write(o, from, length);
+			}
+			template.getWriter().write("').then(res => res.blob())\n");
+		} catch (IOException e) {
+			throw new RuntimeException("writing blob to JS code", e);
+		}
 	}
 }

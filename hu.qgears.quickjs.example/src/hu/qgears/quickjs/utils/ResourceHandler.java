@@ -13,6 +13,12 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import hu.qgears.commons.ConnectStreams;
 
+/**
+ * 
+ * @author rizsi
+ * @deprecated "Use AbstractResourceHandler instead"
+ */
+@Deprecated()
 public class ResourceHandler extends AbstractHandler {
 	private java.util.function.Supplier<InputStream> contentOpener;
 	private String mimeType;

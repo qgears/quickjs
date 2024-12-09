@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Teavm
+Bundle-SymbolicName: hu.qgears.quickjs.teavm
+Bundle-Version: 1.0.0.qualifier
+Automatic-Module-Name: hu.qgears.quickjs.teavm
+Require-Bundle:  org.teavm.jso.apis,
+ hu.qgears.quickjs
+Export-Package: hu.qgears.quickjs.teavm

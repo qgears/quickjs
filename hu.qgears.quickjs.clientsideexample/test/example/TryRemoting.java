@@ -13,14 +13,13 @@ import hu.qgears.quickjs.serialization.RemotingImplementationMock;
 public class TryRemoting {
 	@Test
 	public void test01() throws InterruptedException, ExecutionException, TimeoutException {
-		RemoteMock hello=new RemoteMock();
-		Remoting r=new Remoting();
+		RemoteMockAll hello=new RemoteMockAll();
+		RExampleRemoteIfImpl r=new RExampleRemoteIfImpl();
 		RemotingImplementationMock ri=new RemotingImplementationMock();
 		RemotingServer rs=new RemotingServer();
 		ri.setRemotingServer(rs);
 		rs.setRpublishedObject(hello);
-		Serialize s=new Serialize();
-		ri.setSerialize(s);
+		ri.setSerialize(()->new Serialize());
 		r.setRemotingImplementation(ri);
 		SignalFutureWrapper<Integer> ret=new SignalFutureWrapper<>();
 		r.alma("korte").thenApply(
@@ -29,5 +28,22 @@ public class TryRemoting {
 			}).resultAccept(v->{});
 		Integer v=ret.get(1, TimeUnit.SECONDS);
 		Assert.assertEquals(5, (int)v);
+	}
+	@Test
+	public void test02() throws InterruptedException, ExecutionException, TimeoutException {
+		SignalFutureWrapper<String> ret=new SignalFutureWrapper<>();
+		RemoteMockAll hello=new RemoteMockAll();
+		RExampleRemoteIfImpl r=new RExampleRemoteIfImpl();
+		RemotingImplementationMock ri=new RemotingImplementationMock();
+		RemotingServer rs=new RemotingServer();
+		ri.setRemotingServer(rs);
+		rs.setRpublishedObject(hello);
+		Serialize s=new Serialize();
+		ri.setSerialize(()->new Serialize());
+		r.setRemotingImplementation(ri);
+		r.mycallback(val->{ret.ready(val, null); } );
+		Thread.sleep(100);
+		String v=ret.get();
+		Assert.assertEquals("EXECCALLBACK", v);
 	}
 }
