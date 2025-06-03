@@ -18,15 +18,14 @@
 
 package hu.qgears.quickjs.utils;
 
-import java.io.ByteArrayOutputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Locale;
 
-import org.eclipse.jetty.util.B64Code;
 import org.eclipse.jetty.util.MultiMap;
 import org.eclipse.jetty.util.QuotedStringTokenizer;
 import org.eclipse.jetty.util.ReadLineInputStream;
@@ -365,11 +364,12 @@ public class InMemoryMultiPartInputStreamParser {
 				else if (_line.length() == 0)
 					_buffer = "\r\n".getBytes(); // blank line
 				else {
-					ByteArrayOutputStream baos = new ByteArrayOutputStream((4 * _line.length() / 3) + 2);
-					B64Code.decode(_line, baos);
-					baos.write(13);
-					baos.write(10);
-					_buffer = baos.toByteArray();
+//					ByteArrayOutputStream baos = new ByteArrayOutputStream((4 * _line.length() / 3) + 2);
+					_buffer = Base64.getDecoder().decode(_line);
+//					B64Code.decode(_line, baos);
+//					baos.write(13);
+//					baos.write(10);
+//					_buffer = baos.toByteArray();
 				}
 
 				_pos = 0;

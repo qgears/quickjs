@@ -223,6 +223,10 @@ class IndexedComm
 	{
 		this.listener.message(msg.header.header, msg.parts);
 	}
+	isConnected()
+	{
+		return this.st==1;
+	}
 	/**
 	 * Dispose current connection and do not open a new one.
 	 */
@@ -234,5 +238,144 @@ class IndexedComm
 		}catch(e){console.error(e);}
 		this.closed=true;
 		this.setState(3);
+	}
+}
+/** In case of client side execution IndexedComm is replaced with this. */
+class TeaVMComm
+{
+	constructor()
+	{
+		this.st=0;
+	}
+	init(callback)
+	{
+		this.callback=callback;
+		this.hasRequest=false;
+		this.boundProcessMessages=this.processMessages.bind(this);
+	}
+	processMessages()
+	{
+		this.hasRequest=false;
+		this.callback.processMessages();
+	}
+	getContextObjectSerialized()
+	{
+		return new Uint8Array(this.qPageContainer.initialObjectInByteArr);
+	}
+	getNReplayObject()
+	{
+		return this.qPageContainer.replayObject.length;
+	}
+	getReplayObject(i)
+	{
+		return new Uint8Array(this.qPageContainer.replayObject[i]);
+	}
+	setQPageContainer(qPageContainer)
+	{
+		this.qPageContainer=qPageContainer;
+		this.url=qPageContainer.createWebSocketUrl('api');
+	}
+	send(header, ...args)
+	{
+		this.callback.msgHeader(JSON.stringify(header));
+		for(const part of args)
+		{
+			console.info(part);
+			throw Exception("not handled");
+			// this.socket.send(part);
+		}
+	}
+	checkConnection()
+	{
+		if(this.st==0 || this.socket.readyState > 1)
+		{
+			this.st=1;
+			console.info("reopen indexedComm connection! "+Date.now()+" "+this.wsUrl);
+			this.t0=Date.now();
+			this.socket = new WebSocket(this.url);
+			this.socket.addEventListener('message', this.rawMessage.bind(this));
+			this.socket.addEventListener('error', this.rawError.bind(this));
+			this.socket.addEventListener('close', this.rawClose.bind(this));
+			this.socket.addEventListener('open', this.rawOpen.bind(this));
+			return false;
+		}else
+		{
+			return true;
+		}
+	}
+	rawOpen(event)
+	{
+		console.info("WebSocket opened: "+Date.now()+" "+this.url);
+		this.callback.channelOpened();
+	}
+	rawMessage(event)
+	{
+		// console.info("message");
+		// console.info(event);
+		// var asArr=new Uint8Array(event.data);
+		new Response(event.data).arrayBuffer().then(buffer=> {
+			this.callback.messageReceived(new Uint8Array(buffer));
+		});
+	}
+	rawError(event)
+	{
+		this.callback.channelError();
+		console.error(event);
+	}
+	rawClose(event)
+	{
+		this.callback.channelClosed();
+		console.info("Communication channel closed: "+this.url);
+		console.info(event);
+	}
+	javaMessageBegin()
+	{
+		this.args=[];
+	}
+	javaMessageArgString(arg)
+	{
+		this.args.push(arg);
+	}
+	javaMessageArgBytes(arg)
+	{
+		this.args.push(arg);
+	}
+	javaMessage(header)
+	{
+		this.qPageContainer.message(header,this.args);
+	}
+	requestProcessMessages()
+	{
+		if(!this.hasRequest)
+		{
+			setTimeout(this.boundProcessMessages,0);
+			this.hasRequest=true;
+		}
+	}
+	isConnected()
+	{
+		return false;
+	}
+	sendRemoteCall(data)
+	{
+		this.checkConnection();
+		// console.info("sendRemoteCall");
+		// console.info(data);
+		if(this.st!=0)
+		{
+			// console.info("Ready state: "+this.socket.readyState);
+			if(this.socket.readyState == 1)
+			{
+				// console.info("socket is connected");
+				this.socket.send(new Uint8Array(data));
+			}
+		}
+	}
+	requestCommunicationCallback()
+	{
+		if(this.checkConnection())
+		{
+			this.callback.channelReady();
+		}
 	}
 }

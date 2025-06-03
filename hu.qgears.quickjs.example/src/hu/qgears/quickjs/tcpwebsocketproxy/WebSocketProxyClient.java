@@ -48,7 +48,7 @@ public class WebSocketProxyClient {
 		}
 
 		public void setUri(String uri) {
-			HttpURI parsed = new HttpURI(uri);
+			HttpURI parsed = HttpURI.build(uri);
 			switch (parsed.getScheme().toLowerCase()) {
 			case "https":
 			case "wss":

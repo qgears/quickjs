@@ -5,4 +5,4 @@ Bundle-SymbolicName: org.apache.log4j
 Bundle-Version: 1.2.15.qualifier
 Automatic-Module-Name: org.apache.log4j
 Bundle-RequiredExecutionEnvironment: JavaSE-11
-Export-Package: org.apache.log4j
+Require-Bundle: org.slf4j.api;bundle-version="1.7.2";visibility:=reexport

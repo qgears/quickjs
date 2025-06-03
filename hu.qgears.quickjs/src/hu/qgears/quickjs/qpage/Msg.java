@@ -1,11 +1,11 @@
 package hu.qgears.quickjs.qpage;
+
+import org.json.JSONObject;
+
 /** Message from JavaScript to Java (in browser TeaVM or on server) */
 public class Msg
 {
-	/**
-	 * {@link JSONObject} or string
-	 */
-	public Object header;
+	public JSONObject header;
 	public long index;
 	public Object[] arguments;
 	public int nPart;

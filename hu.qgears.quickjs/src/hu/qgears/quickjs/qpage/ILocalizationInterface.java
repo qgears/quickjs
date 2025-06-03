@@ -19,13 +19,20 @@ public interface ILocalizationInterface {
 		ret.append(">");
 		return ret.toString();
 	}
-	default String formatDate(Date commitDate)
+	/** Localization specific date format with Year, Month, Day */
+	default String formatDateShort(Date date)
 	{
-		return ""+commitDate;
+		return ""+date;
 	}
-	default String formatDateLong(Date commitDate)
+	/** Localization specific date format with Year, Month, Day, hour, minute */
+	default String formatDate(Date date)
 	{
-		return ""+commitDate;
+		return ""+date;
+	}
+	/** Localization specific date format with Year, Month, Day, hour, minute, seconds */
+	default String formatDateLong(Date date)
+	{
+		return ""+date;
 	}
 	/**
 	 * Format decimal number with given number of fractional digits

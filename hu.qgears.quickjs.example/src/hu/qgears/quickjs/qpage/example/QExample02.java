@@ -5,12 +5,12 @@ import java.util.List;
 
 import hu.qgears.commons.EscapeString;
 import hu.qgears.commons.UtilEventListener;
+import hu.qgears.quickjs.qpage.AbstractQPage;
 import hu.qgears.quickjs.qpage.QLabel;
 import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QSelect;
 import hu.qgears.quickjs.qpage.QSelectCombo;
 import hu.qgears.quickjs.qpage.QTextEditor;
-import hu.qgears.quickjs.utils.AbstractQPage;
 
 /**
  * A simple example of a QPage based web application. 
@@ -20,7 +20,7 @@ public class QExample02 extends AbstractQPage
 	private int n=1;
 	QSelect[] selarr=new QSelect[5];
 	@Override
-	protected void initQPage(final QPage page) {
+	public void initPage() {
 		final QTextEditor number=new QTextEditor(page, "number");
 		number.text.setPropertyFromServer("1");
 		final QLabel result=new QLabel(page, "result");
@@ -97,7 +97,7 @@ public class QExample02 extends AbstractQPage
 		}
 	}
 	@Override
-	protected void writeBody() {
+	public void createBody() {
 		write("<h1>QPage example with ");
 		writeObject(getTypeName());
 		write("</h1>\n<a href=\"/\">Back to index</a><br/>\n\nEach selector initializes the possible values in the next selector. Each selector contains the entered number of entries.<br/>\n\nNumber of entries within the selectors:\n<input id=\"number\" size=\"100\"></input>\n<div id=\"result\"></div>\n");

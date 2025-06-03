@@ -1,10 +1,10 @@
 package hu.qgears.quickjs.utils;
 
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpSessionEvent;
-import javax.servlet.http.HttpSessionListener;
 
 import hu.qgears.quickjs.qpage.QPageManager;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSessionEvent;
+import jakarta.servlet.http.HttpSessionListener;
 
 public class HttpSessionQPageManager {
 	private static Object syncObject=new Object();

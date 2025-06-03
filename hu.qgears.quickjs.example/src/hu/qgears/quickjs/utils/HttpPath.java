@@ -2,9 +2,8 @@ package hu.qgears.quickjs.utils;
 
 import java.util.List;
 
-import javax.servlet.ServletRequest;
-
 import hu.qgears.commons.UtilString;
+import jakarta.servlet.ServletRequest;
 
 /**
  * Parse a path into its parts.

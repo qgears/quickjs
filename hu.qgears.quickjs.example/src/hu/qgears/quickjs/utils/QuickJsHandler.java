@@ -4,16 +4,15 @@ import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
 import java.util.concurrent.TimeUnit;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import hu.qgears.commons.ConnectStreams;
 import hu.qgears.commons.UtilFile;
-import hu.qgears.quickjs.qpage.QPageTypesRegistry;
+import hu.qgears.quickjs.serverside.QPageTypesRegistry;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * HTTP Handlder that serves the JS files of the QuickJS framework.

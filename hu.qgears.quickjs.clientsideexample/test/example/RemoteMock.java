@@ -3,6 +3,11 @@ package example;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimerTask;
+
+import hu.qgears.commons.UtilTimer;
+import hu.qgears.quickjs.serialization.IQCallContext;
+import hu.qgears.quickjs.serialization.IRemotingCallback;
 
 public class RemoteMock implements ExampleRemoteIf {
 	public String almaKorte;
@@ -10,6 +15,18 @@ public class RemoteMock implements ExampleRemoteIf {
 	public int alma(String korte) {
 		almaKorte=korte;
 		return korte.length();
+	}
+
+	
+	@Override
+	public void mycallback(IQCallContext context, IRemotingCallback<String> callbak) {
+		// System.out.println("Context: "+context);
+		UtilTimer.javaTimer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				callbak.callback("EXECCALLBACK");
+			}
+		}, 100);
 	}
 
 	@Override

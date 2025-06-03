@@ -9,35 +9,38 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import javax.servlet.ServletRequest;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-
-import org.eclipse.jetty.server.PushBuilder;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.thread.ThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
+import hu.qgears.quickjs.qpage.AbstractQPage;
 import hu.qgears.quickjs.qpage.HtmlTemplate;
+import hu.qgears.quickjs.qpage.IQPageFactory;
 import hu.qgears.quickjs.qpage.ISessionUpdateLastAccessedTime;
 import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QPageManager;
-import hu.qgears.quickjs.qpage.example.IQPageFactory;
 import hu.qgears.quickjs.qpage.example.QPageContext;
-import hu.qgears.quickjs.qpage.example.websocket.QWSMessagingServlet;
-import hu.qgears.quickjs.utils.AbstractQPage;
+import hu.qgears.quickjs.qpage.jetty.websocket.QApiMessagingClass;
+import hu.qgears.quickjs.qpage.jetty.websocket.QWSMessagingServlet;
+import hu.qgears.quickjs.serialization.RemotingServer;
+import hu.qgears.quickjs.serialization.SerializeBase;
+import hu.qgears.quickjs.serverside.QPageContextServerSide;
+import hu.qgears.quickjs.spa.QSpa;
+import hu.qgears.quickjs.spa.RoutingEndpointQPage;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
 import hu.qgears.quickjs.utils.IQTestEnvironment;
+import hu.qgears.quickjs.utils.UtilHttpContext;
 import hu.qgears.quickjs.utils.UtilJetty;
 import hu.qgears.quickjs.utils.gdpr.GdprSession;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 /**
  * Jetty compatible http query handler that includes an {@link AbstractQPage}.
@@ -47,28 +50,53 @@ import hu.qgears.quickjs.utils.gdpr.GdprSession;
  */
 public class QPageHandler extends HandlerCollection {
 	private static Logger log=LoggerFactory.getLogger(QPageHandler.class);
-	private IQPageFactory pageFactory;
+	private QSpa pageFactory;
+	private Function<QueryWrapperJetty, Object> userParameterGetter;
+	private IContextConfigurator contextConfigurator=new IContextConfigurator() {
+		@Override
+		public void configurePageContext(QPage page, QPageContextServerSide context, QueryWrapperJetty queryWrapper) {
+			// Default implementation does nothing
+		}
+		@Override
+		public SerializeBase createSerializator() {
+			throw new RuntimeException("IContextConfigurator not configured");
+		}
+		public RemotingServer createRemotingServer(hu.qgears.quickjs.qpage.IQDisposableContainer container, GdprSession session) {
+			throw new RuntimeException("IContextConfigurator not configured");
+		};
+	};
 	public static final String key=QPageHandler.class.getName()+".objectParameter";
-	private Function<ServletRequest, Object> userParameterGetter=request->request.getAttribute(key);
 	private Map<String, AbstractHandler> webSocketHandlers=new HashMap<>();
 	public static void setUserParameter(ServletRequest request, Object userParameter)
 	{
 		request.setAttribute(key, userParameter);
 	}
-	public QPageHandler(IQPageFactory pageFactory) {
+	public QPageHandler(QSpa pageFactory) {
 		this.pageFactory=pageFactory;
 		createWebSocketEntry();
 	}
 	public QPageHandler(Class<? extends AbstractQPage> pageClass) {
-		this.pageFactory=req->{AbstractQPage ret=pageClass.getConstructor().newInstance(); ret.setUserData(req); return ret;};
+		this.pageFactory=new QSpa();
+		pageFactory.method("GET").handle(new RoutingEndpointQPage(()->pageClass.getDeclaredConstructor().newInstance()));
+			// req->{AbstractQPage ret=pageClass.getConstructor().newInstance(); 
+			// ret.setUserData(req); return ret;};
+		createWebSocketEntry();
+	}
+	public QPageHandler(IQPageFactory pageCreator) {
+		this.pageFactory=new QSpa();
+		pageFactory.method("GET").handle(new RoutingEndpointQPage(
+				pageCreator));
+			// req->{AbstractQPage ret=pageClass.getConstructor().newInstance(); 
+			// ret.setUserData(req); return ret;};
 		createWebSocketEntry();
 	}
 	private void createWebSocketEntry() {
-		ServletContextHandler websocketHandler=QWSMessagingServlet.createHandler();
+		AbstractHandler websocketHandler=QWSMessagingServlet.createHandler();
 		addWebSocketHandler("true", websocketHandler);
+		AbstractHandler apiHandler=QApiMessagingClass.createHandler(this);
+		addWebSocketHandler("api", apiHandler);
 		try {
-			AbstractQPage pagePrototype=pageFactory.createPage(null);
-			pagePrototype.configureWebsocketHandlers(this);
+			pageFactory.configureWebsocketHandlers(this);
 		} catch (Exception e) {
 			log.error("createWebocketEntry", e);
 		}
@@ -78,9 +106,7 @@ public class QPageHandler extends HandlerCollection {
 		webSocketHandlers.put(string, websocketHandler);
 	}
 	@Override
-	public void handle(String target, final Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException {
-		PushBuilder push=baseRequest.getPushBuilder();
-		System.err.println("PROTOCOL: "+baseRequest.getProtocol());
+	public void handle(String target, final Request baseRequest, jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) throws IOException {
 		HttpSession sess=baseRequest.getSession();
 		final QPageManager qpm=HttpSessionQPageManager.getManager(sess);
 		String id=baseRequest.getParameter(QPageContainer.class.getSimpleName());
@@ -108,7 +134,7 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
  at java.base/java.net.URI.<init>(URI.java:600)
  at org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest.<init>(ServletUpgradeRequest.java:65)
 				 */
-				baseRequest.setURIPathQuery("/");
+				// baseRequest.setURIPathQuery("/");
 				selectedWebsocketHandler.handle(target, baseRequest, request, response);
 			} catch (Exception e) {
 				log.error("Handle websocket query", e);
@@ -125,20 +151,26 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 			case "GET":
 				if(id==null)
 				{
-					Object userData=userParameterGetter==null?null:userParameterGetter.apply(request);
-					if(push!=null)
-					{
-						System.out.println("PUSH!!!!!");
-						push.path("quickjs/QTextEditor.js").push();
-					}
 					// handle initial get
 					new HtmlTemplate(wr){
 						public void generate() throws Exception {
 							String id=qpm.createId();
 							QPageContainer newPage=new QPageContainer(id);
-							qpm.register(id, newPage);
+							QPage page=new QPage(newPage);
+							QPageContextServerSide context=new QPageContextServerSide(page, UtilHttpContext.getContext(baseRequest));
+							newPage.setPageContext(context);
+							QueryWrapperJetty queryWrapper=new QueryWrapperJetty(target, baseRequest, request, response);
 							JettyPlatform platform=new JettyPlatform(newPage, qpm);
-							newPage.internalStart(platform);
+							platform.setQueryWrapper(queryWrapper);
+							platform.setPath(target);
+							newPage.internalSetPlatform(platform);
+							Object userParameter=userParameterGetter==null?null:(userParameterGetter.apply(queryWrapper));
+							if(userParameter!=null)
+							{
+								platform.setUserParameter(userParameter);
+							}
+							contextConfigurator.configurePageContext(page, context, queryWrapper);
+							newPage.internalStartPlatform();
 							QPageContext qpc=QPageContext.getCurrent();
 							{
 								Object attrib=sess.getAttribute(GdprSession.keyUseNoCookieSession);
@@ -157,30 +189,63 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 							{
 								platform.setSessionToUpdateLastAccessedTime((ISessionUpdateLastAccessedTime) session);
 							}
-							QPage page=new QPage(newPage);
-							try(NoExceptionAutoClosable c=page.setThreadCurrentPage())
-							{
-								AbstractQPage inst=pageFactory.createPage(userData);
-								inst.setRequest(baseRequest, request);
-								inst.initApplication(this, page);
-							}
-							platform.setExecutor(r->{
-								try
-								{
-									Server server=getServer();
-									if(server!=null)
-									{
-										ThreadPool tp=server.getThreadPool();
-										if(!newPage.disposedEvent.isDone() && server.isRunning())
-										{
-											tp.execute(r);
-										}
-									}
-								}catch(Exception e)
-								{
-									log.error("executor error", e);
-								}
+							page.addCloseable(()->{
+								context.closeEvent.eventHappened(context);
 							});
+							try(NoExceptionAutoClosable c=QPage.setThreadCurrentPage(page))
+							{
+								boolean handled=pageFactory.query(queryWrapper, target, 0);
+								if(!handled)
+								{
+									throw new RuntimeException("Routing did not find QPage for path: "+target);
+								}
+								if(queryWrapper.routingEndpoint instanceof RoutingEndpointQPage)
+								{
+									AbstractQPage inst=((RoutingEndpointQPage)queryWrapper.routingEndpoint).fact.createPage();
+									inst.setPageContext(context);
+									inst.initPage();
+									try(NoExceptionAutoClosable close=inst.setInitialHtmlOutput(this))
+									{
+										inst.initialCreateHtml();
+									}
+								}
+							}
+							context.pageInitializedEvent.eventHappened(context);
+							switch(platform.getMode())
+							{
+							case hybrid:
+							{
+								/// In hybrid mode execution is continued on the client side in TeaVM in browser. This instance done its job.
+								try(NoExceptionAutoClosable c= QPage.setThreadCurrentPage(page))
+								{
+									newPage.dispose();
+								}
+								break;
+							}
+							case serverside:
+							{
+								platform.setExecutor(r->{
+									try
+									{
+										Server server=getServer();
+										if(server!=null)
+										{
+											ThreadPool tp=server.getThreadPool();
+											if(!newPage.disposedEvent.isDone() && server.isRunning())
+											{
+												tp.execute(r);
+											}
+										}
+									}catch(Exception e)
+									{
+										log.error("executor error", e);
+									}
+								});
+								break;
+							}
+							default:
+								throw new RuntimeException("Unknown mode: "+platform.getMode());
+							}
 							if(qpc!=null)
 							{
 								IQTestEnvironment testEnvironment=qpc.getTestEnvironment();
@@ -211,8 +276,15 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 			throw new IOException("Processing page: "+target+" "+baseRequest.getMethod()+" "+baseRequest.getParameter("QPage"), e);
 		}
 	}
-	public QPageHandler setUserParameterGetter(Function<ServletRequest, Object> userParameterGetter) {
-		this.userParameterGetter = userParameterGetter;
+	public QPageHandler setContextConfigurator(IContextConfigurator contextConfigurator) {
+		this.contextConfigurator = contextConfigurator;
+		return this;
+	}
+	public IContextConfigurator getContextConfigurator() {
+		return contextConfigurator;
+	}
+	public QPageHandler setUserParameterGetter(Function<QueryWrapperJetty, Object> userParameterGetter) {
+		this.userParameterGetter=userParameterGetter;
 		return this;
 	}
 }

@@ -3,11 +3,12 @@ package hu.qgears.quickjs.utils;
 import java.io.IOException;
 import java.util.Enumeration;
 
-import javax.servlet.http.HttpServletResponse;
-
 import org.eclipse.jetty.server.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import hu.qgears.quickjs.helpers.HttpHelper;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Read HTTP headers and restore the context in which the application is accessed.
@@ -122,7 +123,6 @@ public class UtilHttpContext {
 	 * @return
 	 */
 	public static String getNeverExpiresCookieDate() {
-		return "Tue, 19 Jan 2038 03:14:07 GMT";
+		return HttpHelper.getNeverExpiresCookieDate();
 	}
-
 }

@@ -8,12 +8,11 @@ import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 
-import javax.servlet.ServletOutputStream;
-
 import org.eclipse.jetty.util.MultiMap;
 
 import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.utils.IMultipartHandler;
+import jakarta.servlet.ServletOutputStream;
 
 public class UploadFileHandler extends HtmlTemplate implements IMultipartHandler
 {

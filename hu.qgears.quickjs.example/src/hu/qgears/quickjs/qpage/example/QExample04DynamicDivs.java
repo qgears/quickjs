@@ -1,11 +1,11 @@
 package hu.qgears.quickjs.qpage.example;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
+import hu.qgears.quickjs.qpage.AbstractQPage;
 import hu.qgears.quickjs.qpage.AppendTarget;
 import hu.qgears.quickjs.qpage.QButton;
 import hu.qgears.quickjs.qpage.QDiv;
 import hu.qgears.quickjs.qpage.QPage;
-import hu.qgears.quickjs.utils.AbstractQPage;
 
 /**
  * A simple example of a QPage based web application. 
@@ -13,14 +13,14 @@ import hu.qgears.quickjs.utils.AbstractQPage;
 public class QExample04DynamicDivs extends AbstractQPage
 {
 	@Override
-	protected void writeHeaders() {
+	protected void initialWriteHeaders() {
 		write("<title>Dynamic div creation and delete example</title>\n");
-		super.writeHeaders();
+		super.initialWriteHeaders();
 	}
 	private QDiv dynamicContainer;
 	int index=0;
 	@Override
-	protected void initQPage(QPage page) {
+	public void initPage() {
 		dynamicContainer=new QDiv(page, "dynamicContainer");
 		new QButton(page, "create").clicked.addListener(e->{
 			System.out.println("Create pressed!");
@@ -44,7 +44,7 @@ public class QExample04DynamicDivs extends AbstractQPage
 	}
 
 	@Override
-	protected void writeBody() {
+	public void createBody() {
 		write("<h1>Dynamic container example</h1>\n<a href=\"/\">Back to index</a><br/>\n<button id=\"create\">Create new dynamic content</button>\n<hr/>\n<div id=\"dynamicContainer\"></div>\n");
 	}
 }

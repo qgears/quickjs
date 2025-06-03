@@ -10,15 +10,24 @@ public class QDiv extends QComponent
 {
 	public QDiv(IQContainer container, String identifier) {
 		super(container, identifier);
-		init();
+		if(getClass()==QDiv.class)
+		{
+			init();
+		}
 	}
 	public QDiv(IQContainer container) {
 		super(container);
-		init();
+		if(getClass()==QDiv.class)
+		{
+			init();
+		}
 	}
 	public QDiv() {
 		super();
-		init();
+		if(getClass()==QDiv.class)
+		{
+			init();
+		}
 	}
 	public void handle(JSONObject post) throws IOException {
 	}

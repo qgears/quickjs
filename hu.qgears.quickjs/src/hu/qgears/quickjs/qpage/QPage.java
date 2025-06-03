@@ -42,9 +42,9 @@ public class QPage extends QComponent {
 	 * Set this QPage object to be the current for this thread.
 	 * @return
 	 */
-	public NoExceptionAutoClosable setThreadCurrentPage() {
+	public static NoExceptionAutoClosable setThreadCurrentPage(QPage page) {
 		QPage prev=currentPage.get();
-		currentPage.set(this);
+		currentPage.set(page);
 		return new NoExceptionAutoClosable() {
 			@Override
 			public void close() {
@@ -62,16 +62,5 @@ public class QPage extends QComponent {
 	@Override
 	protected boolean isSelfInitialized() {
 		return true;
-	}
-	/** Create and start a timer.
-	 * The created timer is added to this page's disposable so it is auto-closed once the page is closed.
-	 * @param r task to run when timeout happens. Exceptions are caught and logged to logger.
-	 * @param firstTimeoutMs first timeout in ms.
-	 * @param periodMs 0 means no periodic restart of the timer
-	 */
-	public QTimer startTimer(Runnable r, int firstTimeoutMs, int periodMs) {
-		QTimer t=getPageContainer().getPlatform().startTimer(r, firstTimeoutMs, periodMs);
-		addCloseable(t);
-		return t;
 	}
 }

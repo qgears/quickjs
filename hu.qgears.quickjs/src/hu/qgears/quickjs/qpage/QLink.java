@@ -34,6 +34,10 @@ public class QLink extends QComponent
 		this.href=new QProperty<>(href);
 		init();
 	}
+	public QLink(String href) {
+		this.href=new QProperty<>(href);
+		init();
+	}
 	/**
 	 * Chainable shorthand for .clicked.addListener();
 	 * @param clickHandler
@@ -81,9 +85,9 @@ public class QLink extends QComponent
 				{
 					write("page.components['");
 					writeJSValue(id);
-					write("'].setServerHandled(\"");
+					write("'].setServerHandled(");
 					writeObject(serverHandled.getProperty());
-					write("\");\n");
+					write(");\n");
 				}
 			});
 		}

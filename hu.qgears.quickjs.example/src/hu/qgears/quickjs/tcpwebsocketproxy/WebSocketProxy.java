@@ -63,7 +63,7 @@ public class WebSocketProxy extends WebSocketAdapter {
 		WebSocketProxyClientSocket wpcs=new WebSocketProxyClientSocket(this, id, host, port);
 		synchronized (sendSync) {
 			clientSockets.put(id, wpcs);
-			getSession().getRemote().sendStringByFuture("P"+id+":"+data);
+			getSession().getRemote().sendString("P"+id+":"+data, null);
 		}
 		return wpcs;
 	}
@@ -214,7 +214,7 @@ public class WebSocketProxy extends WebSocketAdapter {
 			if(sendClose)
 			{
 				try {
-					getRemote().sendStringByFuture("c"+id);
+					getRemote().sendString("c"+id, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -234,7 +234,7 @@ public class WebSocketProxy extends WebSocketAdapter {
 			if(sendClose)
 			{
 				try {
-					getRemote().sendStringByFuture("c"+id);
+					getRemote().sendString("c"+id, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -259,7 +259,7 @@ public class WebSocketProxy extends WebSocketAdapter {
 			if(sendClose)
 			{
 				try {
-					getRemote().sendStringByFuture("c"+id);
+					getRemote().sendString("c"+id, null);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -278,7 +278,7 @@ public class WebSocketProxy extends WebSocketAdapter {
 	}
 	public void messageError(String id, String string) {
 		try {
-			getRemote().sendStringByFuture("e"+id+" "+string);
+			getRemote().sendString("e"+id+" "+string, null);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

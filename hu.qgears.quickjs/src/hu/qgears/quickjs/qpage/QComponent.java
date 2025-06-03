@@ -2,7 +2,6 @@ package hu.qgears.quickjs.qpage;
 
 import java.awt.Point;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,8 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.UtilEvent;
-import hu.qgears.commons.UtilFile;
 import hu.qgears.commons.UtilListenableProperty;
+import hu.qgears.quickjs.helpers.QTimer;
 
 /**
  * When a Java/JS component is created it is either already in the HTML tree
@@ -41,7 +40,7 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	private UtilEvent<JSONObject> userEvent;
 	private String controlledNodeSelector;
 	private String childContainerSelector;
-	private List<AutoCloseable> closeables;
+	private DisposableContainer disposableContainer;
 	protected boolean disabled;
 	private UtilListenableProperty<Point> size;
 	private static Logger log=LoggerFactory.getLogger(QComponent.class);
@@ -172,40 +171,22 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public void generateHeader(HtmlTemplate parent)
 	{
 		new HtmlTemplate(parent){
-
 			public void generate() {
 				write("<script language=\"javascript\" type=\"text/javascript\">\n");
 				try {
 					for(String name: getScriptReferences())
 					{
-						write(new String(loadJs(name), StandardCharsets.UTF_8));
+						write(getPageContainer().getPlatform().loadResource(name));
 					}
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				} catch (Exception e) {
+					log.error("Load additional component JS "+getClass().getName(), e);
 				}
 				write("</script>\n");
 			}
-			
 		}.generate();
 	}
-
-	public byte[] loadJs(String name) throws IOException {
-		if(name.equals(getClass().getSimpleName()))
-		{
-			try {
-				return UtilFile.loadFile(getClass().getResource(name+".js"));
-			} catch (Exception e) {
-				System.err.println("LOADJS: "+getClass().getName()+" "+name);
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		return null;
-	}
-
 	public List<String> getScriptReferences() {
-		return Collections.singletonList(getClass().getSimpleName());
+		return Collections.singletonList(getClass().getSimpleName()+".js");
 	}
 	/**
 	 * Delete the object from the server side registry and also delete from the
@@ -247,17 +228,9 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 			}
 			page.remove(this);
 			disposed=true;
-			List<AutoCloseable> toClose;
-			synchronized (this) {
-				toClose=closeables;
-				closeables=null;
-			}
-			if(toClose!=null)
+			if(disposableContainer!=null)
 			{
-				for(AutoCloseable c: toClose)
-				{
-					closeCloseable(c);
-				}
+				disposableContainer.close();
 			}
 		}
 	}
@@ -305,13 +278,10 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	public IQContainer getParent() {
 		return container;
 	}
-	public void registerResources(QPageTypesRegistry typeReg) {
-		for(String s: getScriptReferences())
-		{
-			typeReg.addJs(s+".js", getClass().getResource(s+".js"));
-		}
-	}
-	
+	public String[] getConponentJsFiles()
+	{
+		return new String[] {};
+	}	
 	public void styleAddClass(final String msg) {
 		try(NoExceptionAutoClosable c=activateJS())
 		{
@@ -503,37 +473,25 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 			write(");\n");
 		}
 	}
+	private DisposableContainer getDisposableContainer()
+	{
+		if(disposableContainer==null)
+		{
+			disposableContainer=new DisposableContainer();
+			if(disposed)
+			{
+				disposableContainer.close();
+			}
+		}
+		return disposableContainer;
+	}
 	@Override
 	public NoExceptionAutoClosable addCloseable(AutoCloseable closeable) {
-		if(isDisposed())
-		{
-			closeCloseable(closeable);
-			return new NoExceptionAutoClosable() {};
-		}else
-		{
-			synchronized (this) {
-				if(closeables==null)
-				{
-					closeables=new ArrayList<>();
-				}
-				closeables.add(closeable);
-			}
-			return new NoExceptionAutoClosable() {
-				@Override
-				public void close() {
-					synchronized (QComponent.this) {
-						closeables.remove(closeable);
-					}
-				}
-			};
-		}
+		return getDisposableContainer().addCloseable(closeable);
 	}
-	private void closeCloseable(AutoCloseable closeable) {
-		try {
-			closeable.close();
-		} catch (Exception e) {
-			log.error("Closing attached closeable", e);
-		}
+	@Override
+	public NoExceptionAutoClosable addOnClose(Runnable closeable) {
+		return getDisposableContainer().addOnClose(closeable);
 	}
 	public void setDisabled(final boolean disabled) {
 		this.disabled=disabled;
@@ -581,5 +539,32 @@ public abstract class QComponent extends HtmlTemplate implements IQContainer, IU
 	protected boolean isSelfInitialized()
 	{
 		return false;
+	}
+	/** Create and start a timer.
+	 * The created timer is added to this QComponent's disposable so it is auto-closed once the component is disposed.
+	 * @param r task to run when timeout happens. Exceptions are caught and logged to logger.
+	 * @param firstTimeoutMs first timeout in ms.
+	 * @param periodMs 0 means no periodic restart of the timer
+	 */
+	public QTimer startTimer(Runnable r, int firstTimeoutMs, int periodMs) {
+		QTimer t=getPageContainer().getPlatform().startTimer(r, firstTimeoutMs, periodMs);
+		addCloseable(t);
+		return t;
+	}
+	public void disposeAllChildren() {
+		QComponent[] comps=children.toArray(new QComponent[] {});
+		for(QComponent c: comps)
+		{
+			c.dispose();
+		}
+	}
+	public void scrollIntoView()
+	{
+		try(NoExceptionAutoClosable c=activateJS())
+		{
+			write("\tpage.components[\"");
+			writeObject(id);
+			write("\"].scrollIntoView();\n");
+		}
 	}
 }

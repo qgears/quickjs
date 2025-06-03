@@ -4,11 +4,12 @@ Bundle-Name: Quickjs
 Bundle-SymbolicName: hu.qgears.quickjs
 Bundle-Version: 4.0.0.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
-Require-Bundle: hu.qgears.commons;bundle-version="6.10.1";visibility:=reexport,
- org.apache.log4j;bundle-version="1.2.15",
- org.json;bundle-version="1.0.0";visibility:=reexport,
- org.slf4j.api;bundle-version="1.7.2"
+Require-Bundle: org.json;bundle-version="1.0.0";visibility:=reexport,
+ hu.qgears.commons;bundle-version="10.4.2";visibility:=reexport
 Export-Package: hu.qgears.quickjs.helpers,
  hu.qgears.quickjs.qpage,
  hu.qgears.quickjs.serialization,
+ hu.qgears.quickjs.serverif,
  hu.qgears.quickjs.spa
+Import-Package: org.apache.log4j;version="1.2.15",
+ org.slf4j

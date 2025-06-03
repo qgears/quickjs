@@ -6,12 +6,11 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.eclipse.jetty.server.Request;
 
 import hu.qgears.quickjs.qpage.HtmlTemplate;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public class Query extends HtmlTemplate
 {

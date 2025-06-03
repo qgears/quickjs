@@ -15,7 +15,7 @@ public class ClassFullName {
 		List<String> pieces=UtilString.split(fqn, ".");
 		for(int i=0;i<pieces.size()-1;++i)
 		{
-			ret.append(pieces.get(0));
+			ret.append(pieces.get(i));
 			ret.append("/");
 		}
 		ret.append(pieces.get(pieces.size()-1));

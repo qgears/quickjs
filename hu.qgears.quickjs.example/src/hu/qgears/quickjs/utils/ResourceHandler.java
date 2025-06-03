@@ -4,15 +4,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Supplier;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
 import hu.qgears.commons.ConnectStreams;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
+/**
+ * 
+ * @author rizsi
+ * @deprecated "Use AbstractResourceHandler instead"
+ */
+@Deprecated()
 public class ResourceHandler extends AbstractHandler {
 	private java.util.function.Supplier<InputStream> contentOpener;
 	private String mimeType;

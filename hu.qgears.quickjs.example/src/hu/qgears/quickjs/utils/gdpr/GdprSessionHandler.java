@@ -2,14 +2,14 @@ package hu.qgears.quickjs.utils.gdpr;
 
 import java.io.IOException;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSessionListener;
-
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.HandlerWrapper;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSessionListener;
 
 /**
  * Session ID manager that allows session free access to the server
@@ -69,6 +69,7 @@ public class GdprSessionHandler extends HandlerWrapper
 		}
 		session.setAttribute(GdprSession.keyUseNoCookieSession, !cookiesAccepted);
 		session.cookiesAccepted=cookiesAccepted;
+		session.setUserAgent(baseRequest.getHeader("User-Agent"));
 		baseRequest.setSession(session);
 		try
 		{
@@ -87,5 +88,8 @@ public class GdprSessionHandler extends HandlerWrapper
 	}
 	public void addEventListener(HttpSessionListener createSessionListener) {
 		idmanager.addEventListener(createSessionListener);
+	}
+	public GdprSessionIdManager getIdmanager() {
+		return idmanager;
 	}
 }

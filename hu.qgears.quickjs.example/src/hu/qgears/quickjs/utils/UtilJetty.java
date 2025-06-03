@@ -1,8 +1,8 @@
 package hu.qgears.quickjs.utils;
 
-import javax.servlet.http.HttpServletResponse;
-
 import org.eclipse.jetty.util.UrlEncoded;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 public class UtilJetty {
 	public static final Long maxAgeSeconds_year=60l*60l*24l*366l;

@@ -1,5 +1,7 @@
 package example;
 
-public interface MyIface {
+import hu.qgears.quickjs.serialization.IRemotingBase;
+
+public interface MyIface extends IRemotingBase {
 	int alma(String korte);
 }

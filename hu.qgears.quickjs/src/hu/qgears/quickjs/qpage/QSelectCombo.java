@@ -8,6 +8,9 @@ public class QSelectCombo extends QSelect {
 	public QSelectCombo(IQContainer parent) {
 		super(parent);
 	}	
+	public QSelectCombo() {
+		super();
+	}	
 //	@Override
 //	public void generateHtmlObject() {
 //		write("<select id=\"");

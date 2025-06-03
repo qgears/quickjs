@@ -5,16 +5,15 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import hu.qgears.quickjs.qpage.HtmlTemplate;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public class SimpleHttpPage extends HtmlTemplate implements Cloneable
 {
@@ -57,7 +56,7 @@ public class SimpleHttpPage extends HtmlTemplate implements Cloneable
 		write("<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">\n");
 		writeFaviconHeaders();
 		writeHeaders();
-		write("</head>\n<body>\n");
+		write("</head>\n<body id=\"bodyId\">\n");
 		writeBody();
 		write("</body>\n</html>\n");
 	}

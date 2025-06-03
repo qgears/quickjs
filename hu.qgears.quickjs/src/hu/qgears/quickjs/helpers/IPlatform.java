@@ -1,9 +1,14 @@
 package hu.qgears.quickjs.helpers;
 
+import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 
-import hu.qgears.commons.signal.SignalFutureWrapper;
+import hu.qgears.commons.NoExceptionAutoClosable;
+import hu.qgears.quickjs.qpage.EQPageMode;
+import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.IndexedComm;
+import hu.qgears.quickjs.serialization.SerializeBase;
 
 /** The platform implements the platform-specific features: timers, callbacks etc.
  * The implementation is different on the client and on the http server and can be different on different types of http servers. */
@@ -35,7 +40,7 @@ public interface IPlatform {
 
 	/**
 	 * Start communication with JS code.
-	 * In case of server side this opens an {@link IndexedComm} stream over WebSocket.
+	 * In case of server side this opens an {@link IndexedComm} stream over WebSocket and registers to application to the session object.
 	 * In case of client side message queues must be implemented TODO
 	 */
 	void startCommunicationWithJs();
@@ -44,8 +49,37 @@ public interface IPlatform {
 
 	void submitToUI(Runnable r);
 
-	<V> SignalFutureWrapper<V> submitToUICallable(Callable<V> c);
+	<V> Promise<V> submitToUICallable(Callable<V> c);
 
 	/** Remove the page from the pages registry. Only useful on server */
 	void deregister();
+
+	EQPageMode getMode();
+
+	void writePreloadHeaders(HtmlTemplate parent);
+
+	void writeHeaders(HtmlTemplate parent);
+
+	List<String> getJsOrder();
+
+	String loadResource(String fname) throws Exception;
+
+	void configureJsGlobalQPage(HtmlTemplate parent, String string);
+	
+	/** Get the data serializator - used in case of Client side or hybrid mode */
+	SerializeBase getSerializator();
+
+	/** Write a blob object into a HTML JS stream. It is a platform method because sadly java.uitl.Base64 is not present in TeaVM. */
+	void writeBlobObject(HtmlTemplate htmlTemplate, byte[] o);
+	void writeBlobObject(HtmlTemplate htmlTemplate, byte[] o, int pos, int length);
+	/** Is this instance running on the server?
+	 * @return
+	 */
+	boolean isServer();
+	/** In case of hybrid mode the server side processing messages are stored in this list.
+	 * @return
+	 */
+	List<byte[]> getReplayObjects();
+
+	void setSetupContext(Supplier<NoExceptionAutoClosable> setupContext);
 }

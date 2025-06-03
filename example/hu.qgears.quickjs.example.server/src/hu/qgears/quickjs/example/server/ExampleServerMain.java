@@ -9,7 +9,7 @@ import org.eclipse.jetty.server.session.DefaultSessionIdManager;
 import org.eclipse.jetty.server.session.SessionHandler;
 
 import hu.qgears.quickjs.example.gui.ExampleGui;
-import hu.qgears.quickjs.qpage.jetty.QPageHandler2;
+import hu.qgears.quickjs.qpage.jetty.QPageHandler;
 import hu.qgears.quickjs.spa.QSpa;
 import hu.qgears.quickjs.utils.DispatchHandler;
 import hu.qgears.quickjs.utils.HttpSessionQPageManager;
@@ -60,7 +60,7 @@ public class ExampleServerMain {
 		
 		DispatchHandler dh=new DispatchHandler();
 		QSpa spa=new ExampleGui().createApplication();
-		dh.addHandler("/", new QPageHandler2(spa));
+		dh.addHandler("/", new QPageHandler(spa));
 		sessions.setHandler(dh);
 		// ws.setServer(server);
 		// ws.start();

@@ -1,6 +1,8 @@
 package hu.qgears.quickjs.qpage;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.json.JSONObject;
@@ -24,7 +26,7 @@ public class IndexedComm {
 	private long currentIndex=0;
 	private long currentReceivingIndex=0;
 	private volatile Msg currentReceiving;
-	private TreeMap<Long, Msg> sendQueue=new TreeMap<>();
+	private SortedMap<Long, Msg> sendQueue=Collections.synchronizedSortedMap(new TreeMap<>());
 	public final UtilEvent<Msg> received=new UtilEvent<>();
 	public final UtilEvent<JSONObject> receivedPing=new UtilEvent<>();
 	public final UtilListenableProperty<Boolean> closed=new UtilListenableProperty<Boolean>(false);
@@ -85,7 +87,7 @@ public class IndexedComm {
 					return;
 				}else
 				{
-					Object header=obj.get("header");
+					JSONObject header=obj.getJSONObject("header");
 					int nPart=obj.getInt("nPart");
 					int index=obj.getInt("index");
 					currentReceiving=new Msg();
@@ -151,16 +153,19 @@ public class IndexedComm {
 		while(fk!=null && fk<=index)
 		{
 			Msg toDispose=sendQueue.remove(fk);
-			for(Object arg: toDispose.arguments)
+			if(toDispose!=null)
 			{
-				if(arg instanceof AutoCloseable)
+				for(Object arg: toDispose.arguments)
 				{
-					AutoCloseable nm=(AutoCloseable) arg;
-					try {
-						nm.close();
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+					if(arg instanceof AutoCloseable)
+					{
+						AutoCloseable nm=(AutoCloseable) arg;
+						try {
+							nm.close();
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					}
 				}
 			}

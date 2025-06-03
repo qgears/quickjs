@@ -11,6 +11,10 @@ public class QImage extends QComponent
 {
 	public final QProperty<String> src=new QProperty<>();
 	private UtilEventWithListenerTrack<QImage> onload;
+	public QImage() {
+		super();
+		init();
+	}
 	public QImage(IQContainer parent, String identifier) {
 		super(parent, identifier);
 		init();

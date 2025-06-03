@@ -10,6 +10,8 @@ class QPageContainer
 		this.state=0;
 		this.timeoutDispose=timeoutDispose;
 		this.sessionIdParameterAdditional="";
+		this.replayObject=[];
+		this.logFailLogged=false;
 	}
 	getComponent(id)
 	{
@@ -96,11 +98,50 @@ class QPageContainer
 		const url=window.location.origin.replace('http', 'ws')+window.location.pathname+'?websocket='+websocketName+'&QPageContainer='+this.identifier+this.sessionIdParameterAdditional;
 		return url;
 	}
+	setTeaVMCallback(teaVmCallback)
+	{
+		this.teaVmCallback=teaVmCallback;
+		this.comm=new TeaVMComm();
+		this.comm.setQPageContainer(this);
+		return this.comm;
+	}
+	setTimeout(callback, ms)
+	{
+		var ret={};
+		ret.callback=callback;
+		ret.timeoutID=setTimeout(function(r){
+				r.callback.timeout();
+			}, ms, ret);
+		ret.cancel=function(){
+			clearTimeout(this.timeoutID);
+			}.bind(ret);
+		return ret;
+	}
+	setPath(path)
+	{
+		this.path=path;
+	}
 	/// Start communication with server and set up global listeners
-	start()
+	/// mode: EQPageMode.ordinal()
+	///       0 start in serverside mode: server is accessed through IndexedComm - WebSocket
+	///       1 start in hybrid (clientside after initialization) mode: server is not accessed but local TeaVM is accessed with messages
+	start(mode)
 	{
 		const url=this.createWebSocketUrl();
-		this.comm=new IndexedComm().init(url, this);
+		switch(mode)
+		{
+		case 0:
+			this.comm=new IndexedComm().init(url, this);
+			break;
+		case 1:
+			main([]);
+			this.teaVmCallback.createPageContainer(this.identifier, mode);
+			this.comm.init(this.teaVmCallback);
+			this.teaVmCallback.openPath(this.path);
+			break;
+		default:
+			throw Exception("Mode not handled: "+mode);
+		}
 		if(this.supports_history_api())
 		{
 			window.addEventListener("popstate", function(e) {
@@ -140,13 +181,28 @@ class QPageContainer
 		FD.component=component.identifier;
 		return FD;
 	}
+	sendLogMessage(messageWrappedInJsonObject)
+	{
+		if(this.comm && this.comm.isConnected())
+		{
+			this.logFailLogged=false;
+			this.comm.send({log: messageWrappedInJsonObject});
+			// console.log("Send to server: "+JSON.stringify(messageWrappedInJsonObject));
+		}else
+		{
+			if(!this.logFailLogged)
+			{
+				this.logFailLogged=true;
+				console.error("Can not send log to server because offline");
+			}
+		}
+	}
 	sendCustomJson(type, jsonObj)
 	{
 		const toSend={};
 		toSend.type=type;
 		toSend.data=jsonObj;
 		toSend.custom=true;
-		// toSend.component=component.identifier;
 		this.send(toSend);
 	}
 	sendJson(type, jsonObj)
@@ -283,17 +339,49 @@ class QPageContainer
 				var component=this.components[selector];
 				var index=arg1;
 				var parentDOM=component.childContainer;
+				if(arg2!="")
+				{
+					parentDOM=parentDOM.querySelector(arg2);
+				}
 				const next=component.findNextNode(parentDOM, index);
 				parentDOM.insertBefore(item, next);
+				break;
+			case "QContainer_selector_after":
+				var component=this.components[selector];
+				var index=arg1;
+				var parentDOM=component.childContainer;
+				if(arg2!="")
+				{
+					parentDOM=parentDOM.querySelector(arg2);
+				}
+				var p=parentDOM.parentNode;
+				p.insertAfter(parentDOM, next);
 				break;
 			case "replaceWith":
 				var oldDom=document.querySelector(selector);
 				oldDom.replaceWith(item);
 				break;
+			case "replaceContent":
+				var parent=document.querySelector(selector);
+				while (parent.firstChild) {
+					parent.removeChild(parent.lastChild);
+				}
+				parent.append(item);
+				break;
 			default:
-					console.error(new Error().stack);
-					console.error({error: "methodName unknown", methodName: methodName});
-					break;
+				console.error(new Error().stack);
+				console.error({error: "methodName unknown", methodName: methodName});
+				break;
 		} 
+	}
+	/// In case of client side implementation the context initial object is set in serialized format (blob).
+	async setContextObjectSerialized(initialObjectInBlob)
+	{
+		this.initialObjectInByteArr=await initialObjectInBlob.arrayBuffer().then(res => res);
+	}
+	/// In case of client side implementation the context initial object is set in serialized format (blob).
+	async addReplayObject(ro)
+	{
+		this.replayObject.push(await ro.arrayBuffer().then(res => res));
 	}
 }

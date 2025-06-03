@@ -10,4 +10,5 @@ Require-Bundle: org.teavm.jso.apis;bundle-version="1.0.0",
  org.junit;bundle-version="4.13.0",
  org.slf4j.api,
  org.apache.log4j;bundle-version="1.2.15",
- hu.qgears.quickjs.serverside;bundle-version="1.0.0"
+ hu.qgears.quickjs.serverside;bundle-version="1.0.0",
+ joptsimple;bundle-version="1.5.0"

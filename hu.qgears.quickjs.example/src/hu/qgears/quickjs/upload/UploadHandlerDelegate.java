@@ -5,12 +5,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
-import javax.servlet.http.HttpServletResponse;
-
 import org.eclipse.jetty.server.Request;
 
 import hu.qgears.commons.UtilFile;
 import hu.qgears.quickjs.utils.InMemoryMultiPartInputStreamParser;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Handles queries to upload.js and POST queries that push the file content from the browser to the server.

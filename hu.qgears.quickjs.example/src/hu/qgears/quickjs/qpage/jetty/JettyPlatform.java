@@ -1,44 +1,61 @@
 package hu.qgears.quickjs.qpage.jetty;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
-import org.json.JSONArray;
+import org.eclipse.jetty.server.Request;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import hu.qgears.commons.NoExceptionAutoClosable;
 import hu.qgears.commons.SafeTimerTask;
+import hu.qgears.commons.UtilFile;
 import hu.qgears.commons.UtilTimer;
-import hu.qgears.commons.signal.SignalFutureWrapper;
 import hu.qgears.quickjs.helpers.IPlatformServerSide;
+import hu.qgears.quickjs.helpers.Promise;
+import hu.qgears.quickjs.helpers.PromiseImpl;
 import hu.qgears.quickjs.helpers.QTimer;
+import hu.qgears.quickjs.qpage.EQPageMode;
 import hu.qgears.quickjs.qpage.HtmlTemplate;
 import hu.qgears.quickjs.qpage.ISessionUpdateLastAccessedTime;
 import hu.qgears.quickjs.qpage.IndexedComm;
+import hu.qgears.quickjs.qpage.QPage;
 import hu.qgears.quickjs.qpage.QPageContainer;
 import hu.qgears.quickjs.qpage.QPageManager;
+import hu.qgears.quickjs.serialization.SerializeBase;
+import hu.qgears.quickjs.serverside.QPageTypesRegistry;
+import hu.qgears.quickjs.utils.Base64Image;
 
 public class JettyPlatform implements IPlatformServerSide {
 	private static final Logger log=LoggerFactory.getLogger(JettyPlatform.class);
+	private static final Logger browserLog=LoggerFactory.getLogger("browser");
 	private final QPageManager qpm;
 	QPageContainer pageContainer;
 	private volatile Thread thread;
 	private SafeTimerTask disposeTimer;
+	private EQPageMode mode=EQPageMode.serverside;
 	private Object syncObject = new Object();
 	private long TIMEOUT_DISPOSE=IndexedComm.timeoutPingMillis*2;
 	private Executor executor;
 	private LinkedList<Runnable> tasks=new LinkedList<>();
 	private ISessionUpdateLastAccessedTime sessionToUpdateLastAccessedTime;
-	private IndexedComm indexedComm=new IndexedComm();
+	private IndexedComm indexedComm;
+	private String path;
 	private Supplier<NoExceptionAutoClosable> setupContext=()->(new NoExceptionAutoClosable() {});
 	private Map<String, IndexedComm> customWebSocketImplementations=Collections.synchronizedMap(new HashMap<>());
+	private SerializeBase serializator;
+	private List<byte[]> replayObjects;
+	private QueryWrapperJetty queryWrapper;
 
 	public JettyPlatform(QPageContainer pageContainer, QPageManager qpm) {
 		this.qpm=qpm;
@@ -61,19 +78,15 @@ public class JettyPlatform implements IPlatformServerSide {
 			@Override
 			protected void doRun() {
 				pageContainer.submitTimerTask(t, r);
-				pageContainer.submitToUI(()->{
-					try {
-						if(!isCancelled())
-						{
-							r.run();
-						}
-					} catch (Exception e) {
-						log.error("Unhandled exception in timer", e);
-					}
-				});
 			}
 		};
-		UtilTimer.javaTimer.schedule(t.stt, firstTimeoutMs, periodMs);
+		if(periodMs<=0)
+		{
+			UtilTimer.javaTimer.schedule(t.stt, firstTimeoutMs);
+		}else
+		{
+			UtilTimer.javaTimer.schedule(t.stt, firstTimeoutMs, periodMs);
+		}
 		return t;
 	}
 	public void setExecutor(Executor executor) {
@@ -93,6 +106,16 @@ public class JettyPlatform implements IPlatformServerSide {
 	 */
 	@Override
 	public void reinitDisposeTimer() {
+		switch(mode)
+		{
+		case hybrid:
+			/// In hybrid mode the server side objects are disposed at once after initial reply and they are not handled by a timer.
+			return;
+		case serverside:
+			break;
+		default:
+			throw new RuntimeException("Mode not handled: "+mode);
+		}
 		if(disposeTimer!=null)
 		{
 			disposeTimer.cancel();
@@ -112,15 +135,22 @@ public class JettyPlatform implements IPlatformServerSide {
 	}
 	@Override
 	public void startCommunicationWithJs() {
+		switch(mode)
+		{
+		case serverside:
+			break;
+		case hybrid:
+			return;
+		default:
+			throw new RuntimeException("Unhandled mode: "+mode);
+		}
+		qpm.register(pageContainer.getId(), pageContainer);
+		indexedComm=new IndexedComm();
 		indexedComm.received.addListener(msg->{
 			JSONObject jo=(JSONObject)msg.header;
 			if(jo.has("log"))
 			{
-				JSONArray a=jo.getJSONArray("log");
-				for(Object o: a)
-				{
-					log.info(""+o);
-				}
+				browserLog.info("Browser log: "+jo.get("log"));
 			}else if(jo.has("unload")&&"true".equals(jo.get("unload"))) {
 				handleUnloadQuery();
 			}else if(jo.has("history_popstate")|| jo.has("custom")||jo.has("component"))
@@ -131,7 +161,7 @@ public class JettyPlatform implements IPlatformServerSide {
 					try
 					{
 						synchronized (syncObject) {
-							try(NoExceptionAutoClosable c=pageContainer.getPage().setThreadCurrentPage())
+							try(NoExceptionAutoClosable c=QPage.setThreadCurrentPage(pageContainer.getPage()))
 							{
 								try(NoExceptionAutoClosable s=setupContext.get())
 								{
@@ -204,7 +234,8 @@ public class JettyPlatform implements IPlatformServerSide {
 							while(r!=null)
 							{
 								synchronized (syncObject) {
-									try (NoExceptionAutoClosable c=pageContainer.getPage().setThreadCurrentPage()) {
+									QPage p=pageContainer.getPage();
+									try (NoExceptionAutoClosable c=QPage.setThreadCurrentPage(p)) {
 										thread=Thread.currentThread();
 										try(AutoCloseable s=setupContext.get())
 										{
@@ -212,7 +243,11 @@ public class JettyPlatform implements IPlatformServerSide {
 										}
 									} catch (Exception e) {
 										log.error("send JS to client", e);
-									} finally
+									} catch (Error e)
+									{
+										Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
+									}
+									finally
 									{
 										HtmlTemplate jsTemplate=pageContainer.internalGetAndRecreateJsTemplate();
 										indexedComm.sendMessage("js", jsTemplate.toWebSocketArguments());
@@ -247,20 +282,24 @@ public class JettyPlatform implements IPlatformServerSide {
 	 * Can also be used to do synchronization between pages.
 	 * @param setupContext
 	 */
+	@Override
 	public void setSetupContext(Supplier<NoExceptionAutoClosable> setupContext) {
 		this.setupContext = setupContext;
 	}
 	@Override
 	public void disposeCommunicationToJS() {
-		/**
-		 * Timeout is required so that the last messages are sent first hopefully.
-		 */
-		UtilTimer.javaTimer.schedule(new SafeTimerTask() {
-			@Override
-			public void doRun() {
-				indexedComm.close();
-			}
-		}, 2000);
+		if(indexedComm!=null)
+		{
+			/**
+			 * Timeout is required so that the last messages are sent first hopefully.
+			 */
+			UtilTimer.javaTimer.schedule(new SafeTimerTask() {
+				@Override
+				public void doRun() {
+					indexedComm.close();
+				}
+			}, 2000);
+		}
 	}
 	@Override
 	public void submitToUI(Runnable r) {
@@ -277,8 +316,8 @@ public class JettyPlatform implements IPlatformServerSide {
 		}
 	}
 	@Override
-	public <V> SignalFutureWrapper<V> submitToUICallable(Callable<V> c) {
-		SignalFutureWrapper<V> ret=new SignalFutureWrapper<V>();
+	public <V> Promise<V> submitToUICallable(Callable<V> c) {
+		PromiseImpl<V> ret=new PromiseImpl<V>();
 		if(!pageContainer.disposedEvent.isDone())
 		{
 			synchronized (tasks) {
@@ -286,14 +325,14 @@ public class JettyPlatform implements IPlatformServerSide {
 					try
 					{
 						V v=c.call();
-						ret.ready(v, null);
+						ret.ready(v);
 					}catch(Exception e)
 					{
-						ret.ready(null, e);
+						ret.error(e);
 					}
 					catch(Throwable t)
 					{
-						ret.ready(null, t);
+						ret.error(t);
 						throw t;
 					}
 				});
@@ -305,7 +344,7 @@ public class JettyPlatform implements IPlatformServerSide {
 			}
 		}else
 		{
-			ret.ready(null, new IllegalStateException("Page already disposed"));
+			ret.error(new IllegalStateException("Page already disposed"));
 		}
 		return ret;
 	}
@@ -331,5 +370,118 @@ public class JettyPlatform implements IPlatformServerSide {
 	@Override
 	public QPageManager getQPageManager() {
 		return qpm;
+	}
+	public void setMode(EQPageMode mode) {
+		this.mode=mode;
+	}
+	@Override
+	public EQPageMode getMode() {
+		return mode;
+	}
+	private String teaVMJs;
+	public void setTeaVMJs(String teaVMJs) {
+		this.teaVMJs=teaVMJs;
+	}
+	@Override
+	public void writePreloadHeaders(HtmlTemplate parent) {
+		if(teaVMJs!=null)
+		{
+			new HtmlTemplate(parent)
+			{
+				void mw()
+				{
+					write("<link rel=\"preload\" href=\"");
+					writeObject(pageContainer.getPageContext().getResourcePathSync(teaVMJs));
+					write("\" as=\"script\" />\n");
+				}
+			}.mw();
+		}
+	}
+	@Override
+	public void writeHeaders(HtmlTemplate parent) {
+		if(teaVMJs!=null)
+		{
+			new HtmlTemplate(parent)
+			{
+				void mw()
+				{
+					write("<script language=\"javascript\" type=\"text/javascript\" src=\"");
+					writeObject(pageContainer.getPageContext().getResourcePathSync(teaVMJs));
+					write("\"></script>\n");
+				}
+			}.mw();
+		}
+	}
+	@Override
+	public List<String> getJsOrder() {
+		return QPageTypesRegistry.getInstance().getJsOrder();
+	}
+	@Override
+	public String loadResource(String fname) throws IOException {
+		URL url=QPageTypesRegistry.getInstance().getResource(fname);
+		if(url==null)
+		{
+			throw new IOException("Does not exist: "+fname);
+		}
+		return UtilFile.loadAsString(url);
+	}
+	public void setPath(String path) {
+		this.path=path;
+	}
+	@Override
+	public void configureJsGlobalQPage(HtmlTemplate parent, String string) {
+		new HtmlTemplate(parent)
+		{
+			void ws()
+			{
+				writeObject(string);
+				write(".setPath(\"");
+				writeJSValue(path);
+				write("\");\n");
+			}
+		}.ws();
+	}
+	@Override
+	public SerializeBase getSerializator() {
+		return serializator;
+	}
+	public void setSerializator(SerializeBase serializator) {
+		this.serializator = serializator;
+	}
+	@Override
+	public void writeBlobObject(HtmlTemplate template, byte[] o) {
+		Base64Image.writeBlobObject(template, o);
+	}
+	@Override
+	public void writeBlobObject(HtmlTemplate template, byte[] o, int pos, int length) {
+		Base64Image.writeBlobObject(template, o, pos, length);
+	}
+	@Override
+	public boolean isServer() {
+		return true;
+	}
+	@Override
+	public List<byte[]> getReplayObjects() {
+		if(replayObjects==null)
+		{
+			replayObjects=new ArrayList<>();
+		}
+		return replayObjects;
+	}
+	public void setQueryWrapper(QueryWrapperJetty queryWrapper) {
+		this.queryWrapper=queryWrapper;
+	}
+	public Request getBaseRequest() {
+		return queryWrapper.baseRequest;
+	}
+	public static Request getBaseRequest(QPage page) {
+		Request baseRequest = ((JettyPlatform)page.getPageContainer().getPlatform()).getBaseRequest();
+		return baseRequest;
+	}
+	public Object getUserParameter() {
+		return getBaseRequest().getAttribute(QPageHandler.key);
+	}
+	public void setUserParameter(Object userObject) {
+		getBaseRequest().setAttribute(QPageHandler.key, userObject);
 	}
 }
