@@ -1,9 +1,0 @@
-Manifest-Version: 1.0
-Bundle-ManifestVersion: 2
-Bundle-Name: Gui
-Bundle-SymbolicName: hu.qgears.quickjs.example.gui
-Bundle-Version: 1.0.0.qualifier
-Automatic-Module-Name: hu.qgears.quickjs.example.gui
-Bundle-RequiredExecutionEnvironment: JavaSE-11
-Require-Bundle: hu.qgears.quickjs;bundle-version="4.0.0";visibility:=reexport
-Export-Package: hu.qgears.quickjs.example.gui
