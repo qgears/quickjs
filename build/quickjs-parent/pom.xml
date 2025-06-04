@@ -19,6 +19,7 @@
 	<properties>
 		<opensource-utils-version>[12.0.0,)</opensource-utils-version>
 		<jetty-version>11.0.11</jetty-version>
+		<junit-version>4.8.2</junit-version>
 	</properties>
 
 	<build>
@@ -93,6 +94,13 @@
 				<groupId>org.teavm</groupId>
 				<artifactId>teavm-jso-apis</artifactId>
 				<version>0.12.1</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>${junit-version}</version>
+				<scope>test</scope>
 			</dependency>
 		</dependencies>
 
