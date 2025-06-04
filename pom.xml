@@ -10,7 +10,5 @@
 
 	<modules>
 		<module>hu.qgears.quickjs</module>
-		<module>hu.qgears.quickjs.example</module>
-		<module>build/hu.qgears.quickjs.p2</module>
 	</modules>
 </project>
