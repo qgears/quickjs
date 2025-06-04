@@ -63,9 +63,20 @@
 			</dependency>
 			<dependency>
 				<groupId>hu.qgears</groupId>
+				<artifactId>hu.qgears.tools</artifactId>
+				<version>${opensource-utils-version}</version>
+			</dependency>
+			<dependency>
+				<groupId>hu.qgears</groupId>
 				<artifactId>joptsimple</artifactId>
 				<version>[2.0.0,)</version>
 			</dependency>
+			<dependency>
+				<groupId>hu.qgears</groupId>
+				<artifactId>hu.qgears.rtemplate.runtime</artifactId>
+				<version>[2.0.0-SNAPSHOT,)</version>
+			</dependency>
+			
 			
 			<dependency>
 				<groupId>org.slf4j</groupId>
@@ -77,7 +88,14 @@
 				<artifactId>json</artifactId>
 				<version>20250517</version>
 			</dependency>
+			
+			<dependency>
+				<groupId>org.teavm</groupId>
+				<artifactId>teavm-jso-apis</artifactId>
+				<version>0.12.1</version>
+			</dependency>
 		</dependencies>
+
 
 	</dependencyManagement>
 </project>
