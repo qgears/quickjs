@@ -10,5 +10,6 @@
 
 	<modules>
 		<module>hu.qgears.quickjs</module>
+		<module>hu.qgears.quickjs.jetty</module>
 	</modules>
 </project>

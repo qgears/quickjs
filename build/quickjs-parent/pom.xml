@@ -1,21 +1,24 @@
-<?xml version="1.0" encoding="UTF-8"?> <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <modelVersion>4.0.0</modelVersion>
+<?xml version="1.0" encoding="UTF-8"?>
+<project
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+	xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
 		<groupId>hu.qgears</groupId>
 		<artifactId>root-plain</artifactId>
 		<version>1.0.0</version>
 		<relativePath>../../../repository-builder/parent-poms/root-plain</relativePath>
-	</parent> 
-	
+	</parent>
+
 	<artifactId>quickjs-parent</artifactId>
 	<version>3.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
 		<opensource-utils-version>[12.0.0,)</opensource-utils-version>
+		<jetty-version>11.0.11</jetty-version>
 	</properties>
 
 	<build>
@@ -33,9 +36,11 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/
 	<profiles>
 		<!-- This profile is activated when the version bump script is executed.
 			It adds each the aggregator pom of the component (../../) as a child module 
-			of this component, so the tycho-version-plugin will be able to detect parent-child 
-			relationships propertly, so also changes the version string in the parent pom reference.
-		--> 
+			of this component, so the tycho-version-plugin will be able to detect
+		parent-child 
+			relationships propertly, so also changes the version string in the parent pom
+		reference.
+		-->
 		<profile>
 			<id>versionbump</id>
 			<activation>
@@ -48,26 +53,31 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/
 			</modules>
 		</profile>
 	</profiles>
-	
+
 	<dependencyManagement>
 		<dependencies>
-		<dependency>
-			<groupId>hu.qgears</groupId>
-			<artifactId>hu.qgears.commons</artifactId>
-			<version>${opensource-utils-version}</version>
-		</dependency>
-		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-api</artifactId>
-		    <version>1.7.36</version>
-		</dependency>
-		<dependency>
-		    <groupId>org.json</groupId>
-		    <artifactId>json</artifactId>
-		    <version>20250517</version>
-		</dependency>
-		
+			<dependency>
+				<groupId>hu.qgears</groupId>
+				<artifactId>hu.qgears.commons</artifactId>
+				<version>${opensource-utils-version}</version>
+			</dependency>
+			<dependency>
+				<groupId>hu.qgears</groupId>
+				<artifactId>joptsimple</artifactId>
+				<version>[2.0.0,)</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-api</artifactId>
+				<version>1.7.36</version>
+			</dependency>
+			<dependency>
+				<groupId>org.json</groupId>
+				<artifactId>json</artifactId>
+				<version>20250517</version>
+			</dependency>
 		</dependencies>
-	
+
 	</dependencyManagement>
 </project>
