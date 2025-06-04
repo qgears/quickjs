@@ -5,33 +5,30 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/
 
 	<parent>
 		<groupId>hu.qgears</groupId>
-		<artifactId>root</artifactId>
+		<artifactId>root-plain</artifactId>
 		<version>1.0.0</version>
-		<relativePath>../repository-builder/parent-poms/root</relativePath>
+		<relativePath>../../../repository-builder/parent-poms/root-plain</relativePath>
 	</parent> 
 	
-	<groupId>hu.qgears</groupId>
 	<artifactId>quickjs-parent</artifactId>
 	<version>3.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
-		<java-src-version>8</java-src-version>
-		<java-trg-version>8</java-trg-version>
+		<opensource-utils-version>[12.0.0,)</opensource-utils-version>
 	</properties>
 
-	<repositories>
-		<repository>
-			<id>eclipse-2020-03-mirror</id>
-			<url>https://download.eclipse.org/releases/2020-03</url>
-			<layout>p2</layout>
-		 </repository>
-		<repository>
-			<id>qgears-opensource-repo</id>
-			<url>https://qgears.com/opensource/updates/</url>
-			<layout>p2</layout>
-		 </repository>
-	</repositories>
+	<build>
+		<sourceDirectory>src</sourceDirectory>
+		<resources>
+			<resource>
+				<directory>src</directory>
+				<excludes>
+					<exclude>**/*.java</exclude>
+				</excludes>
+			</resource>
+		</resources>
+	</build>
 
 	<profiles>
 		<!-- This profile is activated when the version bump script is executed.
@@ -51,4 +48,26 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/
 			</modules>
 		</profile>
 	</profiles>
+	
+	<dependencyManagement>
+		<dependencies>
+		<dependency>
+			<groupId>hu.qgears</groupId>
+			<artifactId>hu.qgears.commons</artifactId>
+			<version>${opensource-utils-version}</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-api</artifactId>
+		    <version>1.7.36</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.json</groupId>
+		    <artifactId>json</artifactId>
+		    <version>20250517</version>
+		</dependency>
+		
+		</dependencies>
+	
+	</dependencyManagement>
 </project>
