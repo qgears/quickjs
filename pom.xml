@@ -11,5 +11,8 @@
 	<modules>
 		<module>hu.qgears.quickjs</module>
 		<module>hu.qgears.quickjs.jetty</module>
+		<module>hu.qgears.quickjs.teavm</module>
+		<module>hu.qgears.quickjs.serverside</module>
 	</modules>
 </project>
+
