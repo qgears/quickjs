@@ -13,11 +13,11 @@
 	</parent>
 
 	<artifactId>quickjs-parent</artifactId>
-	<version>3.0.0-SNAPSHOT</version>
+	<version>4.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<properties>
-		<opensource-utils-version>[12.0.0,)</opensource-utils-version>
+		<opensource-utils-version>[12.0.1-SNAPSHOT,)</opensource-utils-version>
 		<jetty-version>11.0.11</jetty-version>
 		<junit-version>4.8.2</junit-version>
 	</properties>

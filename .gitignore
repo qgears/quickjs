@@ -2,4 +2,5 @@ target/
 #repo builder ref
 build/repository-builder
 **/.flattened-pom.xml
+**/pom.xml.versionsBackup
 
