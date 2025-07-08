@@ -5,21 +5,28 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>hu.qgears</groupId>
-		<artifactId>root-plain</artifactId>
-		<version>1.0.0</version>
-		<relativePath>../../../repository-builder/parent-poms/root-plain</relativePath>
-	</parent>
-
 	<artifactId>quickjs-parent</artifactId>
 	<version>4.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
+	<description>The ${project.artifactId} bundle.</description>
+ 	<url>${project_url}</url>
 
 	<properties>
 		<opensource-utils-version>[12.0.1-SNAPSHOT,)</opensource-utils-version>
 		<jetty-version>11.0.11</jetty-version>
 		<junit-version>4.8.2</junit-version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<!-- The -source and -target arguments of Java compiler. -->
+		<java-trg-version>11</java-trg-version>
+		<java-src-version>11</java-src-version>
+		<maven-complier-plugin-version>3.1</maven-complier-plugin-version>
+		<maven-surifire-plugin-version>2.12.4</maven-surifire-plugin-version>
+		<qgears-opensource-maven-public-url>qgears-opensource-maven-public-url</qgears-opensource-maven-public-url>
+		<qgears-opensource-maven-nightly-url>qgears-opensource-maven-nightly-url</qgears-opensource-maven-nightly-url>
+		<repositoryRoot>${project.basedir}/${project.parent.relativePath}/../../</repositoryRoot>
+		<site-plugin-version>3.5</site-plugin-version>
+		<stagingDirectory>${user.home}/os-report</stagingDirectory>
+		<project_url>file://${stagingDirectory}</project_url>
 	</properties>
 
 	<build>
@@ -32,9 +39,168 @@
 				</excludes>
 			</resource>
 		</resources>
-	</build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-site-plugin</artifactId>
+					<version>${site-plugin-version}</version>
+					<configuration>
+						<skip>${maven-site-plugin.skip}</skip>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${maven-complier-plugin-version}</version>
+				<configuration>
+					<source>${java-src-version}</source>
+					<target>${java-trg-version}</target>
+					<release>${java-trg-version}</release>
+				</configuration>
+			</plugin>
+			<plugin>
+	         <groupId>org.apache.maven.plugins</groupId>
+	         <artifactId>maven-surefire-plugin</artifactId>
+	         <version>${maven-surifire-plugin-version}</version>
+				<configuration>
+					<!-- Do not fail the build on broken tests -->
+					<testFailureIgnore>true</testFailureIgnore>
+					<!-- Prevent failing build if no test cases found (typical case in second execution, where integration tests will be run) -->
+					<failIfNoTests>false</failIfNoTests>
+					<!-- Killing to long tests-->
+					<forkedProcessTimeoutInSeconds>${test-timeout-sec}</forkedProcessTimeoutInSeconds>
+				</configuration>
+	       </plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>flatten-maven-plugin</artifactId>
+				<version>1.4.1</version>
+				<configuration>
+				</configuration>
+				<executions>
+					<!-- enable flattening -->
+					<execution>
+						<id>flatten</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>flatten</goal>
+						</goals>
+					</execution>
+					<!-- ensure proper cleanup -->
+					<execution>
+						<id>flatten.clean</id>
+						<goals>
+							<goal>clean</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			 <plugin>
+			    <groupId>org.apache.maven.plugins</groupId>
+			    <artifactId>maven-deploy-plugin</artifactId>
+			    <version>2.7</version>
+			 </plugin>
 
+		
+		</plugins>
+		
+	</build>
 	<profiles>
+		<!-- profile for enabling source bundle generation -->
+		<profile>
+			<id>regenmanifest</id>
+			<activation>
+				<property>
+					<name>regenmanifest</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.felix</groupId>
+						<artifactId>maven-bundle-plugin</artifactId>
+						<version>2.5.0</version>
+						<extensions>true</extensions>
+
+						<configuration>
+							<manifestLocation>META-INF</manifestLocation>
+							<instructions>
+								<Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+								<Bundle-Version>${project.version}</Bundle-Version>
+								<Export-Package>*</Export-Package>
+								<Include-Resource>src/main/resources</Include-Resource>    
+								<Require-Capability>
+					               osgi.ee;filter:="(&amp;(osgi.ee=JavaSE)(version=11))"
+					            </Require-Capability>
+							</instructions>
+						</configuration>
+						<executions>
+							<execution>
+								<id>gen-manifest</id>
+								<phase>process-classes</phase>
+								<goals>
+									<goal>manifest</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>packagemanifest</id>
+			<activation>
+				<file><exists>META-INF/MANIFEST.MF</exists></file>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-jar-plugin</artifactId>
+						<version>2.4</version>
+						<configuration>
+							<archive>
+								<manifestFile>META-INF/MANIFEST.MF</manifestFile>
+							</archive>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>packageSources</id>
+			<activation>
+				<property>
+					<name>!skip-sources</name>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<version>3.3.1</version>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<!-- good default phase, runs before deploy -->
+								<phase>verify</phase>
+								<goals>
+									<goal>jar-no-fork</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+				
+			</build>
+		</profile>
+
 		<!-- This profile is activated when the version bump script is executed.
 			It adds each the aggregator pom of the component (../../) as a child module 
 			of this component, so the tycho-version-plugin will be able to detect
@@ -55,6 +221,122 @@
 		</profile>
 	</profiles>
 
+	<repositories>
+		<repository>
+			<id>qgears-opensource-maven-public</id>
+			<name>Q-Gears opensource maven repository</name>
+			<url>${qgears-opensource-maven-repo-public-url}</url>
+			<layout>default</layout>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>qgears-opensource-maven-nightly</id>
+			<name>Q-Gears opensource maven repository snapshots</name>
+			<url>${qgears-opensource-maven-repo-nightly-url}</url>
+			<layout>default</layout>
+			<snapshots>
+				<enabled>true</enabled>
+				<updatePolicy>always</updatePolicy>
+			</snapshots>
+		</repository>
+	</repositories>
+	
+	<distributionManagement>
+		<repository>
+			<id>qgears-opensource-maven-public</id>
+			<name>Q-Gears opensource maven repository</name>
+			<url>${qgears-opensource-maven-public-url}</url>
+			<layout>default</layout>
+		</repository>
+		<snapshotRepository>
+			<id>qgears-opensource-maven-nightly</id>
+			<name>Q-Gears opensource maven repository snapshots</name>
+			<url>${qgears-opensource-maven-nightly-url}</url>
+			<layout>default</layout>
+		</snapshotRepository>
+		<site>
+			<id>joptsimple.site</id>
+			<name>JOptsimple website</name>
+			<url>${project_url}</url>
+		</site>
+	</distributionManagement>
+
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-project-info-reports-plugin</artifactId>
+				<version>2.9</version>
+				<reportSets>
+					<reportSet>
+						<reports>
+							<report>index</report>
+							<report>modules</report>
+						</reports>
+					</reportSet>
+				</reportSets>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.2.0</version>
+				<configuration>
+				    <quiet>false</quiet>
+				<detectJavaApiLink>false</detectJavaApiLink>
+				<source>8</source>
+                    <excludePackageNames>org.lwjgl:org.lwjgl.*:lwjgl.standalone</excludePackageNames>
+				</configuration>
+				<reportSets>
+					<reportSet>
+						<reports>
+							<report>javadoc</report>
+						</reports>
+					</reportSet>
+				</reportSets>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.sonar-plugins</groupId>
+				<artifactId>maven-report</artifactId>
+				<configuration>
+					<sonarHostURL>${gl_sonar_url}</sonarHostURL>
+					<branch>${gl_sonar_branch_opensource}</branch>
+				</configuration>
+				<version>0.1</version>
+			</plugin>
+			<plugin>
+				<groupId>org.jcoffee</groupId>
+				<artifactId>custom-report-maven-plugin</artifactId>
+				<version>0.2</version>
+				<configuration>
+					<generateReport>
+						<command>${gl_test_report_link_gen_command}</command>
+						<arguments>
+							<argument>${project.build.directory}/site/test-report</argument>
+							<argument>${project.artifactId}</argument>
+							<argument>../../application-report/gen/test-report/testreport.html#tu_</argument>
+						</arguments>
+					</generateReport>
+					<name>Further reports</name>
+					<description>Further generated project reports.</description>
+					<reportFolder>${project.build.directory}/site/test-report</reportFolder>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.owasp</groupId>
+				<artifactId>dependency-check-maven</artifactId>
+ 				<version>6.0.3</version>
+				<reportSets>
+					<reportSet>
+						<reports>
+							<report>aggregate</report>
+						</reports>
+					</reportSet>
+				</reportSets>
+			</plugin>
+		</plugins>
+	</reporting>
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
