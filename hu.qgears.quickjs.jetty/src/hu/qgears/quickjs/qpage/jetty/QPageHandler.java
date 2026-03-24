@@ -38,7 +38,6 @@ import hu.qgears.quickjs.utils.IQTestEnvironment;
 import hu.qgears.quickjs.utils.UtilHttpContext;
 import hu.qgears.quickjs.utils.UtilJetty;
 import hu.qgears.quickjs.utils.gdpr.GdprSession;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.http.HttpSession;
 
@@ -171,6 +170,7 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 							}
 							contextConfigurator.configurePageContext(page, context, queryWrapper);
 							newPage.internalStartPlatform();
+							onGetAfterStartPlatform(platform);
 							QPageContext qpc=QPageContext.getCurrent();
 							{
 								Object attrib=sess.getAttribute(GdprSession.keyUseNoCookieSession);
@@ -287,4 +287,12 @@ at java.base/java.net.URI$Parser.parse(URI.java:3114)
 		this.userParameterGetter=userParameterGetter;
 		return this;
 	}
+
+	/**
+	 * Configure the JettyPlatform object upon a GET request and the creation of a page.
+	 * Eg. set the idle timeout.
+	 *
+	 * @param platform
+	 */
+	protected void onGetAfterStartPlatform(JettyPlatform platform) {}
 }
