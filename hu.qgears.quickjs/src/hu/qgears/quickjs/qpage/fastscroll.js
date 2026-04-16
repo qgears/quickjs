@@ -12,6 +12,7 @@ class FastScroll
 		this.dom.onscroll=this.onscroll.bind(this);
 		this.optionclickhandler=this.onoptionclick.bind(this);
 		this.setEntries([]);
+		this.selectedIndex=0;
 	}
 	setClickListener(fun)
 	{
@@ -31,17 +32,21 @@ class FastScroll
 	select(index)
 	{
 		// console.info("scroll to: "+index);
+		this.selectedIndex=Number(index);
 		this.dom.scrollTo(0, this.entryHeight*index);
+		this.updateSelection();
 	}
 	onoptionclick(event)
 	{
+		this.selectedIndex = event.target.data;
 		if(this.clickListener)
 		{
-			this.clickListener(event.target.data);
+			this.clickListener(this.selectedIndex );
 		}else
 		{
-			console.info("no click listener: "+event.target.data);
+			console.info("no click listener: "+this.selectedIndex );
 		}
+		this.updateSelection();
 	}
 	onscroll()
 	{
@@ -67,6 +72,19 @@ class FastScroll
 			}
 		}
 	}
+	updateSelection() {
+		if (this.selectedIndex >= 0) {
+			for(var idxStr in this.entries) {
+				var nd = this.entries[Number(idxStr)];
+				var index = nd.data;	
+				if (index === this.selectedIndex) {
+					nd.className="option-selected";
+				} else {
+					nd.className="option";
+				}
+			}
+		}
+	}
 	makeVisible(index)
 	{
 		if(index>=0 && index<this.nEntry)
@@ -78,7 +96,11 @@ class FastScroll
 				nd.data=index;
 				var st=nd.style;
 				this.entries[index]=nd;
-				nd.className="option";
+				if (index === this.selectedIndex) {
+					nd.className="option-selected";
+				} else {
+					nd.className="option";
+				}
 				nd.innerHTML=this.options[index];
 				st.position="absolute";
 				st.top=(this.entryHeight*index)+"px";
