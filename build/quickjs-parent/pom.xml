@@ -12,7 +12,7 @@
  	<url>${project_url}</url>
 
 	<properties>
-		<opensource-utils-version>[12.0.1-SNAPSHOT,)</opensource-utils-version>
+		<opensource-utils-version>[12.1.0,)</opensource-utils-version>
 		<jetty-version>11.0.11</jetty-version>
 		<junit-version>4.8.2</junit-version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -238,7 +238,7 @@
 			<layout>default</layout>
 			<snapshots>
 				<enabled>true</enabled>
-				<updatePolicy>always</updatePolicy>
+				<updatePolicy>never</updatePolicy>
 			</snapshots>
 		</repository>
 	</repositories>

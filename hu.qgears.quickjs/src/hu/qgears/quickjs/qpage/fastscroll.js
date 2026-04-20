@@ -38,7 +38,16 @@ class FastScroll
 	}
 	onoptionclick(event)
 	{
-		this.selectedIndex = event.target.data;
+		var dom = event.target;
+		this.selectedIndex = -1;	
+		while (dom) {
+			if (dom.data  === undefined ) {
+				dom = dom.parentElement;
+			} else {
+				this.selectedIndex = dom.data;
+				break;
+			}
+		}
 		if(this.clickListener)
 		{
 			this.clickListener(this.selectedIndex );

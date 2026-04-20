@@ -5,7 +5,7 @@ import java.util.List;
 
 public class QSelectFastScroll extends QSelect {
 	static List<String> scriptReferences=new ArrayList<>();
-	{
+	static {
 		scriptReferences.add("fastscroll.js");
 		scriptReferences.add(QSelectFastScroll.class.getSimpleName()+".js");
 	}
